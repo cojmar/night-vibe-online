@@ -1202,19 +1202,19 @@ Object.values(this.otherPlayers).forEach(p => {
         }
       }
       
-      if (this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
-         this.enemySpawnTimer += 16.67 * dt;
-         const nonBossCount = this.enemies.filter(e => e.alive && e.name !== 'BOSS').length;
-         if (this.enemySpawnTimer >= this.enemySpawnInterval && nonBossCount < (4 + Math.floor(this.wave/2))) {
-           this.enemySpawnTimer = 0;
-           const spawnIndex = this.waveTotalEnemies - this.waveEnemiesToSpawn;
-           const newEnemy = new Enemy(this, this.bossActive, false, spawnIndex);
-           if (!this.enemies.find(e => e.id === newEnemy.id)) {
-               this.enemies.push(newEnemy);
-           }
-           this.waveEnemiesToSpawn--;
-         }
-      }
+if (this.isHost && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
+          this.enemySpawnTimer += 16.67 * dt;
+          const nonBossCount = this.enemies.filter(e => e.alive && e.name !== 'BOSS').length;
+          if (this.enemySpawnTimer >= this.enemySpawnInterval && nonBossCount < (4 + Math.floor(this.wave/2))) {
+            this.enemySpawnTimer = 0;
+            const spawnIndex = this.waveTotalEnemies - this.waveEnemiesToSpawn;
+            const newEnemy = new Enemy(this, this.bossActive, false, spawnIndex);
+            if (!this.enemies.find(e => e.id === newEnemy.id)) {
+                this.enemies.push(newEnemy);
+            }
+            this.waveEnemiesToSpawn--;
+          }
+       }
       
       this.syncTimer += 16.67 * dt;
       if (this.syncTimer >= 50) {
