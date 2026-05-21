@@ -116,6 +116,14 @@ export default class UI {
     
     document.getElementById('stat-dmg-boost').textContent = '+' + dmgBoost;
     document.getElementById('stat-aoe-boost').textContent = '+' + aoeBoost;
+    
+    const baseSpd = CLASS_DATA[player.classType].spd;
+    const diff = Math.max(0, player.spd - baseSpd);
+    const cdReduction = diff * 0.2; // 200ms per point
+    const currentCd = Math.max(1.0, 5.0 - cdReduction);
+    
+    document.getElementById('stat-cd-val').textContent = currentCd.toFixed(1) + 's';
+    document.getElementById('stat-cd-red').textContent = cdReduction.toFixed(1);
   }
 
   updateScore(player, wave, waveKilled = 0, waveTotal = 0) {
