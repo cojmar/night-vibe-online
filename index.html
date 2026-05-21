@@ -514,13 +514,24 @@
       <div class="menu-grid">
          <!-- Left Column: Player & Lobby -->
          <div class="menu-col">
-            <div style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #f39c12; border-radius:6px; margin-bottom:15px;">
+             <div style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #f39c12; border-radius:6px; margin-bottom:15px;">
                <label for="nick-input" style="font-size:0.9em; color:#bdc3c7; display:block; margin-bottom:5px;">Your Nickname:</label>
                <input type="text" id="nick-input" maxlength="16" style="width:100%; padding:10px; background:rgba(0,0,0,0.6); border:none; border-bottom:2px solid #f39c12; color:white; border-radius:4px; font-size:1.1em; outline:none; box-sizing:border-box;" />
                <div id="menu-resets-display" style="color:#9b59b6; font-weight:bold; margin-top:12px; font-size:1.1em; text-align:center;">🔄 Resets: 0</div>
             </div>
-            <div class="menu-player-list" id="menu-player-list">
-               <div style="color:#ffd700; font-size:1.1em; font-weight:bold; border-bottom:1px solid #34495e; padding-bottom:8px; margin-bottom:12px;">Lobby Players</div>
+            
+            <div style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #3498db; border-radius:6px; margin-bottom:15px; font-size:0.85em; color:#ecf0f1; line-height:1.4;">
+               <div style="color:#3498db; font-size:1.2em; font-weight:bold; border-bottom:1px solid #34495e; padding-bottom:5px; margin-bottom:8px;">📖 Gameplay Rules</div>
+               <ul style="margin:0; padding-left:15px; display:flex; flex-direction:column; gap:6px;">
+                   <li><strong style="color:#f1c40f;">Controls:</strong> Click/Tap to move. Click enemies to auto-attack.</li>
+                   <li><strong style="color:#e74c3c;">Skills:</strong> Keyboard <b>1</b> and <b>2</b> (or tap skill icons) to aim/cast attacks.</li>
+                   <li><strong style="color:#9b59b6;">Rebirth:</strong> At <b style="color:#fff;">Level 4</b> you can Reset! Gain permanent stat points. Every reset increases the level requirement by +5.</li>
+                   <li><strong style="color:#2ecc71;">Chat:</strong> Press <b>Enter</b> during gameplay to talk to everyone!</li>
+               </ul>
+            </div>
+            
+            <div class="menu-player-list" id="menu-player-list" style="flex:1; background:rgba(0,0,0,0.3); border:1px solid #34495e; border-radius:6px; padding:10px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+               <div style="color:#ffd700; font-size:1.1em; font-weight:bold; border-bottom:1px solid #34495e; padding-bottom:8px; margin-bottom:4px;">Lobby Players</div>
             </div>
          </div>
          
