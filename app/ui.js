@@ -50,7 +50,7 @@ export default class UI {
     document.getElementById('class-icon').textContent = cd.icon;
     document.getElementById('class-card-name').textContent = cd.name;
     document.getElementById('stat-hp').innerHTML = `<strong style="color:#e74c3c">HP (Health Points): ${cd.hp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Maximum life capacity. If it reaches 0, you die.</span>`;
-    document.getElementById('stat-mp').innerHTML = `<strong style="color:#3498db">MP (Mana Points): ${cd.mp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Controls S2 AOE size and cooldown — higher MP = bigger area and faster recharge.</span>`;
+    document.getElementById('stat-mp').innerHTML = `<strong style="color:#9b59b6">SPD (Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Increases movement speed, S2 AOE size, and reduces S2 cooldown — higher SPD = faster and bigger attacks.</span>`;
     document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies. Scales with level and stat upgrades.</span>`;
 
     const sk = SKILL_DESC[this.selectedClass];
@@ -145,13 +145,13 @@ export default class UI {
     document.getElementById('stat-s1-val').textContent = (100 + parseInt(s1Boost)) + '%';
     document.getElementById('stat-s1-boost').textContent = s1Boost;
     
-    // MP -> S2 AOE
+    // SPD -> S2 AOE
     const aoeScale = 1 + (player.spd - baseSpd) * 0.02;
     const aoeBoost = ((aoeScale - 1) * 100).toFixed(0);
     document.getElementById('stat-aoe-val').textContent = (100 + parseInt(aoeBoost)) + '%';
     document.getElementById('stat-aoe-boost').textContent = aoeBoost;
     
-    // MP -> S2 CD
+    // SPD -> S2 CD
     const diffSpd = Math.max(0, player.spd - baseSpd);
     const cdMs = Math.max(1000, 5000 - diffSpd * 200);
     const red = (5000 - cdMs) / 1000;

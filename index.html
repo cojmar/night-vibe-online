@@ -103,6 +103,7 @@
     .class-stats .stat.hp { background: rgba(231,76,60,0.3); }
     .class-stats .stat.atk { background: rgba(52,152,219,0.3); }
     .class-stats .stat.spd { background: rgba(155,89,182,0.3); }
+    .class-stats .stat.mp { display: none; }
     .class-skills { font-size: 0.7em; text-align: left; line-height: 1.4; color: #aaa; }
     .class-skills .s { color: #ffd700; font-weight: bold; }
     .class-controls { font-size: 0.5em; text-align: center; line-height: 1.6; color: #999; }
@@ -434,7 +435,7 @@
                 <div class="class-card-scroll">
                   <div class="class-stats" style="font-size:0.9em; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; text-align:left; align-self:stretch; background:rgba(0,0,0,0.5); padding:15px; border-radius:6px; border:1px solid #34495e;">
                      <div class="stat hp" id="stat-hp">HP: 120</div>
-                     <div class="stat mp" id="stat-mp">MP: 40</div>
+                     <div class="stat spd" id="stat-mp">SPD: 8</div>
                      <div class="stat atk" id="stat-atk">ATK: 22</div>
                    </div>
                   <div class="controls-section" id="controls-section" style="font-size:1em; color:#aaa; align-self:center;"></div>
@@ -482,13 +483,9 @@
                  <span><span class="highlight" id="stat-hp-val">0</span> <button id="btn-up-hp" class="stat-up-btn" style="display:none;">+</button></span>
                </div>
                <div>
-                 <span>MP:</span>
-                 <span><span class="highlight" id="stat-mp-val">0</span> <button id="btn-up-mp" class="stat-up-btn" style="display:none;">+</button></span>
-               </div>
-               <div style="border-bottom: 1px dashed #34495e; padding-bottom: 3px; margin-bottom: 1px;">
-                 <span>MP:</span> 
-                 <span><span class="highlight" id="stat-spd-val">0</span> <button id="btn-up-spd" class="stat-up-btn" style="display:none;">+</button></span>
-               </div>
+                  <span>SPD:</span>
+                  <span><span class="highlight" id="stat-spd-val">0</span> <button id="btn-up-spd" class="stat-up-btn" style="display:none;">+</button></span>
+                </div>
                <div><span>S1 Size/Range:</span> <span><span class="highlight" id="stat-s1-val">100%</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-s1-boost">0</span>%)</span></span></div>
                <div><span>S2 AOE:</span> <span><span class="highlight" id="stat-aoe-val">100%</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-aoe-boost">0</span>%)</span></span></div>
                <div><span>S2 CD:</span> <span><span class="highlight" id="stat-cd-val">5.0s</span> <span style="color:#2ecc71; font-size:0.9em;">(-<span id="stat-cd-red">0.0</span>s)</span></span></div>

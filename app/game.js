@@ -686,7 +686,7 @@ export default class Game {
     this.s2MaxCooldown = Math.max(1000, 5000 - diff * 200);
     this.s2Cooldown = this.s2MaxCooldown;
     
-    // MP controls AOE
+    // SPD controls AOE
     const aoeScale = 1 + (this.player.spd - CLASS_DATA[this.player.classType].spd) * 0.02;
     const lvlScale = Math.min(1.0, 0.5 + ((this.player.level || 1) - 1) * 0.055);
     
@@ -713,8 +713,8 @@ export default class Game {
     switch (this.player.classType) {
       case 'warrior':
         const waveCount = 1 + charges;
-        const mpDiff = Math.max(0, this.player.spd - CLASS_DATA.warrior.spd);
-        const waveDistance = (120 + mpDiff * 6) * areaMulti;
+        const spdDiff = Math.max(0, this.player.spd - CLASS_DATA.warrior.spd);
+        const waveDistance = (120 + spdDiff * 6) * areaMulti;
         const waveSpread = 0.12 + (aoeScale - 1) * 0.08;
         
         for (let i = 0; i < waveCount; i++) {
