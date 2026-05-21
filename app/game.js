@@ -1370,7 +1370,11 @@ export default class Game {
          this.player.updateMovement(dt, this);
          
          if (this.player.isChargingS2) {
-             const chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? 5 : 1;
+             const baseSpd = typeof CLASS_DATA !== 'undefined' && CLASS_DATA[this.player.classType] ? CLASS_DATA[this.player.classType].spd : 10;
+             const spdDiff = Math.max(0, this.player.spd - baseSpd);
+             const spdMulti = 1 + spdDiff * 0.05; // 5% faster charge per extra SPD point
+             const baseChargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? 5 : 1;
+             const chargeSpeed = baseChargeSpeed * spdMulti;
              this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67 * chargeSpeed;
              const maxCharges = 3 + (this.player.resets || 0);
              const newCount = Math.min(maxCharges, Math.floor(this.player.s2ChargeTime / 1000));
