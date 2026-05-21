@@ -23,11 +23,15 @@ window.app = new class {
         }
         const nickInput = document.getElementById('nick-input');
         nickInput.value = nick;
-        nickInput.addEventListener('change', (e) => {
+        let nickSendTimer = null;
+        nickInput.addEventListener('input', (e) => {
             const newNick = e.target.value.trim() || 'Player_' + Math.floor(Math.random() * 9000 + 1000);
             localStorage.setItem('nrpg_nick', newNick);
-            this.net.send_cmd('nick', { nick: newNick });
             if (this.game && this.game.player) this.game.player.nick = newNick;
+            clearTimeout(nickSendTimer);
+            nickSendTimer = setTimeout(() => {
+                this.net.send_cmd('nick', { nick: newNick });
+            }, 300);
         });
 
         // Chat
@@ -77,7 +81,9 @@ window.app = new class {
                 const selfStatus = (this.game && this.game.state === 'PLAYING') ? '<span style="color:#e74c3c">[In Game]</span>' : '<span style="color:#2ecc71">[In Menu]</span>';
                 html += `<div style="font-size:0.9em; padding:2px 0;">${nickInput.value} (You) ${selfStatus}</div>`;
                 
+                const myUid = (this.net.me && this.net.me.info) ? this.net.me.info.user : null;
                 for (let uid in this.net.room.users) {
+                    if (uid === myUid) continue;
                     const u = this.net.room.users[uid];
                     const uNick = u.data && u.data.nick ? u.data.nick : uid.substring(0,8);
                     const status = (u.data && u.data.inGame) ? '<span style="color:#e74c3c">[In Game]</span>' : '<span style="color:#2ecc71">[In Menu]</span>';

@@ -57,7 +57,7 @@ export default class UI {
     
     // Calculate derived stats from HP/MP/ATK
     const baseMoveSpeed = { warrior: 2.5, magicgladiator: 2.3, archer: 2.0, mage: 1.7 }[this.selectedClass] || 2.5;
-    const baseS2Cooldown = Math.max(1000, 5000 - (cd.spd * 200));
+    const baseS2Cooldown = 5000;
     const s1Scale = 1.0;
     const aoeScale = 1.0;
     const armor = Math.floor(cd.hp / 10);
