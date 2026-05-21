@@ -566,19 +566,24 @@ export default class Player {
     // Overhead Player Tag (Not mirrored)
     ctx.save();
     ctx.translate(px, py + walkBob);
+    
+    // Scale offset based on character size
+    const tagBaseY = -90 * lvlScale - 15;
+    
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.fillRect(-45, -114, 90, 16);
+    ctx.fillRect(-45, tagBaseY - 8, 90, 16);
     ctx.fillStyle = this.isLocal ? '#f39c12' : '#ecf0f1';
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const dispName = (this.nick && this.nick.trim() !== '') ? this.nick : this.id.substring(0, 12);
-    ctx.fillText(dispName, 0, -106);
+    ctx.fillText(dispName, 0, tagBaseY);
     
     if (this.isChargingS2) {
       const chargeCount = this.s2ChargeCount || 0;
+      const chargeBaseY = tagBaseY - 24;
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(-30, -130, 60, 10);
+      ctx.fillRect(-30, chargeBaseY - 4, 60, 10);
       for (let i=0; i<3; i++) {
         if (i < chargeCount) {
           ctx.fillStyle = '#ffd700';
@@ -587,7 +592,7 @@ export default class Player {
           ctx.fillStyle = '#555';
           ctx.shadowBlur = 0;
         }
-        ctx.fillRect(-27 + i*19, -128, 16, 6);
+        ctx.fillRect(-27 + i*19, chargeBaseY - 2, 16, 6);
       }
       ctx.shadowBlur = 0;
     }

@@ -257,7 +257,8 @@ export default class UI {
        const infoEl = el.querySelector('.remote-player-info');
        const fillEl = el.querySelector('.remote-hp-fill');
        
-       const newName = `${key.substring(0,8)}${aliveText}`;
+       const dispName = (p.nick && p.nick.trim() !== '') ? p.nick : key.substring(0,8);
+       const newName = `${dispName}${aliveText}`;
        if (nameEl.textContent !== newName) nameEl.textContent = newName;
        
        const newInfoText = `Lv.${p.level || 1} | Kills: ${p.kills || 0}/${p.reqKills || 5}`;

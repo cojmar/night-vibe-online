@@ -36,7 +36,7 @@ window.app = new class {
         const sendChat = () => {
             const msg = chatInput.value.trim();
             if (msg) {
-                this.net.send_cmd('msg', { msg: msg });
+                this.net.send_cmd('room.msg', { msg: msg });
                 chatInput.value = '';
             }
         };

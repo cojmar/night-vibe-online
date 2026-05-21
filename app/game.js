@@ -495,6 +495,7 @@ export default class Game {
     this.initBgParticles();
     
     document.getElementById('menu-panel').classList.add('hidden');
+    document.getElementById('main-area').style.display = 'flex';
     this.canvas.style.display = 'block';
     document.getElementById('hud').classList.add('visible');
     document.getElementById('cd-ring').classList.add('visible');
@@ -539,6 +540,7 @@ export default class Game {
     document.getElementById('compact-log').classList.remove('visible');
     document.getElementById('walk-indicator').classList.remove('visible');
     document.getElementById('menu-panel').classList.remove('hidden');
+    document.getElementById('main-area').style.display = 'none';
     this.canvas.style.display = 'none';
     document.getElementById('death-overlay').classList.remove('show');
     
@@ -1176,6 +1178,11 @@ export default class Game {
                this.selectedEnv = ENV_LIST[(this.wave - 1) % ENV_LIST.length];
                this.generateScenery();
                this.ui.updateEnvironment(this.selectedEnv);
+               // The menu is already styled nicely and covers everything
+               // But let's make sure it handles resize cleanly
+               if (this.state === 'MENU') {
+                   document.getElementById('main-area').style.display = 'none';
+               }
                this.initBgParticles();
                if (this.wave % 5 === 0) {
                    this.bossActive = true;
