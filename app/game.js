@@ -1378,10 +1378,10 @@ export default class Game {
                  this.player.s2ChargeCount = newCount;
                  this.spawnParticles(this.player.x, this.player.y - 40, '#ffd700', 15, 4);
                  this.broadcastState();
-                 
-                 if (this.player.s2ChargeCount >= maxCharges) {
-                     this.releaseSkill2();
-                 }
+             }
+             
+             if (this.player.s2ChargeCount >= maxCharges && this.player.s2ChargeTime >= maxCharges * 1000 + 150) {
+                 this.releaseSkill2();
              }
          }
          
