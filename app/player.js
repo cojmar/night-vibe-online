@@ -60,6 +60,8 @@ export default class Player {
       } else if (this.classType === 'magicgladiator') {
          this.atk += 1.5; this.spd += 1; this.maxHp += 15;
       }
+      this.atk += 1;
+      this.maxHp += 1;
       this.hp = this.maxHp;
   }
 

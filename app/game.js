@@ -139,6 +139,7 @@ export default class Game {
         
         if (data.data.enemyKilled && this.player && data.data.enemyKilled === this.net.me.info.user) {
             if (this.player.addKill()) {
+                this.s2Cooldown = 0; // Cooldowns reset
                 this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
                 this.ui.updateHUD(this.player);
                 this.spawnParticles(this.player.x, this.player.y - 20, '#ffd700', 60, 10);
@@ -574,8 +575,8 @@ export default class Game {
     this.s2MaxCooldown = Math.max(1000, 5000 - diff * 200);
     this.s2Cooldown = this.s2MaxCooldown;
     
-    // Dynamic ATK radius scale
-    const atkScale = 1 + (this.player.atk - CLASS_DATA[this.player.classType].atk) * 0.05;
+    // Dynamic ATK radius scale - accentuated
+    const atkScale = 1 + (this.player.atk - CLASS_DATA[this.player.classType].atk) * 0.1;
     
     this.player.action = 'attack';
     this.player.animTimer = 25;

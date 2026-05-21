@@ -101,6 +101,17 @@ export default class UI {
     const pct = Math.max(0, (player.hp / player.maxHp) * 100);
     document.getElementById('hp-bar').style.width = pct + '%';
     document.getElementById('hp-text').textContent = `HP: ${Math.floor(player.hp)} / ${player.maxHp}`;
+    
+    document.getElementById('stat-atk-val').textContent = player.atk.toFixed(1);
+    document.getElementById('stat-spd-val').textContent = player.spd.toFixed(1);
+    
+    const baseAtk = CLASS_DATA[player.classType].atk;
+    const dmgBoost = (player.atk - baseAtk).toFixed(1);
+    const atkScale = 1 + (player.atk - baseAtk) * 0.1;
+    const aoeBoost = ((atkScale - 1) * 100).toFixed(0) + '%';
+    
+    document.getElementById('stat-dmg-boost').textContent = '+' + dmgBoost;
+    document.getElementById('stat-aoe-boost').textContent = '+' + aoeBoost;
   }
 
   updateScore(player, wave, waveKilled = 0, waveTotal = 0) {

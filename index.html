@@ -153,6 +153,12 @@
     }
     .score-display .kills { font-size: 0.85em; color: #ffd700; font-weight: bold; }
     .score-display .level { font-size: 0.7em; color: #aaa; margin-top: 2px; }
+    .stats-display {
+      background: rgba(0,0,0,0.6); border: 1px solid #34495e;
+      border-radius: 0; padding: 6px 10px; font-size: 0.65em; color: #bdc3c7;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .stats-display .highlight { color: #f1c40f; font-weight: bold; }
     .remote-player-hp {
       background: rgba(0,0,0,0.6); border: 1px solid #4a4a6a;
       padding: 4px 6px; border-radius: 0;
@@ -382,6 +388,10 @@
             <div class="score-display">
               <div class="kills">⭐ Lv.<span id="player-level">1</span> | 💀 <span id="kill-count">0</span>/<span id="req-kill-count">5</span></div>
               <div class="level">📊 Wave: <span id="wave-count">1</span> | Env: <span id="env-name">Forest</span></div>
+            </div>
+            <div class="stats-display" id="stats-display">
+               <div>ATK: <span class="highlight" id="stat-atk-val">0</span> | SPD: <span class="highlight" id="stat-spd-val">0</span></div>
+               <div>DMG Boost: <span class="highlight" id="stat-dmg-boost">0</span> | AOE Boost: <span class="highlight" id="stat-aoe-boost">0</span></div>
             </div>
             <div id="remote-players-list"></div>
           </div>
