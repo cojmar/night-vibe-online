@@ -85,6 +85,13 @@ export default class UI {
         if (atmosSlider) atmosSlider.disabled = autoGraphicsCheck.checked;
     }
     
+    const autoLimitCheck = document.getElementById('auto-limit-check');
+    if (autoLimitCheck) {
+        autoLimitCheck.addEventListener('change', (e) => {
+            if (this.game) this.game.settings.autoLimit = e.target.checked;
+        });
+    }
+    
     document.getElementById('btn-up-atk').addEventListener('click', () => { if(this.game) this.game.upgradeStat('atk'); });
     document.getElementById('btn-up-spd').addEventListener('click', () => { if(this.game) this.game.upgradeStat('spd'); });
     document.getElementById('btn-up-hp').addEventListener('click', () => { if(this.game) this.game.upgradeStat('hp'); });

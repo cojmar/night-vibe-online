@@ -47,7 +47,7 @@ export default class Game {
     this.syncTimer = 0;
     this.pendingHits = [];
     
-    this.settings = { particles: 1.0, bgElements: 1.0, groundElements: 1.0, atmos: 1.0, autoGraphics: true };
+    this.settings = { particles: 1.0, bgElements: 1.0, groundElements: 1.0, atmos: 1.0, autoGraphics: true, autoLimit: true };
     this.atmosEffects = [];
 
     this.bindEvents();
@@ -1147,18 +1147,19 @@ export default class Game {
       this.frameCount = (this.frameCount || 0) + 1;
       const now = Date.now();
       if (!this.lastFpsTime) this.lastFpsTime = now;
-      if (now - this.lastFpsTime >= 1000) {
-          this.fps = this.frameCount;
+      if (now - this.lastFpsTime >= 2000) {
+          this.fps = this.frameCount / 2;
           this.frameCount = 0;
           this.lastFpsTime = now;
           
           if (this.settings && this.settings.autoGraphics && !document.hidden && document.hasFocus()) {
               let changed = false;
               if (this.fps < 40) {
-                  this.settings.particles = Math.max(0.2, this.settings.particles - 0.10);
-                  this.settings.bgElements = Math.max(0.2, this.settings.bgElements - 0.10);
-                  this.settings.groundElements = Math.max(0.2, this.settings.groundElements - 0.10);
-                  this.settings.atmos = Math.max(0.2, this.settings.atmos - 0.10);
+                  const minLim = this.settings.autoLimit ? 0.4 : 0.0;
+                  this.settings.particles = Math.max(minLim, this.settings.particles - 0.10);
+                  this.settings.bgElements = Math.max(minLim, this.settings.bgElements - 0.10);
+                  this.settings.groundElements = Math.max(minLim, this.settings.groundElements - 0.10);
+                  this.settings.atmos = Math.max(minLim, this.settings.atmos - 0.10);
                   changed = true;
               } else if (this.fps >= 55 && (this.settings.particles < 2.0 || this.settings.bgElements < 2.0 || this.settings.groundElements < 2.0 || this.settings.atmos < 2.0)) {
                   this.settings.particles = Math.min(2.0, this.settings.particles + 0.05);
