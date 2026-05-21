@@ -232,11 +232,13 @@ export default class Game {
             this.respawnPlayer();
         }
         this.wave = hostData.wave;
-        this.waveTotalEnemies = hostData.waveTotal || 10;
-        this.waveEnemiesToSpawn = hostData.waveSpawn || 10;
         if (!this.prng) this.prng = new PRNG(hostData.seed);
         else this.prng.seed = hostData.seed;
     }
+    
+    // Always sync these, so a new host doesn't lose spawn state
+    if (hostData.waveTotal !== undefined) this.waveTotalEnemies = hostData.waveTotal;
+    if (hostData.waveSpawn !== undefined) this.waveEnemiesToSpawn = hostData.waveSpawn;
 
     this.kills = hostData.kills;
     this.waveEnemiesKilled = hostData.waveKilled || 0;
@@ -941,12 +943,13 @@ export default class Game {
 
     const cycle = (this.globalTime % 300) / 300; 
     let nightAlpha = 0;
-    if (cycle > 0.4 && cycle <= 0.5) nightAlpha = (cycle - 0.4) * 10;
-    else if (cycle > 0.5 && cycle <= 0.9) nightAlpha = 1;
-    else if (cycle > 0.9) nightAlpha = Math.max(0, 1 - (cycle - 0.9) * 10);
+    if (cycle > 0.45 && cycle <= 0.55) nightAlpha = (cycle - 0.45) * 10;
+    else if (cycle > 0.55 && cycle <= 0.95) nightAlpha = 1;
+    else if (cycle > 0.95) nightAlpha = Math.max(0, 1 - (cycle - 0.95) * 20);
 
     const cx = GAME_W/2, cy = gY;
-    const angle = cycle * Math.PI * 2;
+    // Shift angle so cycle=0 is sunrise (angle = PI)
+    const angle = cycle * Math.PI * 2 + Math.PI;
     const sunX = cx - Math.cos(angle) * 350;
     const sunY = cy + Math.sin(angle) * 250;
     if (sunY < gY + 40) {
@@ -988,6 +991,17 @@ export default class Game {
       const dt = this.lastTime ? Math.min((time - this.lastTime) / 16.67, 3) : 1;
       this.lastTime = time;
       this.globalTime += dt * 0.016;
+      
+      if (this.isHost) {
+          const currentDay = Math.floor(this.globalTime / 300);
+          const newEnv = ENV_LIST[currentDay % ENV_LIST.length];
+          if (this.selectedEnv !== newEnv) {
+              this.selectedEnv = newEnv;
+              this.generateScenery();
+              this.ui.updateEnvironment(this.selectedEnv);
+              this.initBgParticles();
+          }
+      }
 
       this.ctx.setTransform(1, 0, 0, 1, 0, 0);
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -1178,11 +1192,8 @@ export default class Game {
                if (this.player && !this.player.alive) this.respawnPlayer();
                this.wave++;
                this.prng = new PRNG(this.wave * 12345);
-               this.selectedEnv = ENV_LIST[(this.wave - 1) % ENV_LIST.length];
                this.generateScenery();
-               this.ui.updateEnvironment(this.selectedEnv);
-               // The menu is already styled nicely and covers everything
-               // But let's make sure it handles resize cleanly
+               
                if (this.state === 'MENU') {
                    document.getElementById('main-area').style.display = 'none';
                }
