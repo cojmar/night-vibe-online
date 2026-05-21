@@ -340,6 +340,7 @@ export default class Game {
   init() {
     this.resizeObserver = new ResizeObserver(() => this.updateLayout());
     this.resizeObserver.observe(document.getElementById('main-area'));
+    this.resizeObserver.observe(document.body);
     
     window.addEventListener('resize', () => this.updateLayout());
     window.addEventListener('orientationchange', () => this.updateLayout(), { passive: true });
@@ -560,6 +561,12 @@ export default class Game {
     
     this.ui.addLog('⚔️ Fight started! Tap ground to move, tap enemies to attack!', 'player');
     this.updateLayout();
+    setTimeout(() => {
+        if (this.state === 'PLAYING') this.updateLayout();
+    }, 100);
+    setTimeout(() => {
+        if (this.state === 'PLAYING') this.updateLayout();
+    }, 500);
 
     // Recheck host status since we are now playing
     this.checkHost();
