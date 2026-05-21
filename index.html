@@ -54,7 +54,20 @@
       .menu-panel { padding: 15px; overflow-y: auto; }
     }
     
-    .menu-panel.hidden { display: none !important; }
+  .menu-panel.hidden { display: none !important; }
+    .class-card-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      scrollbar-width: thin;
+      scrollbar-color: #4a4a6a rgba(0,0,0,0.3);
+    }
+    .class-card-scroll::-webkit-scrollbar { width: 6px; }
+    .class-card-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+    .class-card-scroll::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
     .menu-panel h3 {
       color: #ffd700; text-align: center; font-size: 0.85em;
       letter-spacing: 1px; text-transform: uppercase;
@@ -408,24 +421,26 @@
          </div>
          
          <!-- Middle Column: Class Selection -->
-         <div class="menu-col center-col">
-            <div class="carousel-nav" style="margin-bottom: 15px; flex: none;">
-              <button class="carousel-btn" id="btn-prev-class">◀</button>
-              <span class="carousel-title" id="current-class-name" style="font-size:1.8em;">Warrior</span>
-              <button class="carousel-btn" id="btn-next-class">▶</button>
-            </div>
-            <div class="class-card selected" id="class-card" style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center;">
-               <div class="class-icon" id="class-icon" style="font-size:5em; margin-bottom:10px; align-self:center;">⚔️</div>
-               <div class="class-name" id="class-card-name" style="font-size:1.8em; margin: 10px 0; align-self:center;">Warrior</div>
-               <div class="class-stats" style="font-size:0.9em; margin-bottom:20px; display:flex; flex-direction:column; gap:8px; text-align:left; align-self:stretch; background:rgba(0,0,0,0.5); padding:15px; border-radius:6px; border:1px solid #34495e;">
-                  <div class="stat hp" id="stat-hp">HP: 120</div>
-                  <div class="stat mp" id="stat-mp">MP: 40</div>
-                  <div class="stat atk" id="stat-atk">ATK: 22</div>
-                </div>
-               <div class="controls-section" id="controls-section" style="font-size:1em; color:#aaa; margin-bottom:20px; align-self:center;"></div>
-               <button class="btn-start" id="btn-start" style="font-size:1.5em; padding:15px 30px; width:100%; margin-top:auto;">🎮 START GAME</button>
+          <div class="menu-col center-col">
+             <button class="btn-start" id="btn-start" style="font-size:1.5em; padding:12px 30px; width:100%; margin-bottom:15px;">🎮 START GAME</button>
+             <div class="carousel-nav" style="margin-bottom: 15px; flex: none;">
+               <button class="carousel-btn" id="btn-prev-class">◀</button>
+               <span class="carousel-title" id="current-class-name" style="font-size:1.8em;">Warrior</span>
+               <button class="carousel-btn" id="btn-next-class">▶</button>
              </div>
-         </div>
+             <div class="class-card selected" id="class-card" style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; overflow:hidden;">
+                <div class="class-icon" id="class-icon" style="font-size:5em; margin-bottom:10px; align-self:center;">⚔️</div>
+                <div class="class-name" id="class-card-name" style="font-size:1.8em; margin: 10px 0; align-self:center;">Warrior</div>
+                <div class="class-card-scroll">
+                  <div class="class-stats" style="font-size:0.9em; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; text-align:left; align-self:stretch; background:rgba(0,0,0,0.5); padding:15px; border-radius:6px; border:1px solid #34495e;">
+                     <div class="stat hp" id="stat-hp">HP: 120</div>
+                     <div class="stat mp" id="stat-mp">MP: 40</div>
+                     <div class="stat atk" id="stat-atk">ATK: 22</div>
+                   </div>
+                  <div class="controls-section" id="controls-section" style="font-size:1em; color:#aaa; align-self:center;"></div>
+                </div>
+              </div>
+          </div>
          
          <!-- Right Column: Chat -->
          <div class="menu-col">
