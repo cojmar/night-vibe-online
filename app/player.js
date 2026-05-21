@@ -131,7 +131,7 @@ export default class Player {
                 this.isMoving = false;
                 return;
             } else {
-                this.moveTargetX = e.x;
+                this.moveTargetX = Math.max(20, Math.min(GAME_W - 20, e.x));
                 const groundY = getGroundY(gameInstance.selectedEnv);
                 this.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 45, e.y));
                 this.isMoving = true;
