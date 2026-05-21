@@ -558,7 +558,7 @@ export default class Game {
 
   resetLevel() {
       if (!this.player) return;
-      const reqLevel = 10 * Math.pow(2, this.player.resets || 0);
+      const reqLevel = 2 + (this.player.resets || 0) * 5;
       if (this.player.level < reqLevel) return;
       
       if (confirm(`Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * 2} unallocated bonus stats on your next play!`)) {

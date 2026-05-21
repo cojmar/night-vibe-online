@@ -54,7 +54,7 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     this.kills++;
     this.reqKills = Math.floor(5 * Math.pow(this.level, 1.4) + Math.sin(this.level) * 2);
     if (this.kills >= this.reqKills) {
-        const reqLevel = 10 * Math.pow(2, this.resets || 0);
+        const reqLevel = 2 + (this.resets || 0) * 5;
         if (this.level < reqLevel) {
             this.kills -= this.reqKills;
             this.level++;
@@ -158,7 +158,7 @@ updateFromNetwork() {
             const e = this.autoAttackTarget;
             const cd = CLASS_DATA[this.classType];
             const wScale = 1 + (this.atk - cd.atk) * 0.005;
-            const reqLevel = 10 * Math.pow(2, this.resets || 0);
+            const reqLevel = 2 + (this.resets || 0) * 5;
             const lvlScale = 0.5 + 0.5 * ((this.level - 1) / Math.max(1, reqLevel - 1));
             
             let maxRange = 450; // default for ranged
@@ -254,7 +254,7 @@ stopWalking(gameInstance) {
         return;
     }
 
-    const reqLevel = 10 * Math.pow(2, this.resets || 0);
+    const reqLevel = 2 + (this.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.level - 1) / Math.max(1, reqLevel - 1));
 
     if ((this.isMoving || this.action === 'walk') && Math.random() < 0.5) {

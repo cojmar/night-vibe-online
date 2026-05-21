@@ -253,7 +253,7 @@ export default class UI {
     const resetsVal = document.getElementById('stat-resets-val');
     if (resetsVal) resetsVal.textContent = player.resets || 0;
     
-    const reqLevel = 10 * Math.pow(2, player.resets || 0);
+    const reqLevel = 2 + (player.resets || 0) * 5;
     const btnRebirth = document.getElementById('btn-rebirth');
     if (btnRebirth) {
         if (player.level >= reqLevel) {
