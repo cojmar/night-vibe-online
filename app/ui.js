@@ -50,8 +50,19 @@ export default class UI {
     document.getElementById('class-icon').textContent = cd.icon;
     document.getElementById('class-card-name').textContent = cd.name;
     document.getElementById('stat-hp').innerHTML = `<strong style="color:#e74c3c">HP (Health Points): ${cd.hp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Maximum life capacity. If it reaches 0, you die.</span>`;
+    document.getElementById('stat-mp').innerHTML = `<strong style="color:#3498db">MP (Mana Points): ${cd.mp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">S2 charge multiplier — more MP = larger AOE and faster cooldown.</span>`;
     document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies.</span>`;
-    document.getElementById('stat-spd').innerHTML = `<strong style="color:#3498db">SPD (Move Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Movement speed on the map.</span>`;
+    document.getElementById('stat-spd').innerHTML = `<strong style="color:#2ecc71">SPD (Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Movement speed and S2 cooldown reduction.</span>`;
+    
+    let moveSpeed;
+    switch (this.selectedClass) {
+        case 'warrior': moveSpeed = 2.5; break;
+        case 'magicgladiator': moveSpeed = 2.3; break;
+        case 'archer': moveSpeed = 2.0; break;
+        case 'mage': moveSpeed = 1.7; break;
+        default: moveSpeed = 2.5;
+    }
+    document.getElementById('stat-move').innerHTML = `<strong style="color:#2ecc71">MOVE SPEED: ${moveSpeed}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base movement speed on the map.</span>`;
 
     const sk = SKILL_DESC[this.selectedClass];
     document.getElementById('controls-section').innerHTML =

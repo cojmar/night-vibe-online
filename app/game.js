@@ -1068,9 +1068,9 @@ export default class Game {
          }
       }
       
-      Object.values(this.otherPlayers).forEach(p => {
-          p.updateMovement(dt, this);
-      });
+Object.values(this.otherPlayers).forEach(p => {
+           p.updateMovement(dt, this);
+       });
 
       // Z-Sorting (Y-Sorting) for perspective rendering
       let renderables = [];
@@ -1109,18 +1109,33 @@ export default class Game {
           renderables.push({ y: this.player.y, draw: (ctx) => this.player.draw(ctx, dt, this) });
       }
       
-      Object.values(this.otherPlayers).forEach(p => {
-          if (p.inGame) {
-              renderables.push({ y: p.y, draw: (ctx) => {
-                  p.draw(ctx, dt, this);
-                  if (p.projectiles) {
-                      for (let projData of p.projectiles) {
-                          new Projectile(projData).draw(ctx);
-                      }
-                  }
-              }});
-          }
-      });
+Object.values(this.otherPlayers).forEach(p => {
+           if (p.inGame) {
+               const drawY = p._interpActive ? p.interpolatedY : p.y;
+               renderables.push({ y: drawY, draw: (ctx) => {
+                   if (p._interpActive) {
+                       const ox = p.x, oy = p.y;
+                       p.x = p.interpolatedX;
+                       p.y = p.interpolatedY;
+                       p.draw(ctx, dt, this);
+                       if (p.projectiles) {
+                           for (let projData of p.projectiles) {
+                               new Projectile(projData).draw(ctx);
+                           }
+                       }
+                       p.x = ox;
+                       p.y = oy;
+                   } else {
+                       p.draw(ctx, dt, this);
+                       if (p.projectiles) {
+                           for (let projData of p.projectiles) {
+                               new Projectile(projData).draw(ctx);
+                           }
+                       }
+                   }
+               }});
+           }
+       });
       
       // Sort so entities with higher Y (lower on screen) are drawn last (on top)
       renderables.sort((a, b) => a.y - b.y);

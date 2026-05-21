@@ -1,6 +1,6 @@
 import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
 
-export default class Player {
+ export default class Player {
   constructor(id, isLocal, classType, x, y) {
     this.id = id;
     this.isLocal = isLocal;
@@ -43,6 +43,15 @@ export default class Player {
     
     // Multiplayer sync fields
     this.input_data = null;
+    
+    // Smooth interpolation for remote players
+    this._interpStartX = null;
+    this._interpStartY = null;
+    this._interpEndX = null;
+    this._interpEndY = null;
+    this._interpStartT = null;
+    this._interpDuration = 150;
+    this._interpActive = false;
   }
 
   addKill() {
@@ -71,8 +80,27 @@ export default class Player {
   updateFromNetwork() {
     if (this.input_data) {
       if (this.input_data.nick !== undefined) this.nick = this.input_data.nick;
-      if (this.input_data.x !== undefined) this.x = this.input_data.x;
-      if (this.input_data.y !== undefined) this.y = this.input_data.y;
+      if (this.input_data.x !== undefined || this.input_data.y !== undefined) {
+        const targetX = this.input_data.x !== undefined ? this.input_data.x : this.x;
+        const targetY = this.input_data.y !== undefined ? this.input_data.y : this.y;
+        const dx = targetX - this.x;
+        const dy = targetY - this.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 2) {
+          this._interpStartX = this.x;
+          this._interpStartY = this.y;
+          this._interpEndX = targetX;
+          this._interpEndY = targetY;
+          this._interpStartT = Date.now();
+          const moveSpeed = this.moveSpeed || 2.5;
+          let duration = (dist / moveSpeed) * 16.67;
+          duration = Math.max(50, Math.min(duration, 250));
+          this._interpDuration = duration;
+          this._interpActive = true;
+        }
+        this.x = targetX;
+        this.y = targetY;
+      }
       if (this.input_data.hp !== undefined) this.hp = this.input_data.hp;
       if (this.input_data.facing !== undefined) this.facing = this.input_data.facing;
       if (this.input_data.action !== undefined) this.action = this.input_data.action;
@@ -183,6 +211,74 @@ export default class Player {
           document.getElementById('walk-indicator').classList.remove('visible');
       }
     }
+  }
+
+  startInterpolation(nx, ny) {
+    if (this.isLocal) return;
+    
+    const dx = nx - this.x;
+    const dy = ny - this.y;
+    const dist = Math.hypot(dx, dy);
+    
+    if (dist < 2) return;
+    
+    const moveSpeed = this.moveSpeed || 2.5;
+    let duration = (dist / moveSpeed) * 16.67;
+    duration = Math.max(50, Math.min(duration, 250));
+    
+    if (this._interpStartX !== null && this._interpStartT !== null) {
+      const remaining = (this._interpStartT + this._interpDuration) - Date.now();
+      if (remaining > 0 && duration < remaining * 0.8) {
+        const t = duration / remaining;
+        this._interpStartX = this.x + (this._interpEndX - this.x) * t;
+        this._interpStartY = this.y + (this._interpEndY - this.y) * t;
+      } else {
+        this._interpStartX = this.x;
+        this._interpStartY = this.y;
+      }
+    } else {
+      this._interpStartX = this.x;
+      this._interpStartY = this.y;
+    }
+    
+    this._interpEndX = nx;
+    this._interpEndY = ny;
+    this._interpStartT = Date.now();
+    this._interpDuration = duration;
+  }
+
+  get interpolatedX() {
+    if (!this._interpActive || this._interpStartX === null || this._interpStartT === null) return this.x;
+    const elapsed = Date.now() - this._interpStartT;
+    if (elapsed >= this._interpDuration) {
+      this._interpActive = false;
+      this._interpStartX = null;
+      this._interpStartY = null;
+      this._interpEndX = null;
+      this._interpEndY = null;
+      this._interpStartT = null;
+      return this._interpEndX;
+    }
+    const t = elapsed / this._interpDuration;
+    const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    return this._interpStartX + (this._interpEndX - this._interpStartX) * eased;
+  }
+
+  get interpolatedY() {
+    if (!this._interpActive || this._interpStartX === null || this._interpStartT === null) return this.y;
+    const elapsed = Date.now() - this._interpStartT;
+    if (elapsed >= this._interpDuration) {
+      this._interpActive = false;
+      this._interpStartX = null;
+      this._interpStartY = null;
+      this._interpEndX = null;
+      this._interpEndY = null;
+      this._interpStartT = null;
+      return this._interpEndY;
+    }
+    const t = elapsed / this._interpDuration;
+    const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    return this._interpStartY + (this._interpEndY - this._interpStartY) * eased;
   }
 
   draw(ctx, dt, gameInstance) {
