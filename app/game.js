@@ -586,27 +586,38 @@ export default class Game {
     this.broadcastState();
   }
 
-  resetLevel() {
+  requestRebirth() {
       if (!this.player) return;
       const reqLevel = 2 + (this.player.resets || 0) * 5;
       if (this.player.level < reqLevel) return;
       
-      if (confirm(`Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * 2} unallocated bonus stats on your next play!`)) {
-          const newResets = (this.player.resets || 0) + 1;
-          
-          let oldBonusStats = 0;
-          if (this.net && this.net.room && this.net.me && this.net.me.info) {
-              const myData = this.net.room.users[this.net.me.info.user]?.data;
-              if (myData && myData.bonusStatPoints) oldBonusStats = myData.bonusStatPoints;
-          }
-          
-          const extraPoints = this.player.level * 2; 
-          const newBonusStats = oldBonusStats + extraPoints;
-          
-          this.net.send_cmd('set_data', { resets: newResets, bonusStatPoints: newBonusStats });
-          
-          this.quitToMenu();
+      const modal = document.getElementById('rebirth-modal');
+      const text = document.getElementById('rebirth-modal-text');
+      if (modal && text) {
+          text.innerText = `Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * 2} unallocated bonus stats on your next play!`;
+          modal.style.display = 'flex';
       }
+  }
+
+  performRebirth() {
+      if (!this.player) return;
+      const reqLevel = 2 + (this.player.resets || 0) * 5;
+      if (this.player.level < reqLevel) return;
+      
+      const newResets = (this.player.resets || 0) + 1;
+      
+      let oldBonusStats = 0;
+      if (this.net && this.net.room && this.net.me && this.net.me.info) {
+          const myData = this.net.room.users[this.net.me.info.user]?.data;
+          if (myData && myData.bonusStatPoints) oldBonusStats = myData.bonusStatPoints;
+      }
+      
+      const extraPoints = this.player.level * 2; 
+      const newBonusStats = oldBonusStats + extraPoints;
+      
+      this.net.send_cmd('set_data', { resets: newResets, bonusStatPoints: newBonusStats });
+      
+      this.quitToMenu();
   }
 
   quitToMenu() {
