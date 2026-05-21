@@ -129,7 +129,7 @@ export default class Player {
 
     this.x = Math.max(20, Math.min(GAME_W - 20, this.x));
     const groundY = getGroundY(gameInstance.selectedEnv);
-    this.y = Math.max(groundY - 50, Math.min(GAME_H - 10, this.y));
+    this.y = Math.max(groundY - 50, Math.min(GAME_H - 45, this.y));
 
     if (dx > 2) this.facing = 1;
     else if (dx < -2) this.facing = -1;

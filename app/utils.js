@@ -1,5 +1,5 @@
 export const GAME_W = 800, GAME_H = 600;
-export const DEPTH_GROUND_TOP = 0.55;
+export const DEPTH_GROUND_TOP = 0.45;
 export const DEPTH_GROUND_BOTTOM = 1.0;
 export const DEAD_BODY_LIFETIME = 2000;
 export const MOVE_SPEED = 2.5;
@@ -27,12 +27,12 @@ export const ENEMY_TYPES = [
 export const ENV_LIST = ['forest','castle','volcano','beach','tundra','swamp'];
 export const ENV_DISPLAY = { forest:'Forest', castle:'Castle', volcano:'Volcano', beach:'Beach', tundra:'Tundra', swamp:'Swamp' };
 export const ENV_CONFIG = {
-  forest: { skyTop:'#0a1628', skyMid:'#1a3a2a', skyBot:'#0d2015', ground:'#0d2015', groundY:0.82 },
-  castle: { skyTop:'#2a2a3a', skyMid:'#3a3a4a', skyBot:'#2a2a3a', ground:'#1a1a2a', groundY:0.78 },
-  volcano:{ skyTop:'#2a0a0a', skyMid:'#4a1a0a', skyBot:'#1a0a0a', ground:'#1a0a0a', groundY:0.85 },
-  beach:  { skyTop:'#1a3a6a', skyMid:'#3a7aaa', skyBot:'#5a9aca', ground:'#d4a574', groundY:0.80 },
-  tundra: { skyTop:'#0a1a3a', skyMid:'#1a3a6a', skyBot:'#e8f0f8', ground:'#c0d8e8', groundY:0.88 },
-  swamp:  { skyTop:'#0a1a0a', skyMid:'#1a2a1a', skyBot:'#0a150a', ground:'#1a2a1a', groundY:0.78 }
+  forest: { skyTop:'#0a1628', skyMid:'#1a3a2a', skyBot:'#0d2015', ground:'#0d2015', groundY:0.52 },
+  castle: { skyTop:'#2a2a3a', skyMid:'#3a3a4a', skyBot:'#2a2a3a', ground:'#1a1a2a', groundY:0.50 },
+  volcano:{ skyTop:'#2a0a0a', skyMid:'#4a1a0a', skyBot:'#1a0a0a', ground:'#1a0a0a', groundY:0.55 },
+  beach:  { skyTop:'#1a3a6a', skyMid:'#3a7aaa', skyBot:'#5a9aca', ground:'#d4a574', groundY:0.51 },
+  tundra: { skyTop:'#0a1a3a', skyMid:'#1a3a6a', skyBot:'#e8f0f8', ground:'#c0d8e8', groundY:0.56 },
+  swamp:  { skyTop:'#0a1a0a', skyMid:'#1a2a1a', skyBot:'#0a150a', ground:'#1a2a1a', groundY:0.48 }
 };
 
 export const SKILL_DESC = {

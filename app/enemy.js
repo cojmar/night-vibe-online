@@ -137,9 +137,9 @@ export default class Enemy {
       this.y += (dy / closestDist) * this.speed * dt;
     }
     
-    const depthTop = GAME_H * 0.55;
+    const depthTop = GAME_H * 0.45;
     if (this.y < depthTop) this.y = depthTop;
-    if (this.y > GAME_H - 10) this.y = GAME_H - 10;
+    if (this.y > GAME_H - 45) this.y = GAME_H - 45;
 
     if (closestDist < 55) {
       this.attackTimer += dt;
