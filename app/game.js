@@ -986,11 +986,17 @@ export default class Game {
     const moonX = cx - Math.cos(moonAngle) * 350;
     const moonY = cy + Math.sin(moonAngle) * 250;
     if (moonY < gY + 40) {
+      const moonGlow = this.ctx.createRadialGradient(moonX, moonY, 20, moonX, moonY, 250);
+      moonGlow.addColorStop(0, `rgba(220, 230, 255, ${nightAlpha * 0.4})`);
+      moonGlow.addColorStop(1, `rgba(220, 230, 255, 0)`);
+      this.ctx.fillStyle = moonGlow;
+      this.ctx.beginPath(); this.ctx.arc(moonX, moonY, 250, 0, Math.PI*2); this.ctx.fill();
+
       this.ctx.fillStyle = '#ecf0f1'; this.ctx.beginPath(); this.ctx.arc(moonX, moonY, 28, 0, Math.PI*2); this.ctx.fill();
     }
     
     if (nightAlpha > 0) {
-      this.ctx.fillStyle = `rgba(5, 5, 20, ${nightAlpha * 0.6})`;
+      this.ctx.fillStyle = `rgba(5, 5, 20, ${nightAlpha * 0.4})`;
       this.ctx.fillRect(0,0,GAME_W,gY);
     }
     
@@ -1328,7 +1334,17 @@ if (this.isHost && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0)
 
       // Global Day/Night Lighting Overlays
       if (this.nightAlpha > 0) {
-         this.ctx.fillStyle = `rgba(0, 0, 8, ${this.nightAlpha * 0.8})`;
+         const env = ENV_CONFIG[this.selectedEnv];
+         const gY = GAME_H * (env ? env.groundY : 0.5);
+         const nightGrad = this.ctx.createLinearGradient(0, 0, 0, GAME_H);
+         // Moon illuminates the sky and background scenery
+         nightGrad.addColorStop(0, `rgba(15, 20, 40, ${this.nightAlpha * 0.25})`); 
+         nightGrad.addColorStop(gY / GAME_H, `rgba(5, 10, 25, ${this.nightAlpha * 0.35})`);
+         // Ground stays very dark
+         nightGrad.addColorStop(gY / GAME_H + 0.01, `rgba(0, 0, 5, ${this.nightAlpha * 0.85})`);
+         nightGrad.addColorStop(1, `rgba(0, 0, 0, ${this.nightAlpha * 0.95})`);
+
+         this.ctx.fillStyle = nightGrad;
          this.ctx.fillRect(0, 0, GAME_W, GAME_H);
       }
       if (this.dayAlpha > 0) {
