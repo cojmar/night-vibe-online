@@ -251,7 +251,7 @@ stopWalking(gameInstance) {
 
     if ((this.isMoving || this.action === 'walk') && Math.random() < 0.5) {
       const trailX = px - this.facing * (8 + Math.random() * 10) * lvlScale;
-      gameInstance.spawnParticles(trailX, py + 2, '#a09080', 2 + Math.floor(Math.random() * 2), 0.8, lvlScale * 1.6);
+      gameInstance.spawnParticles(trailX, py + 40 * lvlScale, '#a09080', 2 + Math.floor(Math.random() * 2), 0.8, lvlScale * 1.6);
     }
 
     ctx.save();
