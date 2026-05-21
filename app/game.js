@@ -1154,8 +1154,14 @@ export default class Game {
           
           if (this.settings && this.settings.autoGraphics && !document.hidden && document.hasFocus()) {
               let changed = false;
+              const minLim = this.settings.autoLimit ? 0.5 : 0.0;
+              
+              if (this.settings.particles < minLim) { this.settings.particles = minLim; changed = true; }
+              if (this.settings.bgElements < minLim) { this.settings.bgElements = minLim; changed = true; }
+              if (this.settings.groundElements < minLim) { this.settings.groundElements = minLim; changed = true; }
+              if (this.settings.atmos < minLim) { this.settings.atmos = minLim; changed = true; }
+
               if (this.fps < 40) {
-                  const minLim = this.settings.autoLimit ? 0.4 : 0.0;
                   this.settings.particles = Math.max(minLim, this.settings.particles - 0.10);
                   this.settings.bgElements = Math.max(minLim, this.settings.bgElements - 0.10);
                   this.settings.groundElements = Math.max(minLim, this.settings.groundElements - 0.10);
