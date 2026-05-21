@@ -33,8 +33,7 @@ export default class Projectile {
       
       for (let e of gameInstance.enemies) {
         if (!e.alive || this.hitIds.has(e)) continue;
-        const enemyCenterY = e.y - 20;
-        if (circleOverlapsCrescentArc(this.originX, this.originY, this.angle, this.traveled, e.x, enemyCenterY, e.size)) {
+        if (circleOverlapsCrescentArc(this.originX, this.originY, this.angle, this.traveled, e.x, e.y, e.size)) {
           gameInstance.dealDamage(e, this.damage, this.critChance);
           gameInstance.applyKnockback(e, this.angle, 50);
           this.hitIds.add(e);
@@ -52,8 +51,7 @@ export default class Projectile {
     else if (this.type === 'slash') {
       for (let e of gameInstance.enemies) {
         if (!e.alive || this.hitIds.has(e)) continue;
-        const enemyCenterY = e.y - 20;
-        const dx = e.x - this.originX, dy = enemyCenterY - this.originY;
+        const dx = e.x - this.originX, dy = e.y - this.originY;
         const dist = Math.hypot(dx, dy);
         const hitInner = this.hitInner || 5;
         const hitOuter = this.radius || 140;
@@ -97,9 +95,8 @@ export default class Projectile {
       
       for (let e of gameInstance.enemies) {
         if (!e.alive) continue;
-        const enemyCenterY = e.y - 20;
         const projHitRadius = (this.type === 'arrow') ? 12 : (this.type === 'bolt' ? 10 : (this.radius || 15));
-        if (Math.hypot(this.x - e.x, this.y - enemyCenterY) < e.size + projHitRadius) {
+        if (Math.hypot(this.x - e.x, this.y - e.y) < e.size + projHitRadius) {
           gameInstance.dealDamage(e, this.damage, this.critChance);
           gameInstance.spawnParticles(this.x, this.y, this.color, 8, 4);
           if (this.type !== 'fireball') { this.life = 0; }
@@ -112,8 +109,7 @@ export default class Projectile {
         const explosionRadius = (this.radius || 15) * 4;
         for (let e of gameInstance.enemies) {
           if (!e.alive) continue;
-          const enemyCenterY = e.y - 20;
-          const d = Math.hypot(this.x - e.x, this.y - enemyCenterY);
+          const d = Math.hypot(this.x - e.x, this.y - e.y);
           if (d < explosionRadius) gameInstance.dealDamage(e, this.damage * (1 - d / explosionRadius), this.critChance);
         }
         gameInstance.spawnParticles(this.x, this.y, '#e67e22', 20, 6);
@@ -123,9 +119,8 @@ export default class Projectile {
     else if (this.type === 'aoe_explosion') {
       for (let e of gameInstance.enemies) {
         if (!e.alive) continue;
-        const enemyCenterY = e.y - 20;
-        const d = Math.hypot(this.x - e.x, this.y - enemyCenterY);
-        if (d < this.radius) {
+        const d = Math.hypot(this.x - e.x, this.y - e.y);
+        if (d < (this.radius || 100)) {
           gameInstance.dealDamage(e, this.damage * (1 - d / (this.radius * 2)), this.critChance);
         }
       }

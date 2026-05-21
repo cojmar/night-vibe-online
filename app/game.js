@@ -501,9 +501,8 @@ export default class Game {
     
     for (let e of this.enemies) {
       if (!e.alive) continue;
-      const enemyCenterY = e.y - 20;
-      const dist = Math.hypot(cx - e.x, cy - enemyCenterY);
-      if (dist < e.size + 25) {
+      const dist = Math.hypot(cx - e.x, cy - e.y);
+      if (dist < e.size + 30) {
         clickedEnemy = e; break;
       }
     }
