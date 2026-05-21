@@ -184,10 +184,15 @@ export default class Enemy {
   }
 
   draw(ctx, groundY) {
-    if (!this.alive) return;
+    let alpha = 1;
+    if (!this.alive) {
+        if (!this.deathTime || Date.now() - this.deathTime > 2000) return;
+        const progress = (Date.now() - this.deathTime) / 2000;
+        alpha = 1 - progress;
+    }
     const now = Date.now();
-    ctx.globalAlpha = 1;
-    if (this.hitFlash > 0) ctx.globalAlpha *= 0.5 + Math.sin(this.hitFlash * 3) * 0.5;
+    ctx.globalAlpha = alpha;
+    if (this.hitFlash > 0 && this.alive) ctx.globalAlpha *= 0.5 + Math.sin(this.hitFlash * 3) * 0.5;
 
     // Shadow
     const eDepth = Math.max(0, Math.min(1, (this.y - groundY) / (GAME_H - groundY)));

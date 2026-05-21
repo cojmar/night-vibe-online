@@ -187,7 +187,15 @@ export default class Game {
       }
     });
 
-    const hostCandidates = activeUsers.length > 0 ? activeUsers : uniqueUsers;
+    const hostCandidates = activeUsers;
+    
+    if (hostCandidates.length === 0) {
+        if (this.isHost) {
+            this.isHost = false;
+            this.net.send_cmd('set_data', { isHost: false });
+        }
+        return;
+    }
     
     // Prefer the user who is already broadcasting as host
     let currentHost = null;
@@ -256,16 +264,16 @@ export default class Game {
            e.y = eData.y;
            this.enemies.push(e);
        }
-       e.serverX = eData.x;
-        e.serverY = eData.y;
-        e.hp = eData.hp;
-        e.maxHp = eData.maxHp;
-        e.alive = eData.alive;
-        e.name = eData.name;
-        e.size = eData.size;
-        e.color = eData.color;
-        e.icon = eData.icon;
-        if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
+       if (eData.x !== undefined) e.serverX = eData.x;
+       if (eData.y !== undefined) e.serverY = eData.y;
+       if (eData.hp !== undefined) e.hp = eData.hp;
+       if (eData.maxHp !== undefined) e.maxHp = eData.maxHp;
+       if (eData.alive !== undefined) e.alive = eData.alive;
+       if (eData.name !== undefined) e.name = eData.name;
+       if (eData.size !== undefined) e.size = eData.size;
+       if (eData.color !== undefined) e.color = eData.color;
+       if (eData.icon !== undefined) e.icon = eData.icon;
+       if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
     });
     // Remove enemies not in host, but keep dead ones until their death animation finishes
     this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
