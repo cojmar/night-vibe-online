@@ -1410,7 +1410,7 @@ if (this.isHost && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0)
        }
       
       this.syncTimer += 16.67 * dt;
-      if (this.syncTimer >= 50) {
+      if (this.syncTimer >= 100) {
          this.syncTimer = 0;
          this.broadcastState();
       }
