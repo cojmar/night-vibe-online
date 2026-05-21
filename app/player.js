@@ -82,6 +82,7 @@ export default class Player {
         this.accent = cd.accent;
       }
       if (this.input_data.inGame !== undefined) this.inGame = this.input_data.inGame;
+      if (this.input_data.alive !== undefined) this.alive = this.input_data.alive;
       if (this.input_data.animTimer !== undefined) this.animTimer = this.input_data.animTimer;
       if (this.input_data.mouseX !== undefined) this.mouseX = this.input_data.mouseX;
       if (this.input_data.mouseY !== undefined) this.mouseY = this.input_data.mouseY;
@@ -137,17 +138,22 @@ export default class Player {
 
   draw(ctx, dt, gameInstance) {
     const px = this.x, py = this.y;
-    if (this.hitFlash > 0) {
-      ctx.globalAlpha = 0.5 + Math.sin(this.hitFlash * 2) * 0.5;
+    const isDead = !this.alive;
+    let baseAlpha = 1;
+    if (isDead) {
+        baseAlpha = 0.3;
+    } else if (this.hitFlash > 0) {
+        baseAlpha = 0.5 + Math.sin(this.hitFlash * 2) * 0.5;
     }
+    ctx.globalAlpha = baseAlpha;
 
     const cd = CLASS_DATA[this.classType];
     const walkBob = (this.isMoving || this.action === 'walk') ? Math.sin(Date.now() / 100) * 2 : 0;
     const groundY = getGroundY(gameInstance.selectedEnv);
 
     // Shadow
-    const depthRatio = (this.y - groundY) / (GAME_H - groundY);
-    const shadowAlpha = 0.2 + depthRatio * 0.3;
+    const depthRatio = Math.max(0, (this.y - groundY) / (GAME_H - groundY));
+    const shadowAlpha = (0.2 + depthRatio * 0.3) * baseAlpha;
     const shadowWidth = 22 + depthRatio * 8 + ((this.isMoving || this.action === 'walk') ? 3 : 0);
     const shadowHeight = 6 + depthRatio * 4;
     ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
@@ -155,17 +161,17 @@ export default class Player {
     ctx.ellipse(px, groundY, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
     ctx.fill();
 
+    if (isDead) {
+        ctx.globalAlpha = 1;
+        return;
+    }
+
     if ((this.isMoving || this.action === 'walk') && Math.random() < 0.15) {
       gameInstance.spawnParticles(px + (Math.random() - 0.5) * 10, groundY - 2, '#888', 1, 1);
     }
 
     ctx.save();
     ctx.translate(px, py + walkBob);
-    if (!this.alive) {
-        ctx.translate(0, 35);
-        ctx.rotate(Math.PI / 2);
-        ctx.globalAlpha = 0.4;
-    }
     if (this.facing < 0) ctx.scale(-1, 1);
     
     // Aim calculations based on synced mouse position

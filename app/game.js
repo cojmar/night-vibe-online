@@ -100,9 +100,7 @@ export default class Game {
         }
         
         if (data.data.gameOver) {
-            this.state = 'GAME_OVER';
-            document.getElementById('wait-msg').textContent = 'ALL PLAYERS DEAD! GAME OVER.';
-            document.getElementById('death-overlay').classList.add('show');
+            this.quitToMenu();
         }
         
         if (data.data.enemyKilled && this.player && data.data.enemyKilled === this.net.me.info.user) {
@@ -437,11 +435,11 @@ export default class Game {
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, this.player.y - 50 + Math.sin(aimAngle)*40, cd.s1Color, 5, 3);
         break;
       case 'mage':
-        const cRot = Math.max(-1.4, Math.min(1.4, aimAngle * 0.4));
-        const cX = this.player.x + 20 + 105 * Math.sin(cRot);
-        const cY = this.player.y - 44 - 105 * Math.cos(cRot);
-        this.projectiles.push(new Projectile({ type:'bolt', x:cX, y:cY, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, ...projProps }));
-        this.spawnParticles(cX, cY, '#3498db', 3, 2);
+        const crystalX = this.player.x + 20 + 105 * Math.sin(aimAngle * 0.4);
+        const crystalY = this.player.y - 44 - 105 * Math.cos(aimAngle * 0.4);
+        const boltAngle = Math.atan2(ty - crystalY, tx - crystalX);
+        this.projectiles.push(new Projectile({ type:'bolt', x:crystalX, y:crystalY, tx:tx, ty:ty, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, ...projProps }));
+        this.spawnParticles(crystalX, crystalY, '#3498db', 3, 2);
         break;
       case 'archer':
         const speed = 10;
@@ -477,10 +475,8 @@ export default class Game {
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12, 4);
         break;
       case 'mage':
-        const sfX = this.player.x + 20 + Math.cos(aimAngle) * 105;
-        const sfY = this.player.y - 44 + Math.sin(aimAngle) * 105;
-        this.projectiles.push(new Projectile({ type:'fireball', x:sfX, y:sfY, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2, critChance:0.15, ...projProps }));
-        this.spawnParticles(sfX, sfY, '#e67e22', 8, 4);
+        this.projectiles.push(new Projectile({ type:'fireball', x:this.player.x, y:this.player.y, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2, critChance:0.15, ...projProps }));
+        this.spawnParticles(this.player.x, this.player.y, '#e67e22', 8, 4);
         break;
       case 'archer':
         const bowX = this.player.x + 22 * this.player.facing;
@@ -545,6 +541,7 @@ export default class Game {
     if(this.state !== 'PLAYING' || !this.player) return;
     const data = {
       inGame: true,
+      alive: this.player.alive,
       x: this.player.x,
       y: this.player.y,
       hp: this.player.hp,
