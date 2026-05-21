@@ -1348,11 +1348,16 @@ export default class Game {
          
          if (this.player.isChargingS2) {
              this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67;
-             const newCount = Math.min(3, Math.floor(this.player.s2ChargeTime / 1000));
+             const maxCharges = 3 + (this.player.resets || 0);
+             const newCount = Math.min(maxCharges, Math.floor(this.player.s2ChargeTime / 1000));
              if (newCount > (this.player.s2ChargeCount || 0)) {
                  this.player.s2ChargeCount = newCount;
                  this.spawnParticles(this.player.x, this.player.y - 40, '#ffd700', 15, 4);
                  this.broadcastState();
+                 
+                 if (this.player.s2ChargeCount >= maxCharges) {
+                     this.releaseSkill2();
+                 }
              }
          }
          

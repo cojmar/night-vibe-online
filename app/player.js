@@ -677,10 +677,15 @@ stopWalking(gameInstance) {
     
     if (this.isChargingS2) {
       const chargeCount = this.s2ChargeCount || 0;
+      const maxCharges = 3 + (this.resets || 0);
       const chargeBaseY = tagBaseY - 24;
+      
+      const boxWidth = maxCharges * 19 + 3;
+      const startX = -boxWidth / 2;
+      
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(-30, chargeBaseY - 4, 60, 10);
-      for (let i=0; i<3; i++) {
+      ctx.fillRect(startX, chargeBaseY - 4, boxWidth, 10);
+      for (let i=0; i<maxCharges; i++) {
         if (i < chargeCount) {
           ctx.fillStyle = '#ffd700';
           ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 5;
@@ -688,7 +693,7 @@ stopWalking(gameInstance) {
           ctx.fillStyle = '#555';
           ctx.shadowBlur = 0;
         }
-        ctx.fillRect(-27 + i*19, chargeBaseY - 2, 16, 6);
+        ctx.fillRect(startX + 3 + i*19, chargeBaseY - 2, 16, 6);
       }
       ctx.shadowBlur = 0;
     }
