@@ -125,7 +125,8 @@ export default class Player {
             if (this.classType === 'warrior') maxRange = 90 * wScale * lvlScale * 0.8;
             else if (this.classType === 'magicgladiator') maxRange = 80 * wScale * lvlScale * 0.8;
             
-            const distToE = Math.hypot(e.x - this.x, e.y - this.y);
+            const weaponY = this.y - 40 * lvlScale;
+            const distToE = Math.hypot(e.x - this.x, e.y - weaponY);
             
             // Force aim to target
             this.mouseX = e.x;
