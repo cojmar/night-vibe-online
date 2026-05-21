@@ -879,6 +879,7 @@ export default class Game {
       mouseX: this.player.mouseX,
       mouseY: this.player.mouseY,
       chatMsg: this.player.chatMsg,
+      buffManaTimer: this.player.buffManaTimer,
       projectiles: this.projectiles.map(p => ({
         type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
         radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions
@@ -1484,21 +1485,26 @@ export default class Game {
             }
 
             let pickedUp = false;
-            for (let p of activePlayersList) {
-              if (!p.obj || !p.obj.alive || p.obj.hp <= 0) continue;
-              if (Math.hypot(p.obj.x - item.x, p.obj.y - item.y) < 40) {
-                pickedUp = true;
-                if (p.id === (this.net.me ? this.net.me.info.user : 'host')) {
-                  this.player.buffHpTimer = item.type === 'red' ? 10000 : this.player.buffHpTimer;
-                  this.player.buffManaTimer = item.type === 'blue' ? 10000 : this.player.buffManaTimer;
-                  this.spawnParticles(this.player.x, this.player.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                  this.ui.addLog(item.type === 'red' ? '❤️ Hp Regen Buff!' : '⚡ Skill Cooldown Buff!', 'reward');
-                } else {
-                  this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
+             for (let p of activePlayersList) {
+               if (!p.obj || !p.obj.alive || p.obj.hp <= 0) continue;
+               if (Math.hypot(p.obj.x - item.x, p.obj.y - item.y) < 40) {
+                  pickedUp = true;
+                  if (this.isHost) {
+                    if (item.type === 'red') {
+                      const healAmount = Math.floor(p.obj.maxHp * 0.25);
+                      p.obj.hp = Math.min(p.obj.maxHp, p.obj.hp + healAmount);
+                      this.spawnParticles(p.obj.x, p.obj.y - 20, '#e74c3c', 30, 6);
+                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: '+' + healAmount, color: '#2ecc71', life: 60, maxLife: 60, isCrit: false });
+                    }
+                    p.obj.buffManaTimer = item.type === 'blue' ? 10000 : (p.obj.buffManaTimer || 0);
+                    this.spawnParticles(p.obj.x, p.obj.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
+                    this.ui.addLog(item.type === 'red' ? '❤️ Healed 25% HP!' : '⚡ Skill Cooldown Buff!', 'reward');
+                  } else {
+                    this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
+                  }
+                  break;
                 }
-                break;
-              }
-            }
+             }
             if (pickedUp) {
               this.items.splice(i, 1); i--; continue;
             }
@@ -1518,16 +1524,19 @@ export default class Game {
               if (hData && hData.giveBuff) {
                 const buff = hData.giveBuff;
                 if (buff.target === (this.net.me ? this.net.me.info.user : null) && buff.id !== this.lastProcessedBuffId) {
-                  this.lastProcessedBuffId = buff.id;
-                  if (buff.type === 'red') {
-                    this.player.buffHpTimer = 10000;
-                    this.ui.addLog('❤️ Hp Regen Buff!', 'reward');
-                  } else {
-                    this.player.buffManaTimer = 10000;
-                    this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');
-                  }
-                  this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                }
+                   this.lastProcessedBuffId = buff.id;
+                   if (buff.type === 'red') {
+                     const healAmount = Math.floor(this.player.maxHp * 0.25);
+                     this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+                     this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
+                     this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: '+' + healAmount, color: '#2ecc71', life: 60, maxLife: 60, isCrit: false });
+                     this.ui.addLog('❤️ Healed 25% HP!', 'reward');
+                   } else {
+                     this.player.buffManaTimer = 10000;
+                     this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');
+                   }
+                   this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
+                 }
               }
             }
           }
@@ -1643,10 +1652,10 @@ export default class Game {
       // UI
       this.ui.updatePartyList(this.otherPlayers);
       if (this.player && this.player.alive && this.state === 'PLAYING') {
-        this.ui.updateBuffs(this.player.buffHpTimer, this.player.buffManaTimer);
-      } else {
-        this.ui.updateBuffs(0, 0);
-      }
+         this.ui.updateBuffs(0, this.player.buffManaTimer);
+       } else {
+         this.ui.updateBuffs(0, 0);
+       }
 
       let cdSpeedMultiplier = 1;
       if (this.player && this.player.alive && this.state === 'PLAYING') {
@@ -1654,12 +1663,6 @@ export default class Game {
           this.player.buffManaTimer -= 16.67 * dt;
           cdSpeedMultiplier = 5; // 5x cooldown recovery speed
           if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#3498db', 1, 3);
-        }
-        if (this.player.buffHpTimer > 0) {
-          this.player.buffHpTimer -= 16.67 * dt;
-          // Regen 10% max HP per second
-          this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.10 * (16.67 * dt / 1000));
-          if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#e74c3c', 1, 3);
         }
       }
 
