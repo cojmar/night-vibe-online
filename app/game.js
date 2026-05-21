@@ -1344,7 +1344,8 @@ export default class Game {
           
           if (!e.alive && !e.deadProcessed) {
               e.deadProcessed = true;
-              if (Math.random() < 0.25) { // 25% drop chance
+              const dropChance = Math.max(0.04, 0.35 - (this.wave * 0.025));
+              if (Math.random() < dropChance) { 
                   const type = Math.random() < 0.55 ? 'red' : 'blue';
                   this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: 15000 });
               }
