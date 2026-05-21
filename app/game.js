@@ -478,20 +478,20 @@ export default class Game {
 
     if (!onGround || clickedEnemy) {
       this.doSkill1(cx, cy);
-      return;
+    } else {
+      this.player.isMoving = true;
+      this.player.moveTargetX = Math.max(20, Math.min(GAME_W - 20, cx));
+      this.player.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 45, cy));
+      this.player.action = 'walk';
+      document.getElementById('walk-indicator').classList.add('visible');
     }
-
-    this.player.stopWalking(this);
-    this.player.moveTargetX = Math.max(30, Math.min(GAME_W - 30, cx));
-    this.player.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 10, cy));
-    this.player.isMoving = true;
-    this.player.action = 'walk';
 
     this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30 };
     this.broadcastState();
   }
 
   doSkill1(tx, ty) {
+    this.player.stopWalking(this);
     const cd = CLASS_DATA[this.player.classType];
     const weaponY = this.player.y - 40;
     const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
@@ -529,45 +529,7 @@ export default class Game {
 
   doSkill2(tx, ty) {
     if (this.s2Cooldown > 0) return;
-    this.s2Cooldown = this.s2MaxCooldown;
-    
-    const cd = CLASS_DATA[this.player.classType];
-    const weaponY = this.player.y - 30;
-    const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
-    this.player.facing = tx > this.player.x ? 1 : -1;
-    this.player.animTimer = 15;
-    this.player.action = 'attack';
-    this.player.lastSkill = 2;
-    
-    let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing };
-    
-    switch (this.player.classType) {
-      case 'warrior':
-    this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5, critChance:0.2, maxDistance:250, traveled:0, trailTimer:0, trailPositions:[], ...projProps }));
-        this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12, 4);
-        break;
-      case 'mage':
-        this.projectiles.push(new Projectile({ type:'fireball', x:this.player.x, y:this.player.y, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2, critChance:0.15, ...projProps }));
-        this.spawnParticles(this.player.x, this.player.y, '#e67e22', 8, 4);
-        break;
-      case 'archer':
-        const bowX = this.player.x + 22 * this.player.facing;
-        for (let i = -1; i <= 1; i++) {
-          const a = aimAngle + i*0.2;
-          const speed = 11;
-          this.projectiles.push(new Projectile({ type:'arrow', x:bowX, y:this.player.y - 42, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage:this.player.atk*1.3, critChance:0.15, angle:a }));
-        }
-        break;
-      case 'magicgladiator':
-        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.x, y:this.player.y-40, radius:130, life:25, maxLife:25, color:'#ffd700', damage:this.player.atk*3.0, critChance:0.25, ...projProps }));
-        this.spawnParticles(this.player.x, this.player.y, '#ffd700', 30, 8);
-        break;
-    }
-    this.broadcastState();
-  }
-
-  executeSkill2(cd, projProps) {
-    if (this.s2Cooldown > 0) return;
+    this.player.stopWalking(this);
     
     // Calculate dynamic cooldown based on SPD. Starts at 5000ms.
     const baseSpd = CLASS_DATA[this.player.classType].spd;
@@ -575,15 +537,22 @@ export default class Game {
     this.s2MaxCooldown = Math.max(1000, 5000 - diff * 200);
     this.s2Cooldown = this.s2MaxCooldown;
     
-    // Dynamic ATK radius scale - accentuated
     const atkScale = 1 + (this.player.atk - CLASS_DATA[this.player.classType].atk) * 0.1;
     
-    this.player.action = 'attack';
+    const cd = CLASS_DATA[this.player.classType];
+    const weaponY = this.player.y - 30;
+    const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
+    this.player.facing = tx > this.player.x ? 1 : -1;
     this.player.animTimer = 25;
+    this.player.action = 'attack';
     this.player.lastSkill = 2;
-    switch(this.player.classType) {
+    
+    let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing };
+    
+    switch (this.player.classType) {
       case 'warrior':
-        this.projectiles.push(new Projectile({ type:'shockwave', x:this.player.x, y:this.player.y, vx:(this.player.facing)*12, vy:0, speed:12, life:40, maxLife:40, color:'#ffd700', damage:this.player.atk*2.5, critChance:0.1, radius:40*atkScale, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5, critChance:0.2, maxDistance:250, radius:40*atkScale, traveled:0, trailTimer:0, trailPositions:[], ...projProps }));
+        this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12, 4);
         break;
       case 'mage':
         this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.mouseX, y:this.player.mouseY, radius:100*atkScale, life:20, maxLife:20, color:'#e67e22', damage:this.player.atk*2.2, critChance:0.2, ...projProps }));
@@ -591,7 +560,6 @@ export default class Game {
         break;
       case 'archer':
         const bowX = this.player.x + (this.player.facing)*20;
-        const aimAngle = Math.atan2(this.player.mouseY - (this.player.y - 42), this.player.mouseX - bowX);
         const arrowCount = Math.min(7, 3 + Math.floor((this.player.atk - CLASS_DATA.archer.atk) / 8));
         for(let i=0; i<arrowCount; i++) {
           const a = aimAngle + (i - Math.floor(arrowCount/2)) * 0.2;
@@ -606,6 +574,7 @@ export default class Game {
     }
     this.broadcastState();
   }
+
 
   broadcastState() {
     if(this.state !== 'PLAYING' || !this.player) return;
