@@ -535,24 +535,21 @@ export default class Game {
     
     switch (this.player.classType) {
       case 'warrior':
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:this.player.y - 50, life:15, maxLife:15, color:cd.s1Color, radius: 85, hitInner: 5, hitOuter: 150, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
-        this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, this.player.y - 50 + Math.sin(aimAngle)*40, cd.s1Color, 5, 3);
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 85, hitInner: -10, hitOuter: 150, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+        this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, cd.s1Color, 5, 3);
         break;
       case 'mage':
-        const crystalX = this.player.x + 20 + 105 * Math.sin(aimAngle * 0.4);
-        const crystalY = this.player.y - 44 - 105 * Math.cos(aimAngle * 0.4);
-        const boltAngle = Math.atan2(ty - crystalY, tx - crystalX);
-        this.projectiles.push(new Projectile({ type:'bolt', x:crystalX, y:crystalY, tx:tx, ty:ty, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, ...projProps }));
-        this.spawnParticles(crystalX, crystalY, '#3498db', 3, 2);
+        this.projectiles.push(new Projectile({ type:'bolt', x:this.player.x, y:weaponY, tx:tx, ty:ty, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, ...projProps }));
+        this.spawnParticles(this.player.x, weaponY, '#3498db', 3, 2);
         break;
       case 'archer':
         const speed = 10;
-        this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x + 22 * this.player.facing, y:this.player.y - 42, speed, vx:Math.cos(aimAngle)*speed, vy:Math.sin(aimAngle)*speed, life:60, maxLife:60, color:'#f1c40f', damage: this.player.atk * 0.95, critChance: 0.15, ...projProps }));
-        this.spawnParticles(this.player.x + Math.cos(aimAngle)*20, this.player.y-50, '#f1c40f', 3, 2);
+        this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, speed, vx:Math.cos(aimAngle)*speed, vy:Math.sin(aimAngle)*speed, life:60, maxLife:60, color:'#f1c40f', damage: this.player.atk * 0.95, critChance: 0.15, ...projProps }));
+        this.spawnParticles(this.player.x, weaponY, '#f1c40f', 3, 2);
         break;
       case 'magicgladiator':
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x + Math.cos(aimAngle)*35, originY:this.player.y - 40 + Math.sin(aimAngle)*35, life:20, maxLife:20, color:'#e74c3c', radius: 80, hitInner: 5, hitOuter: 140, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
-        this.spawnParticles(this.player.x + Math.cos(aimAngle)*35, this.player.y - 40 + Math.sin(aimAngle)*35, cd.s1Color, 8, 4);
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:20, maxLife:20, color:'#e74c3c', radius: 80, hitInner: -10, hitOuter: 140, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
+        this.spawnParticles(this.player.x + Math.cos(aimAngle)*35, weaponY + Math.sin(aimAngle)*35, cd.s1Color, 8, 4);
         break;
     }
     this.broadcastState();
@@ -608,16 +605,15 @@ export default class Game {
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12 + charges*5, 4);
         break;
       case 'mage':
-        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.mouseX, y:this.player.mouseY, radius:100*atkScale*areaMulti, life:20, maxLife:20, color:'#e67e22', damage:this.player.atk*2.2*dmgMulti, critChance:0.2, ...projProps }));
-        this.spawnParticles(this.player.mouseX, this.player.mouseY, '#e67e22', 20*atkScale + charges*10, 5);
+        this.projectiles.push(new Projectile({ type:'fireball', x:this.player.x, y:weaponY, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2*dmgMulti, critChance:0.2, ...projProps }));
+        this.spawnParticles(this.player.x, weaponY, '#e67e22', 20*atkScale + charges*10, 5);
         break;
       case 'archer':
-        const bowX = this.player.x + (this.player.facing)*20;
         const arrowCount = Math.min(7, 3 + Math.floor((this.player.atk - CLASS_DATA.archer.atk) / 8)) + charges;
         for(let i=0; i<arrowCount; i++) {
           const a = aimAngle + (i - Math.floor(arrowCount/2)) * 0.2;
           const speed = 11;
-          this.projectiles.push(new Projectile({ type:'arrow', x:bowX, y:this.player.y - 42, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage:this.player.atk*1.3*dmgMulti, critChance:0.15, angle:a }));
+          this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage:this.player.atk*1.3*dmgMulti, critChance:0.15, angle:a }));
         }
         break;
       case 'magicgladiator':
