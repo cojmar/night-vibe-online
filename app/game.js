@@ -595,7 +595,7 @@ export default class Game {
     this.s2MaxCooldown = Math.max(1000, 5000 - diff * 200);
     this.s2Cooldown = this.s2MaxCooldown;
     
-    const atkScale = 1 + (this.player.atk - CLASS_DATA[this.player.classType].atk) * 0.1;
+    const atkScale = 1 + (this.player.atk - CLASS_DATA[this.player.classType].atk) * 0.02;
     
     // Charges scale logic:
     // charge = 0 -> 1x
@@ -620,9 +620,13 @@ export default class Game {
     switch (this.player.classType) {
       case 'warrior':
         const waveCount = 1 + charges;
+        const mpDiff = Math.max(0, this.player.spd - CLASS_DATA.warrior.spd);
+        const waveDistance = (120 + mpDiff * 6) * areaMulti;
+        const waveSpread = 0.12 + (atkScale - 1) * 0.08;
+        
         for (let i = 0; i < waveCount; i++) {
-          const a = aimAngle + (i - (waveCount - 1) / 2) * 0.25;
-          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance:250 * areaMulti, radius:40*atkScale*areaMulti, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a, charges: charges }));
+          const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
+          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance: waveDistance, radius:15*atkScale*areaMulti, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a, charges: charges }));
         }
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12 + charges*5, 4);
         break;

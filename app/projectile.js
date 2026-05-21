@@ -137,8 +137,9 @@ export default class Projectile {
       const pLife = 1 - (this.life / this.maxLife);
       const pulse = Math.abs(Math.sin(pLife * Math.PI * 15));
       
-      const rx = 30 + pLife * 30 + charges * 15; 
-      const ry = 60 + pLife * 70 + charges * 25; 
+      const scale = (this.radius || 30) / 30;
+      const rx = (30 + pLife * 30 + charges * 15) * scale; 
+      const ry = (60 + pLife * 70 + charges * 25) * scale; 
       
       ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(rot);
       

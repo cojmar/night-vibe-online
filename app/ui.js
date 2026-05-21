@@ -115,7 +115,7 @@ export default class UI {
     document.getElementById('stat-spd-val').textContent = player.spd.toFixed(1);
     
     const baseAtk = CLASS_DATA[player.classType].atk;
-    const atkScale = 1 + (player.atk - baseAtk) * 0.1;
+    const atkScale = 1 + (player.atk - baseAtk) * 0.02;
     const aoeBoost = ((atkScale - 1) * 100).toFixed(0);
     
     document.getElementById('stat-aoe-val').textContent = (100 + parseInt(aoeBoost)) + '%';
