@@ -107,17 +107,23 @@ export default class Player {
     if (this.autoAttackTarget) {
         if (!this.autoAttackTarget.alive) {
             this.autoAttackTarget = null;
+            this.stopWalking(gameInstance);
         } else {
             const e = this.autoAttackTarget;
             const cd = CLASS_DATA[this.classType];
             const wScale = 1 + (this.atk - cd.atk) * 0.005;
             const lvlScale = Math.min(1.0, 0.5 + ((this.level || 1) - 1) * 0.055);
-            const maxRange = (this.classType === 'warrior' ? 90 : 80) * wScale * lvlScale + e.size;
+            
+            let maxRange = 450; // default for ranged
+            if (this.classType === 'warrior') maxRange = 90 * wScale * lvlScale + e.size;
+            else if (this.classType === 'magicgladiator') maxRange = 80 * wScale * lvlScale + e.size;
             
             const distToE = Math.hypot(e.x - this.x, e.y - this.y);
             if (distToE <= maxRange) {
-                this.autoAttackTarget = null;
-                gameInstance.doSkill1(e.x, e.y);
+                if (this.animTimer <= 0) {
+                    gameInstance.doSkill1(e.x, e.y);
+                }
+                this.isMoving = false;
                 return;
             } else {
                 this.moveTargetX = e.x;
@@ -159,7 +165,9 @@ export default class Player {
       this.moveTargetX = 0;
       this.moveTargetY = 0;
       gameInstance.moveMarker = null;
-      document.getElementById('walk-indicator').classList.remove('visible');
+      if (!this.autoAttackTarget) {
+          document.getElementById('walk-indicator').classList.remove('visible');
+      }
     }
   }
 
