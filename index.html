@@ -166,12 +166,18 @@
     }
     .hp-container:hover, .hp-container:active,
     .score-display:hover, .score-display:active,
-    .stats-display:hover, .stats-display:active,
     .remote-player-hp:hover, .remote-player-hp:active {
       transform: scale(1.4);
       background: rgba(10,10,20,0.95);
       border-color: #ffd700;
       z-index: 100;
+      position: relative;
+    }
+    .stats-display:hover, .stats-display:active {
+      transform: scale(1.85);
+      background: rgba(10,10,20,0.95);
+      border-color: #ffd700;
+      z-index: 110;
       position: relative;
     }
     .stats-display div { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
