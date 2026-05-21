@@ -92,6 +92,8 @@ export default class Game {
                  this.floatingTexts.push({ x: e.x + (Math.random()-0.5)*20, y: e.y - 30, text: (hit.isCrit?'💥 ':'')+hit.damage, color: hit.isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: hit.isCrit });
                  if (e.hp <= 0) { 
                      e.alive = false; e.deathTime = Date.now(); e.hp = 0;
+                     this.spawnParticles(e.x, e.y - 20, e.color || '#fff', 30, 8);
+                     this.spawnParticles(e.x, e.y - 20, '#e74c3c', 15, 6);
                      if (hit.source) {
                          this.net.send_cmd('set_data', { enemyKilled: hit.source });
                      }
@@ -340,8 +342,15 @@ export default class Game {
     return { x: gameX, y: gameY };
   }
 
-  applyViewport() {
-    this.ctx.translate(this.viewOX, this.viewOY);
+  applyViewport(dt = 0) {
+    let shakeX = 0, shakeY = 0;
+    if (this.screenShake > 0) {
+      shakeX = (Math.random() - 0.5) * this.screenShake;
+      shakeY = (Math.random() - 0.5) * this.screenShake;
+      this.screenShake -= dt;
+      if (this.screenShake < 0) this.screenShake = 0;
+    }
+    this.ctx.translate(this.viewOX + shakeX, this.viewOY + shakeY);
     this.ctx.scale(this.viewScale, this.viewScale);
   }
 
@@ -448,8 +457,6 @@ export default class Game {
     }
 
     if (!onGround || clickedEnemy) {
-      if(clickedEnemy) this.ui.addLog(`⚔️ Attacking ${clickedEnemy.name}!`, 'player');
-      else this.ui.addLog('⚡ Attacking!', 'move');
       this.doSkill1(cx, cy);
       return;
     }
@@ -461,7 +468,6 @@ export default class Game {
     this.player.action = 'walk';
 
     this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30 };
-    this.ui.addLog(`🚶 Walking to (${Math.round(cx)}, ${Math.round(cy)})`, 'move');
     this.broadcastState();
   }
 
@@ -498,12 +504,11 @@ export default class Game {
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*35, this.player.y - 40 + Math.sin(aimAngle)*35, cd.s1Color, 8, 4);
         break;
     }
-    this.ui.addLog(cd.s1Name+' → target!');
     this.broadcastState();
   }
 
   doSkill2(tx, ty) {
-    if (this.s2Cooldown > 0) { this.ui.addLog('⏳ Skill 2 on cooldown!', 'enemy'); return; }
+    if (this.s2Cooldown > 0) return;
     this.s2Cooldown = this.s2MaxCooldown;
     
     const cd = CLASS_DATA[this.player.classType];
@@ -538,7 +543,6 @@ export default class Game {
         this.spawnParticles(this.player.x, this.player.y, '#ffd700', 30, 8);
         break;
     }
-    this.ui.addLog(cd.s2Name+' Used!');
     this.broadcastState();
   }
 
@@ -580,7 +584,6 @@ export default class Game {
         this.spawnParticles(this.player.x, this.player.y, '#ffd700', 30*atkScale, 8);
         break;
     }
-    this.ui.addLog(cd.s2Name+' Used!');
     this.broadcastState();
   }
 
@@ -597,6 +600,7 @@ export default class Game {
       action: this.player.action,
       classType: this.player.classType,
       animTimer: this.player.animTimer,
+      hitFlash: this.player.hitFlash,
       lastSkill: this.player.lastSkill || 1,
       mouseX: this.player.mouseX,
       mouseY: this.player.mouseY,
@@ -624,8 +628,10 @@ export default class Game {
   dealDamageToPlayer(damage) {
       if (!this.player || !this.player.alive) return;
       this.player.hp -= damage;
-      this.player.hitFlash = 10;
-      this.spawnParticles(this.player.x, this.player.y - 40, '#e74c3c', 10, 5);
+      this.player.hitFlash = 15;
+      this.screenShake = 15;
+      this.spawnParticles(this.player.x, this.player.y - 40, '#e74c3c', 20, 6);
+      this.spawnParticles(this.player.x, this.player.y - 40, '#c0392b', 15, 8);
       this.ui.updateHUD(this.player);
       this.ui.addLog(`💔 Took -${damage} damage!`, 'enemy');
       this.floatingTexts.push({
@@ -640,6 +646,8 @@ export default class Game {
           this.broadcastState();
           // Keep state PLAYING so the network host continues to run the simulation
           this.ui.showDeathScreen(this.kills, this.wave);
+      } else {
+          this.broadcastState();
       }
   }
 
@@ -658,6 +666,8 @@ export default class Game {
            this.floatingTexts.push({ x: e.x + (Math.random()-0.5)*20, y: e.y - 30, text: (isCrit?'💥 ':'')+damage, color: isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: isCrit });
            if (e.hp <= 0) {
                e.alive = false; e.deathTime = Date.now(); e.hp = 0;
+               this.spawnParticles(e.x, e.y - 20, e.color || '#fff', 30, 8);
+               this.spawnParticles(e.x, e.y - 20, '#e74c3c', 15, 6);
                this.net.send_cmd('set_data', { enemyKilled: this.net.me.info.user });
                this.waveEnemiesKilled++;
                if (this.bossActive && e.name === 'BOSS') {
@@ -810,7 +820,7 @@ export default class Game {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       
       this.ctx.save();
-      this.applyViewport();
+      this.applyViewport(dt);
 
       // Background
       this.drawEnvironment();

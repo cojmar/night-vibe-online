@@ -86,6 +86,7 @@ export default class Player {
       if (this.input_data.state !== undefined) this.state = this.input_data.state;
       if (this.input_data.alive !== undefined) this.alive = this.input_data.alive;
       if (this.input_data.animTimer !== undefined) this.animTimer = this.input_data.animTimer;
+      if (this.input_data.hitFlash !== undefined) this.hitFlash = Math.max(this.hitFlash, this.input_data.hitFlash);
       if (this.input_data.mouseX !== undefined) this.mouseX = this.input_data.mouseX;
       if (this.input_data.mouseY !== undefined) this.mouseY = this.input_data.mouseY;
       if (this.input_data.projectiles) this.projectiles = this.input_data.projectiles;
