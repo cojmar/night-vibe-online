@@ -182,11 +182,12 @@
     .xp-bar-bg { height: 4px; background: rgba(255,255,255,0.1); border-radius: 0; overflow: hidden; margin-top: 4px; }
     .xp-bar-fill { height: 100%; background: #f1c40f; transition: width 0.3s; }
     .score-display {
-      background: rgba(0,0,0,0.6); border: 2px solid #ffd700;
-      border-radius: 0; padding: 6px 10px; text-align: left;
+      background: rgba(0,0,0,0.7); border: 2px solid #f39c12;
+      border-radius: 6px; padding: 8px 12px; text-align: left;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
-    .score-display .kills { font-size: 0.85em; color: #ffd700; font-weight: bold; align-items: center; display: flex; gap: 6px; }
-    .score-display .level { font-size: 0.7em; color: #aaa; margin-top: 2px; }
+    .score-display .kills { font-size: 1em; color: #ffd700; font-weight: bold; align-items: center; display: flex; gap: 6px; }
+    .score-display .level { font-size: 0.9em; color: #fff; margin-top: 4px; font-weight: bold; }
     .highlight-level { font-size: 1.4em; color: #f1c40f; text-shadow: 0 0 8px rgba(241,196,15,0.8); font-weight: 900; }
     .stats-display {
       background: rgba(0,0,0,0.6); border: 1px solid #34495e;
@@ -359,10 +360,15 @@
       35% { transform: translate(-50%, -50%) scale(1.0); }
       100% { opacity: 0; transform: translate(-50%, -50%) scale(1.0); }
     }
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 1; text-shadow: 0 0 5px #2ecc71; }
-      50% { transform: scale(1.8); opacity: 0.9; text-shadow: 0 0 15px #2ecc71, 0 0 20px #2ecc71; color: #fff; }
-      100% { transform: scale(1); opacity: 1; text-shadow: 0 0 5px #2ecc71; }
+    @keyframes glowPulse {
+      0% { transform: scale(1); box-shadow: 0 0 5px #e67e22; }
+      50% { transform: scale(1.15); box-shadow: 0 0 20px #f39c12, 0 0 30px #e67e22; background: #f39c12; color: white; }
+      100% { transform: scale(1); box-shadow: 0 0 5px #e67e22; }
+    }
+    #level-up-plus {
+      display: none; background: #e67e22; border: 2px solid #d35400; color: white;
+      border-radius: 4px; padding: 2px 10px; font-weight: bold; font-size: 1.1em;
+      margin-left: 10px; animation: glowPulse 1s infinite;
     }
     /* walking indicator */
     .walk-indicator {
@@ -491,8 +497,8 @@
               <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
             </div>
             <div class="score-display" id="player-score-container" style="cursor:pointer;">
-              <div class="kills"><span class="highlight-level">⭐ Lv.<span id="player-level">1</span><span id="level-up-plus" style="display:none; color:#2ecc71; font-weight:bold; margin-left:4px; animation: pulse 1s infinite;">+</span></span> <span>| 💀 <span id="kill-count">0</span>/<span id="req-kill-count">5</span></span></div>
-              <div class="level">📊 Wave: <span id="wave-count">1</span> | Env: <span id="env-name">Forest</span></div>
+              <div class="kills"><span class="highlight-level">⭐ Lv.<span id="player-level">1</span></span> <span>| 💀 <span style="color:#e74c3c">Kills:</span> <span id="kill-count">0</span>/<span id="req-kill-count">5</span></span> <span id="level-up-plus">+</span></div>
+              <div class="level">📊 <span style="color:#3498db">Wave:</span> <span id="wave-count" style="color:#ffd700; font-size:1.1em">1</span> | 🌍 Env: <span id="env-name">Forest</span></div>
             </div>
             <div class="stats-display" id="stats-display" style="display:none;">
                <div id="stat-pts-row" style="display:none; border-bottom: 1px dashed #ffd700; padding-bottom: 4px; margin-bottom: 2px; color: #f1c40f;">

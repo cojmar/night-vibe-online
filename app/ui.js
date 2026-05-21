@@ -50,7 +50,7 @@ export default class UI {
            // check if we need to show the plus again
            if (this.game && this.game.player && this.game.player.statPoints > 0) {
                const plus = document.getElementById('level-up-plus');
-               if (plus) plus.style.display = 'inline';
+               if (plus) plus.style.display = 'inline-block';
            }
        }
     };
@@ -71,7 +71,7 @@ export default class UI {
                 
                 if (this.game && this.game.player && this.game.player.statPoints > 0) {
                     const plus = document.getElementById('level-up-plus');
-                    if (plus) plus.style.display = 'inline';
+                    if (plus) plus.style.display = 'inline-block';
                 }
             }
         }
@@ -89,7 +89,7 @@ export default class UI {
                 
                 if (this.game && this.game.player && this.game.player.statPoints > 0) {
                     const plus = document.getElementById('level-up-plus');
-                    if (plus) plus.style.display = 'inline';
+                    if (plus) plus.style.display = 'inline-block';
                 }
             }
         }
@@ -241,7 +241,7 @@ export default class UI {
     const plus = document.getElementById('level-up-plus');
     if (plus) {
         if (pts > 0 && document.getElementById('stats-display').style.display === 'none') {
-            plus.style.display = 'inline';
+            plus.style.display = 'inline-block';
         } else {
             plus.style.display = 'none';
         }

@@ -892,14 +892,42 @@ export default class Game {
 
   generateScenery() {
     this.scenery = [];
+    this.horizonFoliage = [];
+    this.groundFoliage = [];
     const env = ENV_CONFIG[this.selectedEnv] || ENV_CONFIG.forest;
-    let localPrng = new PRNG(this.wave * 9999);
+    const currentDay = Math.floor(this.globalTime / 300);
+    let localPrng = new PRNG((currentDay + 1) * 9999);
+    
     for(let i=0; i<15; i++) {
        const w = 40 + localPrng.nextFloat() * 60;
        const h = 50 + localPrng.nextFloat() * 120;
        this.scenery.push({
           x: localPrng.nextFloat() * GAME_W, w, h,
           color: darkenColor(env.ground, 0.2 + localPrng.nextFloat()*0.3)
+       });
+    }
+
+    for (let i = 0; i < 25; i++) {
+       this.horizonFoliage.push({
+          x: localPrng.nextFloat() * GAME_W,
+          h: 20 + localPrng.nextFloat() * 50,
+          w: 15 + localPrng.nextFloat() * 30,
+          phase: localPrng.nextFloat() * Math.PI * 2,
+          speed: 0.5 + localPrng.nextFloat() * 1.5,
+          color: env.horizonColor || darkenColor(env.ground, 0.4),
+          type: env.horizonType || 'trees'
+       });
+    }
+
+    const groundY = GAME_H * env.groundY;
+    for (let i = 0; i < 60; i++) {
+       this.groundFoliage.push({
+          x: localPrng.nextFloat() * GAME_W,
+          y: groundY + 5 + localPrng.nextFloat() * (GAME_H - groundY - 10),
+          size: 4 + localPrng.nextFloat() * 12,
+          phase: localPrng.nextFloat() * Math.PI * 2,
+          color: env.groundColor || darkenColor(env.ground, 0.1),
+          type: env.groundType || 'grass'
        });
     }
   }
@@ -978,12 +1006,26 @@ export default class Game {
        this.ctx.fill();
     }
 
+    if (this.horizonFoliage) {
+        for (let h of this.horizonFoliage) {
+           this.ctx.fillStyle = h.color;
+           const sway = Math.sin(this.globalTime * h.speed + h.phase) * (h.h * 0.1);
+           this.ctx.beginPath();
+           if (h.type === 'trees' || h.type === 'pines' || h.type === 'deadtrees') {
+              this.ctx.moveTo(h.x + sway, gY - h.h);
+              this.ctx.lineTo(h.x - h.w/2, gY);
+              this.ctx.lineTo(h.x + h.w/2, gY);
+           } else if (h.type === 'walls') {
+              this.ctx.fillRect(h.x - h.w/2, gY - h.h, h.w, h.h);
+           } else {
+              this.ctx.ellipse(h.x + sway, gY - h.h/2, h.w/2, h.h/2, 0, 0, Math.PI*2);
+           }
+           this.ctx.fill();
+        }
+    }
+
     this.ctx.fillStyle = env.ground;
     this.ctx.fillRect(0, gY, GAME_W, GAME_H - gY);
-    if (nightAlpha > 0) {
-      this.ctx.fillStyle = `rgba(0, 0, 10, ${nightAlpha * 0.4})`;
-      this.ctx.fillRect(0, gY, GAME_W, GAME_H - gY);
-    }
   }
 
   loop(time) {
@@ -1138,6 +1180,26 @@ export default class Game {
                 }});
             }
       }
+
+      if (this.groundFoliage) {
+          for (let gf of this.groundFoliage) {
+              renderables.push({ y: gf.y, draw: (ctx) => {
+                  ctx.fillStyle = gf.color;
+                  ctx.beginPath();
+                  if (gf.type === 'grass') {
+                      const sway = Math.sin(this.globalTime * 2 + gf.phase) * 3;
+                      ctx.moveTo(gf.x + sway, gf.y - gf.size);
+                      ctx.lineTo(gf.x - gf.size/3, gf.y);
+                      ctx.lineTo(gf.x + gf.size/3, gf.y);
+                  } else if (gf.type === 'mud' || gf.type === 'cracks') {
+                      ctx.ellipse(gf.x, gf.y, gf.size, gf.size*0.4, 0, 0, Math.PI*2);
+                  } else { // stones, shells, ice
+                      ctx.arc(gf.x, gf.y, gf.size/2, 0, Math.PI*2);
+                  }
+                  ctx.fill();
+              }});
+          }
+      }
       
       // Sort so entities with higher Y (lower on screen) are drawn last (on top)
       renderables.sort((a, b) => a.y - b.y);
@@ -1234,6 +1296,27 @@ if (this.isHost && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0)
       if (this.syncTimer >= 50) {
          this.syncTimer = 0;
          this.broadcastState();
+      }
+
+      // Global Day/Night Lighting Overlays
+      const cycle = (this.globalTime % 300) / 300; 
+      let nightAlpha = 0;
+      if (cycle > 0.45 && cycle <= 0.55) nightAlpha = (cycle - 0.45) * 10;
+      else if (cycle > 0.55 && cycle <= 0.95) nightAlpha = 1;
+      else if (cycle > 0.95) nightAlpha = Math.max(0, 1 - (cycle - 0.95) * 20);
+      
+      let dayAlpha = 0;
+      if (cycle > 0.0 && cycle < 0.5) {
+         dayAlpha = Math.max(0, Math.sin(cycle * 2 * Math.PI));
+      }
+
+      if (nightAlpha > 0) {
+         this.ctx.fillStyle = `rgba(0, 0, 8, ${nightAlpha * 0.8})`;
+         this.ctx.fillRect(0, 0, GAME_W, GAME_H);
+      }
+      if (dayAlpha > 0) {
+         this.ctx.fillStyle = `rgba(255, 230, 150, ${dayAlpha * 0.1})`;
+         this.ctx.fillRect(0, 0, GAME_W, GAME_H);
       }
 
       this.ctx.restore();
