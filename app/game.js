@@ -420,11 +420,13 @@ export default class Game {
     this.viewOX = (cw - scaledW) / 2;
     this.viewOY = ch - scaledH;
     
+    this.cachedCanvasRect = this.canvas.getBoundingClientRect();
+    
     if (this.state === 'MENU') this.drawMenuBackground();
   }
 
   toGameCoords(clientX, clientY) {
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.cachedCanvasRect || this.canvas.getBoundingClientRect();
     const canvasX = clientX - rect.left;
     const canvasY = clientY - rect.top;
     const gameX = (canvasX - this.viewOX) / this.viewScale;
@@ -1068,9 +1070,9 @@ export default class Game {
          }
       }
       
-Object.values(this.otherPlayers).forEach(p => {
-           p.updateMovement(dt, this);
-       });
+      for (const key in this.otherPlayers) {
+         this.otherPlayers[key].updateMovement(dt, this);
+      }
 
       // Z-Sorting (Y-Sorting) for perspective rendering
       let renderables = [];
@@ -1109,18 +1111,19 @@ Object.values(this.otherPlayers).forEach(p => {
           renderables.push({ y: this.player.y, draw: (ctx) => this.player.draw(ctx, dt, this) });
       }
       
-Object.values(this.otherPlayers).forEach(p => {
+      for (const key in this.otherPlayers) {
+            const p = this.otherPlayers[key];
             if (p.inGame) {
                 renderables.push({ y: p.y, draw: (ctx) => {
                     p.draw(ctx, dt, this);
                     if (p.projectiles) {
                         for (let projData of p.projectiles) {
-                            new Projectile(projData).draw(ctx);
+                            Projectile.prototype.draw.call(projData, ctx);
                         }
                     }
                 }});
             }
-        });
+      }
       
       // Sort so entities with higher Y (lower on screen) are drawn last (on top)
       renderables.sort((a, b) => a.y - b.y);

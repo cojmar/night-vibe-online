@@ -70,6 +70,7 @@ window.app = new class {
             chatBox.scrollTop = chatBox.scrollHeight;
         });
         
+        let lastLobbyHtml = '';
         setInterval(() => {
             if (!this.net.room || !this.net.room.users) return;
             const list = document.getElementById('menu-player-list');
@@ -93,7 +94,10 @@ window.app = new class {
                     const status = (u.data && u.data.inGame) ? '<span style="color:#e74c3c">[In Game]</span>' : '<span style="color:#2ecc71">[In Menu]</span>';
                     html += `<div style="font-size:0.9em; padding:2px 0;">${uNick} ${status}</div>`;
                 }
-                list.innerHTML = html;
+                if (html !== lastLobbyHtml) {
+                    list.innerHTML = html;
+                    lastLobbyHtml = html;
+                }
             }
         }, 1000);
         
