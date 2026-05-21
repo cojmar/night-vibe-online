@@ -174,8 +174,14 @@
       z-index: 100;
       position: relative;
     }
-    .stats-display div { display: flex; justify-content: space-between; gap: 10px; }
+    .stats-display div { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
     .stats-display .highlight { color: #f1c40f; font-weight: bold; }
+    .stat-up-btn {
+      background: #e67e22; border: 1px solid #d35400; color: white;
+      border-radius: 3px; cursor: pointer; padding: 0px 6px; font-weight: bold;
+      font-size: 0.85em; margin-left: 4px; pointer-events: auto;
+    }
+    .stat-up-btn:hover { background: #f39c12; transform: scale(1.1); }
     .remote-player-hp {
       background: rgba(0,0,0,0.6); border: 1px solid #4a4a6a;
       padding: 4px 6px; border-radius: 0;
@@ -407,10 +413,23 @@
               <div class="level">📊 Wave: <span id="wave-count">1</span> | Env: <span id="env-name">Forest</span></div>
             </div>
             <div class="stats-display" id="stats-display">
-               <div><span>ATK:</span> <span><span class="highlight" id="stat-atk-val">0</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-dmg-boost">0</span>)</span></span></div>
+               <div id="stat-pts-row" style="display:none; border-bottom: 1px dashed #ffd700; padding-bottom: 4px; margin-bottom: 2px; color: #f1c40f;">
+                 <span>Stat Points:</span> <span class="highlight" id="stat-pts-val">0</span>
+               </div>
+               <div>
+                 <span>ATK:</span> 
+                 <span><span class="highlight" id="stat-atk-val">0</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-dmg-boost">0</span>)</span> <button id="btn-up-atk" class="stat-up-btn" style="display:none;">+</button></span>
+               </div>
                <div><span>AOE:</span> <span><span class="highlight" id="stat-aoe-val">100%</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-aoe-boost">0</span>%)</span></span></div>
                <div><span>S2 CD:</span> <span><span class="highlight" id="stat-cd-val">5.0s</span> <span style="color:#2ecc71; font-size:0.9em;">(-<span id="stat-cd-red">0.0</span>s)</span></span></div>
-               <div><span>SPD:</span> <span><span class="highlight" id="stat-spd-val">0</span></span></div>
+               <div>
+                 <span>SPD:</span> 
+                 <span><span class="highlight" id="stat-spd-val">0</span> <button id="btn-up-spd" class="stat-up-btn" style="display:none;">+</button></span>
+               </div>
+               <div>
+                 <span>HP:</span>
+                 <span><button id="btn-up-hp" class="stat-up-btn" style="display:none; padding: 0px 4px;">+ HP</button></span>
+               </div>
             </div>
             <div id="remote-players-list"></div>
           </div>

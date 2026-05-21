@@ -451,6 +451,23 @@ export default class Game {
     this.broadcastState();
   }
 
+  upgradeStat(statType) {
+    if (!this.player || !this.player.statPoints || this.player.statPoints <= 0) return;
+    this.player.statPoints--;
+    
+    if (statType === 'atk') {
+        this.player.atk += 2.0;
+    } else if (statType === 'spd') {
+        this.player.spd += 1.0;
+    } else if (statType === 'hp') {
+        this.player.maxHp += 20;
+        this.player.hp += 20;
+    }
+    
+    this.ui.updateHUD(this.player);
+    this.broadcastState();
+  }
+
   quitToMenu() {
     this.state = 'MENU';
     document.getElementById('game-btns').style.display = 'none';

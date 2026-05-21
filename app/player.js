@@ -51,17 +51,7 @@ export default class Player {
   }
 
   levelUp() {
-      if (this.classType === 'warrior') {
-         this.atk += 2; this.maxHp += 20; this.spd += 0.5;
-      } else if (this.classType === 'mage') {
-         this.atk += 2.5; this.spd += 1; this.maxHp += 10;
-      } else if (this.classType === 'archer') {
-         this.spd += 1.5; this.atk += 1.5; this.maxHp += 12;
-      } else if (this.classType === 'magicgladiator') {
-         this.atk += 1.5; this.spd += 1; this.maxHp += 15;
-      }
-      this.atk += 1;
-      this.maxHp += 1;
+      this.statPoints = (this.statPoints || 0) + 5;
       this.hp = this.maxHp;
   }
 

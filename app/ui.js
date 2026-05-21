@@ -21,6 +21,10 @@ export default class UI {
     document.getElementById('btn-fullscreen').addEventListener('click', () => this.toggleFullscreen());
     document.getElementById('btn-quit-game').addEventListener('click', () => this.game.quitToMenu());
     document.getElementById('btn-death-quit').addEventListener('click', () => this.game.quitToMenu());
+    
+    document.getElementById('btn-up-atk').addEventListener('click', () => { if(this.game) this.game.upgradeStat('atk'); });
+    document.getElementById('btn-up-spd').addEventListener('click', () => { if(this.game) this.game.upgradeStat('spd'); });
+    document.getElementById('btn-up-hp').addEventListener('click', () => { if(this.game) this.game.upgradeStat('hp'); });
 
     const compactLog = document.getElementById('compact-log');
     compactLog.addEventListener('mouseenter', () => this.logHoldTimer = setTimeout(() => this.showTooltip(), 300));
@@ -125,6 +129,16 @@ export default class UI {
     
     document.getElementById('stat-cd-val').textContent = currentCd.toFixed(1) + 's';
     document.getElementById('stat-cd-red').textContent = cdReduction.toFixed(1);
+    
+    const pts = player.statPoints || 0;
+    const row = document.getElementById('stat-pts-row');
+    row.style.display = pts > 0 ? 'block' : 'none';
+    document.getElementById('stat-pts-val').textContent = pts;
+    
+    const d = pts > 0 ? 'inline-block' : 'none';
+    document.getElementById('btn-up-atk').style.display = d;
+    document.getElementById('btn-up-spd').style.display = d;
+    document.getElementById('btn-up-hp').style.display = d;
   }
 
   updateScore(player, wave, waveKilled = 0, waveTotal = 0) {
@@ -203,20 +217,51 @@ export default class UI {
     const list = document.getElementById('remote-players-list');
     if (!list) return;
     
-    let html = '';
+    const currentKeys = new Set();
+    
     for (const key in otherPlayers) {
        const p = otherPlayers[key];
        if (!p.inGame) continue;
+       currentKeys.add(key);
+       
+       let el = document.getElementById(`remote-${key}`);
+       if (!el) {
+           el = document.createElement('div');
+           el.id = `remote-${key}`;
+           el.className = 'remote-player-hp';
+           el.innerHTML = `
+             <div class="remote-player-name"></div>
+             <div class="remote-player-info"></div>
+             <div class="remote-hp-bg"><div class="remote-hp-fill"></div></div>
+           `;
+           list.appendChild(el);
+       }
+       
        const pct = Math.max(0, (p.hp / p.maxHp) * 100);
        const aliveText = p.hp > 0 ? '' : ' 💀';
-       html += `
-         <div class="remote-player-hp">
-           <div class="remote-player-name">${key.substring(0,8)}${aliveText}</div>
-           <div class="remote-player-info"><span class="highlight-level">Lv.${p.level || 1}</span> | Kills: ${p.kills || 0}/${p.reqKills || 5}</div>
-           <div class="remote-hp-bg"><div class="remote-hp-fill" style="width:${pct}%"></div></div>
-         </div>
-       `;
+       
+       const nameEl = el.querySelector('.remote-player-name');
+       const infoEl = el.querySelector('.remote-player-info');
+       const fillEl = el.querySelector('.remote-hp-fill');
+       
+       const newName = `${key.substring(0,8)}${aliveText}`;
+       if (nameEl.textContent !== newName) nameEl.textContent = newName;
+       
+       const newInfoText = `Lv.${p.level || 1} | Kills: ${p.kills || 0}/${p.reqKills || 5}`;
+       if (infoEl.getAttribute('data-text') !== newInfoText) {
+           infoEl.innerHTML = `<span class="highlight-level">Lv.${p.level || 1}</span> | Kills: ${p.kills || 0}/${p.reqKills || 5}`;
+           infoEl.setAttribute('data-text', newInfoText);
+       }
+       
+       const newWidth = `${pct}%`;
+       if (fillEl.style.width !== newWidth) fillEl.style.width = newWidth;
     }
-    list.innerHTML = html;
+    
+    Array.from(list.children).forEach(child => {
+       const key = child.id.replace('remote-', '');
+       if (!currentKeys.has(key)) {
+           list.removeChild(child);
+       }
+    });
   }
 }
