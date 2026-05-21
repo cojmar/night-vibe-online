@@ -151,8 +151,9 @@
       background: rgba(0,0,0,0.6); border: 2px solid #ffd700;
       border-radius: 0; padding: 6px 10px; text-align: left;
     }
-    .score-display .kills { font-size: 0.85em; color: #ffd700; font-weight: bold; }
+    .score-display .kills { font-size: 0.85em; color: #ffd700; font-weight: bold; align-items: center; display: flex; gap: 6px; }
     .score-display .level { font-size: 0.7em; color: #aaa; margin-top: 2px; }
+    .highlight-level { font-size: 1.4em; color: #f1c40f; text-shadow: 0 0 8px rgba(241,196,15,0.8); font-weight: 900; }
     .stats-display {
       background: rgba(0,0,0,0.6); border: 1px solid #34495e;
       border-radius: 0; padding: 6px 10px; font-size: 0.65em; color: #bdc3c7;
@@ -386,7 +387,7 @@
               <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
             </div>
             <div class="score-display">
-              <div class="kills">⭐ Lv.<span id="player-level">1</span> | 💀 <span id="kill-count">0</span>/<span id="req-kill-count">5</span></div>
+              <div class="kills"><span class="highlight-level">⭐ Lv.<span id="player-level">1</span></span> <span>| 💀 <span id="kill-count">0</span>/<span id="req-kill-count">5</span></span></div>
               <div class="level">📊 Wave: <span id="wave-count">1</span> | Env: <span id="env-name">Forest</span></div>
             </div>
             <div class="stats-display" id="stats-display">

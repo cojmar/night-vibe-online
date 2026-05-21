@@ -959,7 +959,8 @@ export default class Game {
 
       for (let ft of this.floatingTexts) {
         ft.y -= 0.8*dt; ft.life -= dt;
-        this.ctx.globalAlpha = ft.life/ft.maxLife;
+        const fadeStart = ft.maxLife * 0.4;
+        this.ctx.globalAlpha = ft.life > fadeStart ? 1 : Math.max(0, ft.life / fadeStart);
         this.ctx.font = `bold ${ft.isCrit?18:14}px sans-serif`; this.ctx.textAlign = 'center';
         this.ctx.fillStyle = '#000'; this.ctx.fillText(ft.text, ft.x+1, ft.y+1);
         this.ctx.fillStyle = ft.color; this.ctx.fillText(ft.text, ft.x, ft.y);

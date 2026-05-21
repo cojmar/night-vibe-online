@@ -199,7 +199,7 @@ export default class UI {
        html += `
          <div class="remote-player-hp">
            <div class="remote-player-name">${key.substring(0,8)}${aliveText}</div>
-           <div class="remote-player-info">Lv.${p.level || 1} | Kills: ${p.kills || 0}/${p.reqKills || 5}</div>
+           <div class="remote-player-info"><span class="highlight-level">Lv.${p.level || 1}</span> | Kills: ${p.kills || 0}/${p.reqKills || 5}</div>
            <div class="remote-hp-bg"><div class="remote-hp-fill" style="width:${pct}%"></div></div>
          </div>
        `;
