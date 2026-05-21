@@ -67,8 +67,14 @@ export default class Game {
         
         const oldInGame = this.otherPlayers[data.user].inGame;
         const oldState = this.otherPlayers[data.user].state;
+        const oldHitFlash = this.otherPlayers[data.user].hitFlash || 0;
         
         this.otherPlayers[data.user].set(data.data);
+        
+        if (data.data.hitFlash !== undefined && data.data.hitFlash > oldHitFlash) {
+           this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 40, '#e74c3c', 20, 12);
+           this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 40, '#c0392b', 15, 16);
+        }
         
         // Apply immediately if relevant to checkHost
         if (data.data.inGame !== undefined) {
@@ -630,8 +636,8 @@ export default class Game {
       this.player.hp -= damage;
       this.player.hitFlash = 15;
       this.screenShake = 15;
-      this.spawnParticles(this.player.x, this.player.y - 40, '#e74c3c', 20, 6);
-      this.spawnParticles(this.player.x, this.player.y - 40, '#c0392b', 15, 8);
+      this.spawnParticles(this.player.x, this.player.y - 40, '#e74c3c', 20, 12);
+      this.spawnParticles(this.player.x, this.player.y - 40, '#c0392b', 15, 16);
       this.ui.updateHUD(this.player);
       this.ui.addLog(`💔 Took -${damage} damage!`, 'enemy');
       this.floatingTexts.push({
