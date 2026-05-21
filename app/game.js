@@ -1347,12 +1347,13 @@ export default class Game {
       for (let e of this.enemies) { 
           e.update(dt, activePlayers);
           
-          if (!e.alive && !e.deadProcessed) {
+          if (this.isHost && !e.alive && !e.deadProcessed) {
               e.deadProcessed = true;
               const dropChance = Math.max(0.04, 0.35 - (this.wave * 0.025));
               if (Math.random() < dropChance) { 
                   const type = Math.random() < 0.55 ? 'red' : 'blue';
-                  this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: 15000 });
+                  const lifeTime = 15000 + this.wave * 2000;
+                  this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: lifeTime });
               }
           }
           
@@ -1474,13 +1475,41 @@ export default class Game {
                               this.spawnParticles(this.player.x, this.player.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
                               this.ui.addLog(item.type === 'red' ? '❤️ Hp Regen Buff!' : '⚡ Skill Cooldown Buff!', 'reward');
                           } else {
-                              this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id } });
+                              this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
                           }
                           break;
                       }
                   }
                   if (pickedUp) {
                       this.items.splice(i, 1); i--; continue;
+                  }
+              } else {
+                  // Process buffs assigned to us by the host
+                  let hostUserId = null;
+                  if (this.net && this.net.room && this.net.room.users) {
+                      for (let u in this.net.room.users) {
+                          if (this.net.room.users[u].data && this.net.room.users[u].data.isHost) {
+                              hostUserId = u;
+                              break;
+                          }
+                      }
+                  }
+                  if (hostUserId && this.net.room.users[hostUserId].data) {
+                      const hData = this.net.room.users[hostUserId].data;
+                      if (hData && hData.giveBuff) {
+                          const buff = hData.giveBuff;
+                          if (buff.target === (this.net.me ? this.net.me.info.user : null) && buff.id !== this.lastProcessedBuffId) {
+                              this.lastProcessedBuffId = buff.id;
+                              if (buff.type === 'red') {
+                                  this.player.buffHpTimer = 10000;
+                                  this.ui.addLog('❤️ Hp Regen Buff!', 'reward');
+                              } else {
+                                  this.player.buffManaTimer = 10000;
+                                  this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');
+                              }
+                              this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
+                          }
+                      }
                   }
               }
               
