@@ -1,60 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>N-RPG — Arena Combat Sandbox (Multiplayer)</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%; height: 100%;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #0a0a1a; color: #e4e4e4;
+      background: #0a0a1a;
+      color: #e4e4e4;
       overflow: hidden;
       touch-action: none;
       -webkit-user-select: none;
       user-select: none;
       overscroll-behavior: none;
     }
+
     body {
       display: flex;
-      width: 100vw; height: 100svh; height: 100dvh; height: 100vh;
+      width: 100vw;
+      height: 100svh;
+      height: 100dvh;
+      height: 100vh;
     }
+
     .container {
-      width: 100%; height: 100%;
-      display: flex; flex-direction: column;
-      position: relative; overflow: hidden;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
     }
+
     .menu-panel {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      width: 100%; height: 100%; max-height: none; min-height: unset;
-      background: linear-gradient(135deg, rgba(15,15,25,0.95), rgba(5,5,15,0.98));
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      min-height: unset;
+      background: linear-gradient(135deg, rgba(15, 15, 25, 0.95), rgba(5, 5, 15, 0.98));
       border: none;
-      padding: 30px; display: flex; flex-direction: column;
-      z-index: 1000; overflow: hidden;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      overflow: hidden;
       box-sizing: border-box;
     }
-    
-    .menu-grid { display: flex; flex-direction: row; gap: 20px; flex: 1; min-height: 0; }
-    .menu-col { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-    .center-col { flex: 1.5; }
-    
-    .menu-player-list { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.4); border: 1px solid #34495e; padding: 15px; border-radius: 6px; }
-    .menu-chat { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.4); border: 1px solid #34495e; border-radius: 6px; overflow: hidden; }
-    .chat-messages { flex: 1; overflow-y: auto; padding: 15px; font-size: 1em; display: flex; flex-direction: column; gap: 6px; word-wrap: break-word; }
-    .chat-input-row { display: flex; border-top: 1px solid #34495e; box-sizing: border-box; width: 100%; }
-    .chat-input-row input { flex: 1; min-width: 0; padding: 15px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 1em; outline: none; box-sizing: border-box; }
-    .chat-input-row button { padding: 15px 25px; background: #2980b9; border: none; color: white; cursor: pointer; font-weight: bold; font-size: 1em; transition: background 0.2s; box-sizing: border-box; white-space: nowrap; }
-    .chat-input-row button:hover { background: #3498db; }
-    
-    @media (max-width: 900px) {
-      .menu-grid { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
-      .menu-col { min-height: 400px; flex: none; }
-      .center-col { order: -1; min-height: 450px; }
-      .menu-panel { padding: 15px; overflow-y: auto; }
+
+    .menu-grid {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      flex: 1;
+      min-height: 0;
     }
-    
-  .menu-panel.hidden { display: none !important; }
+
+    .menu-col {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .center-col {
+      flex: 1.5;
+    }
+
+    .menu-player-list {
+      flex: 1;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid #34495e;
+      padding: 15px;
+      border-radius: 6px;
+    }
+
+    .menu-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid #34495e;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      font-size: 1em;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      word-wrap: break-word;
+    }
+
+    .chat-input-row {
+      display: flex;
+      border-top: 1px solid #34495e;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .chat-input-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.6);
+      border: none;
+      color: #fff;
+      font-size: 1em;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .chat-input-row button {
+      padding: 15px 25px;
+      background: #2980b9;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1em;
+      transition: background 0.2s;
+      box-sizing: border-box;
+      white-space: nowrap;
+    }
+
+    .chat-input-row button:hover {
+      background: #3498db;
+    }
+
+    @media (max-width: 900px) {
+      .menu-grid {
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      .menu-col {
+        min-height: 400px;
+        flex: none;
+      }
+
+      .center-col {
+        order: -1;
+        min-height: 450px;
+      }
+
+      .menu-panel {
+        padding: 15px;
+        overflow-y: auto;
+      }
+    }
+
+    .menu-panel.hidden {
+      display: none !important;
+    }
+
     .class-card-scroll {
       flex: 1;
       overflow-y: auto;
@@ -63,543 +183,1238 @@
       flex-direction: column;
       min-height: 0;
       scrollbar-width: thin;
-      scrollbar-color: #4a4a6a rgba(0,0,0,0.3);
+      scrollbar-color: #4a4a6a rgba(0, 0, 0, 0.3);
     }
-    .class-card-scroll::-webkit-scrollbar { width: 6px; }
-    .class-card-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
-    .class-card-scroll::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
+
+    .class-card-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .class-card-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .class-card-scroll::-webkit-scrollbar-thumb {
+      background: #4a4a6a;
+      border-radius: 3px;
+    }
+
     .menu-panel h3 {
-      color: #ffd700; text-align: center; font-size: 0.85em;
-      letter-spacing: 1px; text-transform: uppercase;
+      color: #ffd700;
+      text-align: center;
+      font-size: 0.85em;
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
+
     .carousel-nav {
-      display: flex; justify-content: center; gap: 12px; align-items: center;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      align-items: center;
     }
+
     .carousel-btn {
-      min-width: 44px; min-height: 44px; width: 44px; height: 44px;
-      border: 2px solid #ffd700; border-radius: 50%;
-      background: rgba(255,215,0,0.2); color: #ffd700;
-      font-size: 1.5em; font-weight: bold; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s; touch-action: manipulation;
-      box-shadow: 0 0 8px rgba(255,215,0,0.3);
+      min-width: 44px;
+      min-height: 44px;
+      width: 44px;
+      height: 44px;
+      border: 2px solid #ffd700;
+      border-radius: 50%;
+      background: rgba(255, 215, 0, 0.2);
+      color: #ffd700;
+      font-size: 1.5em;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      touch-action: manipulation;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
     }
-    .carousel-btn:hover, .carousel-btn:active {
-      background: rgba(255,215,0,0.45); transform: scale(1.1);
+
+    .carousel-btn:hover,
+    .carousel-btn:active {
+      background: rgba(255, 215, 0, 0.45);
+      transform: scale(1.1);
     }
-    .carousel-title { color: #ffd700; font-weight: bold; }
+
+    .carousel-title {
+      color: #ffd700;
+      font-weight: bold;
+    }
+
     .class-card {
       border: 2px solid #4a4a6a;
-      background: rgba(255,255,255,0.03); padding: 10px;
-      flex: 1; display: flex; flex-direction: column;
-      justify-content: flex-start; align-items: flex-end; gap: 4px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-end;
+      gap: 4px;
       transition: border-color 0.3s;
     }
-    .class-card.selected { border-color: #ffd700; }
-    .class-icon { font-size: 2.2em; line-height: 1; }
-    .class-name { font-size: 1.05em; font-weight: bold; color: #ffd700; text-transform: uppercase; }
-    .class-stats { display: flex; gap: 4px; font-size: 0.68em; }
-    .class-stats .stat { padding: 2px 6px; font-weight: bold; }
-    .class-stats .stat.hp { background: rgba(231,76,60,0.3); }
-    .class-stats .stat.atk { background: rgba(52,152,219,0.3); }
-    .class-stats .stat.spd { background: rgba(155,89,182,0.3); }
-    .class-stats .stat.mp { display: none; }
-    .class-skills { font-size: 0.7em; text-align: left; line-height: 1.4; color: #aaa; }
-    .class-skills .s { color: #ffd700; font-weight: bold; }
-    .class-controls { font-size: 0.5em; text-align: center; line-height: 1.6; color: #999; }
-    .class-controls .ctrl-key { color: #ffd700; font-weight: bold; }
-    .controls-section { display: block; font-size: 0.9em; text-align: left; line-height: 1.6; color: #ddd; padding: 8px 4px; border-top: 1px solid #4a4a6a; margin-top: 2px; }
-    .controls-section .ctrl-line { margin-bottom: 4px; }
-    .controls-section .ctrl-label { color: #ffd700; font-weight: bold; }
-    .controls-section .s { color: #ffd700; font-weight: bold; }
-    .btn-start {
-      padding: 12px 30px; border: 2px solid #ffd700; border-radius: 8px;
-      background: rgba(255,215,0,0.15); color: #ffd700;
-      font-size: 1em; font-weight: bold; cursor: pointer;
-      transition: all 0.3s; text-transform: uppercase; width: 100%;
+
+    .class-card.selected {
+      border-color: #ffd700;
     }
-    .btn-start:hover { background: rgba(255,215,0,0.35); transform: translateY(-2px); }
-    .btn-fullscreen {
-      padding: 8px 16px; border: 2px solid #ffd700; border-radius: 8px;
-      background: rgba(255,215,0,0.1); color: #ffd700;
-      font-size: 0.8em; font-weight: bold; cursor: pointer;
-      transition: all 0.3s; text-transform: uppercase; width: 100%;
-      margin-top: 4px;
+
+    .class-icon {
+      font-size: 2.2em;
+      line-height: 1;
     }
-    .btn-fullscreen:hover { background: rgba(255,215,0,0.25); }
-    .btn-quit {
-      position: absolute; top: 8px; right: 8px; z-index: 20;
-      padding: 6px 12px; border: 2px solid #e74c3c; border-radius: 8px;
-      background: rgba(231,76,60,0.15); color: #e74c3c;
-      font-size: 0.7em; font-weight: bold; cursor: pointer;
-      text-transform: uppercase; pointer-events: auto;
+
+    .class-name {
+      font-size: 1.05em;
+      font-weight: bold;
+      color: #ffd700;
+      text-transform: uppercase;
+    }
+
+    .class-stats {
+      display: flex;
+      gap: 4px;
+      font-size: 0.68em;
+    }
+
+    .class-stats .stat {
+      padding: 2px 6px;
+      font-weight: bold;
+    }
+
+    .class-stats .stat.hp {
+      background: rgba(231, 76, 60, 0.3);
+    }
+
+    .class-stats .stat.atk {
+      background: rgba(52, 152, 219, 0.3);
+    }
+
+    .class-stats .stat.spd {
+      background: rgba(155, 89, 182, 0.3);
+    }
+
+    .class-stats .stat.mp {
       display: none;
     }
-    .btn-quit:hover { background: rgba(231,76,60,0.3); }
+
+    .class-skills {
+      font-size: 0.7em;
+      text-align: left;
+      line-height: 1.4;
+      color: #aaa;
+    }
+
+    .class-skills .s {
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    .class-controls {
+      font-size: 0.5em;
+      text-align: center;
+      line-height: 1.6;
+      color: #999;
+    }
+
+    .class-controls .ctrl-key {
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    .controls-section {
+      display: block;
+      font-size: 0.9em;
+      text-align: left;
+      line-height: 1.6;
+      color: #ddd;
+      padding: 8px 4px;
+      border-top: 1px solid #4a4a6a;
+      margin-top: 2px;
+    }
+
+    .controls-section .ctrl-line {
+      margin-bottom: 4px;
+    }
+
+    .controls-section .ctrl-label {
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    .controls-section .s {
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    .btn-start {
+      padding: 12px 30px;
+      border: 2px solid #ffd700;
+      border-radius: 8px;
+      background: rgba(255, 215, 0, 0.15);
+      color: #ffd700;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      width: 100%;
+    }
+
+    .btn-start:hover {
+      background: rgba(255, 215, 0, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .btn-fullscreen {
+      padding: 8px 16px;
+      border: 2px solid #ffd700;
+      border-radius: 8px;
+      background: rgba(255, 215, 0, 0.1);
+      color: #ffd700;
+      font-size: 0.8em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .btn-fullscreen:hover {
+      background: rgba(255, 215, 0, 0.25);
+    }
+
+    .btn-quit {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 20;
+      padding: 6px 12px;
+      border: 2px solid #e74c3c;
+      border-radius: 8px;
+      background: rgba(231, 76, 60, 0.15);
+      color: #e74c3c;
+      font-size: 0.7em;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      pointer-events: auto;
+      display: none;
+    }
+
+    .btn-quit:hover {
+      background: rgba(231, 76, 60, 0.3);
+    }
+
     .hud-btns {
-      display: flex; gap: 6px; pointer-events: auto; margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      pointer-events: auto;
+      margin-top: 8px;
     }
+
     .hud-btns button {
-      padding: 5px 12px; border: 2px solid #ffd700; border-radius: 8px;
-      background: rgba(255,215,0,0.15); color: #ffd700;
-      font-size: 0.68em; font-weight: bold; cursor: pointer;
-      text-transform: uppercase; transition: all 0.3s; white-space: nowrap;
+      padding: 5px 12px;
+      border: 2px solid #ffd700;
+      border-radius: 8px;
+      background: rgba(255, 215, 0, 0.15);
+      color: #ffd700;
+      font-size: 0.68em;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.3s;
+      white-space: nowrap;
     }
-    .hud-btns button:hover { background: rgba(255,215,0,0.35); }
+
+    .hud-btns button:hover {
+      background: rgba(255, 215, 0, 0.35);
+    }
+
     .btn-quit-game {
-      border-color: #e74c3c !important; color: #e74c3c !important;
-      background: rgba(231,76,60,0.15) !important;
+      border-color: #e74c3c !important;
+      color: #e74c3c !important;
+      background: rgba(231, 76, 60, 0.15) !important;
     }
-    .btn-quit-game:hover { background: rgba(231,76,60,0.35) !important; }
+
+    .btn-quit-game:hover {
+      background: rgba(231, 76, 60, 0.35) !important;
+    }
+
     .game-btns button {
-      padding: 6px 14px; border: 2px solid #ffd700; border-radius: 8px;
-      background: rgba(255,215,0,0.15); color: #ffd700;
-      font-size: 0.72em; font-weight: bold; cursor: pointer;
-      text-transform: uppercase; transition: all 0.3s;
+      padding: 6px 14px;
+      border: 2px solid #ffd700;
+      border-radius: 8px;
+      background: rgba(255, 215, 0, 0.15);
+      color: #ffd700;
+      font-size: 0.72em;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.3s;
     }
-    .game-btns button:hover { background: rgba(255,215,0,0.35); }
+
+    .game-btns button:hover {
+      background: rgba(255, 215, 0, 0.35);
+    }
+
     .main-area {
-      flex: 1; width: 100%; height: 100%; position: relative;
-      overflow: hidden; display: flex; flex-direction: column;
-      min-width: 0; min-height: 0;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
     }
+
     .hud {
-      position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
-    .hud.visible { opacity: 1; }
+
+    .hud.visible {
+      opacity: 1;
+    }
+
     .party-list {
-      position: absolute; top: 10px; left: 10px; z-index: 5;
-      display: flex; flex-direction: column; gap: 4px; pointer-events: auto;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      pointer-events: auto;
       width: 200px;
     }
+
     .hp-container {
-      background: rgba(0,0,0,0.6); border: 2px solid #4a4a6a;
-      border-radius: 0; padding: 6px 10px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid #4a4a6a;
+      border-radius: 0;
+      padding: 6px 10px;
     }
-    .hp-text { font-size: 0.78em; color: #ccc; margin-bottom: 4px; }
-    .hp-bar-bg { height: 10px; background: rgba(255,255,255,0.1); border-radius: 0; overflow: hidden; }
-    .hp-bar-fill { height: 100%; background: linear-gradient(90deg, #e74c3c, #2ecc71); transition: width 0.3s; }
-    .xp-bar-bg { height: 4px; background: rgba(255,255,255,0.1); border-radius: 0; overflow: hidden; margin-top: 4px; }
-    .xp-bar-fill { height: 100%; background: #f1c40f; transition: width 0.3s; }
+
+    .hp-text {
+      font-size: 0.78em;
+      color: #ccc;
+      margin-bottom: 4px;
+    }
+
+    .hp-bar-bg {
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 0;
+      overflow: hidden;
+    }
+
+    .hp-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #e74c3c, #2ecc71);
+      transition: width 0.3s;
+    }
+
+    .xp-bar-bg {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 0;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .xp-bar-fill {
+      height: 100%;
+      background: #f1c40f;
+      transition: width 0.3s;
+    }
+
     .score-display {
-      background: rgba(0,0,0,0.7); border: 2px solid #f39c12;
-      border-radius: 6px; padding: 8px 12px; text-align: left;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid #f39c12;
+      border-radius: 6px;
+      padding: 8px 12px;
+      text-align: left;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
     }
-    .score-display .kills { font-size: 1em; color: #ffd700; font-weight: bold; align-items: center; display: flex; gap: 6px; }
-    .score-display .level { font-size: 0.9em; color: #fff; margin-top: 4px; font-weight: bold; }
-    .highlight-level { font-size: 1.4em; color: #f1c40f; text-shadow: 0 0 8px rgba(241,196,15,0.8); font-weight: 900; }
+
+    .score-display .kills {
+      font-size: 1em;
+      color: #ffd700;
+      font-weight: bold;
+      align-items: center;
+      display: flex;
+      gap: 6px;
+    }
+
+    .score-display .level {
+      font-size: 0.9em;
+      color: #fff;
+      margin-top: 4px;
+      font-weight: bold;
+    }
+
+    .highlight-level {
+      font-size: 1.4em;
+      color: #f1c40f;
+      text-shadow: 0 0 8px rgba(241, 196, 15, 0.8);
+      font-weight: 900;
+    }
+
     .stats-display {
-      background: rgba(0,0,0,0.6); border: 1px solid #34495e;
-      border-radius: 0; padding: 6px 10px; font-size: 0.65em; color: #bdc3c7;
-      display: flex; flex-direction: column; gap: 4px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #34495e;
+      border-radius: 0;
+      padding: 6px 10px;
+      font-size: 0.65em;
+      color: #bdc3c7;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
-    .hp-container, .score-display, .stats-display, .remote-player-hp {
+
+    .hp-container,
+    .score-display,
+    .stats-display,
+    .remote-player-hp {
       transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s, border-color 0.2s;
       transform-origin: top left;
       pointer-events: auto;
     }
-    .hp-container:hover, .hp-container:active,
-    .score-display:hover, .score-display:active,
-    .remote-player-hp:hover, .remote-player-hp:active {
+
+    .hp-container:hover,
+    .hp-container:active,
+    .score-display:hover,
+    .score-display:active,
+    .remote-player-hp:hover,
+    .remote-player-hp:active {
       transform: scale(1.4);
-      background: rgba(10,10,20,0.95);
+      background: rgba(10, 10, 20, 0.95);
       border-color: #ffd700;
       z-index: 100;
       position: relative;
     }
-    .stats-display:hover, .stats-display:active {
+
+    .stats-display:hover,
+    .stats-display:active {
       transform: scale(1.85);
-      background: rgba(10,10,20,0.95);
+      background: rgba(10, 10, 20, 0.95);
       border-color: #ffd700;
       z-index: 110;
       position: relative;
     }
-    
+
     .party-list.info-open .hp-container,
     .party-list.info-open .score-display {
       transform: scale(0.85);
       opacity: 0.7;
     }
+
     .party-list.info-open .stats-display {
       transform: scale(1.85);
-      background: rgba(10,10,20,0.95);
+      background: rgba(10, 10, 20, 0.95);
       border-color: #ffd700;
       z-index: 110;
       position: relative;
       animation: popInStats 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+
     @keyframes popInStats {
-      0% { transform: scale(0.5); opacity: 0; }
-      100% { transform: scale(1.85); opacity: 1; }
+      0% {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+
+      100% {
+        transform: scale(1.85);
+        opacity: 1;
+      }
     }
-    
-    .stats-display div { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
-    .stats-display .highlight { color: #f1c40f; font-weight: bold; }
-    
-    .inv-slot {
-       width: 45px; height: 45px; background: rgba(0,0,0,0.4); border: 2px solid #7f8c8d;
-       border-radius: 5px; cursor: pointer; display: flex; justify-content: center; align-items: center;
-       font-size: 24px; position: relative; transition: 0.2s;
+
+    .stats-display div {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
     }
-    .inv-slot:hover { border-color: #bdc3c7; }
-    .inv-slot.selected { border-color: #f1c40f; box-shadow: 0 0 10px #f1c40f; background: rgba(241, 196, 15, 0.2); }
-    .inv-item-icon { user-select: none; pointer-events: none; }
-    .equip-slot { width: 60px; height: 60px; font-size: 30px; }
-    #inv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; justify-content: center; }
-    #inv-grid .inv-slot { width: 50px; height: 50px; font-size: 26px; }
-    #inv-item-info { margin: 15px 0; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; font-size: 0.85em; min-height: 50px; text-align: left; color: #ddd; }
+
+    .stats-display .highlight {
+      color: #f1c40f;
+      font-weight: bold;
+    }
+
     .stat-up-btn {
-      background: #e67e22; border: 1px solid #d35400; color: white;
-      border-radius: 3px; cursor: pointer; padding: 0px 6px; font-weight: bold;
-      font-size: 0.85em; margin-left: 4px; pointer-events: auto;
+      background: #e67e22;
+      border: 1px solid #d35400;
+      color: white;
+      border-radius: 3px;
+      cursor: pointer;
+      padding: 0px 6px;
+      font-weight: bold;
+      font-size: 0.85em;
+      margin-left: 4px;
+      pointer-events: auto;
     }
-    .stat-up-btn:hover { background: #f39c12; transform: scale(1.1); }
+
+    .stat-up-btn:hover {
+      background: #f39c12;
+      transform: scale(1.1);
+    }
+
     .remote-player-hp {
-      background: rgba(0,0,0,0.6); border: 1px solid #4a4a6a;
-      padding: 4px 6px; border-radius: 0;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #4a4a6a;
+      padding: 4px 6px;
+      border-radius: 0;
     }
-    .remote-player-name { font-size: 0.75em; color: #ccc; margin-bottom: 2px; font-weight: bold; }
-    .remote-player-info { font-size: 0.65em; color: #aaa; margin-bottom: 4px; }
-    .remote-hp-bg { height: 6px; background: rgba(255,255,255,0.1); }
-    .remote-hp-fill { height: 100%; background: #3498db; transition: width 0.3s; }
+
+    .remote-player-name {
+      font-size: 0.75em;
+      color: #ccc;
+      margin-bottom: 2px;
+      font-weight: bold;
+    }
+
+    .remote-player-info {
+      font-size: 0.65em;
+      color: #aaa;
+      margin-bottom: 4px;
+    }
+
+    .remote-hp-bg {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .remote-hp-fill {
+      height: 100%;
+      background: #3498db;
+      transition: width 0.3s;
+    }
+
     .skill-indicator {
-      background: rgba(0,0,0,0.6); border: 2px solid #4a4a6a;
-      border-radius: 0; padding: 8px 14px; font-size: 0.72em; color: #aaa;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid #4a4a6a;
+      border-radius: 0;
+      padding: 8px 14px;
+      font-size: 0.72em;
+      color: #aaa;
     }
+
     .game-btns {
-      position: absolute; top: 10px; right: 10px; z-index: 8;
-      display: none; gap: 6px; pointer-events: auto;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 8;
+      display: none;
+      gap: 6px;
+      pointer-events: auto;
     }
-    .game-btns.visible { display: flex; }
+
+    .game-btns.visible {
+      display: flex;
+    }
+
     #game-canvas {
-      width: 100%; height: 100%; display: block; cursor: crosshair;
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
       image-rendering: auto;
       -webkit-tap-highlight-color: transparent;
     }
+
     .compact-log {
-      position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
-      width: 340px; max-width: 90vw; background: rgba(0,0,0,0.7);
-      border: 1px solid #4a4a6a; border-radius: 8px; padding: 6px 10px;
-      z-index: 7; cursor: default; transition: all 0.2s; opacity: 0;
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 340px;
+      max-width: 90vw;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #4a4a6a;
+      border-radius: 8px;
+      padding: 6px 10px;
+      z-index: 7;
+      cursor: default;
+      transition: all 0.2s;
+      opacity: 0;
     }
-    .compact-log.visible { opacity: 1; }
-    .compact-log:hover, .compact-log:active {
-      background: rgba(0,0,0,0.85); border-color: #ffd700;
+
+    .compact-log.visible {
+      opacity: 1;
     }
+
+    .compact-log:hover,
+    .compact-log:active {
+      background: rgba(0, 0, 0, 0.85);
+      border-color: #ffd700;
+    }
+
     .log-content {
-      font-size: 0.78em; text-align: center; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+      font-size: 0.78em;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
     }
-    .log-content.player { color: #3498db; }
-    .log-content.enemy { color: #e74c3c; }
-    .log-content.crit { color: #ffd700; }
-    .log-content.reward { color: #2ecc71; }
-    .log-content.death { color: #ff4444; }
-    .log-content.move { color: #95a5a6; }
+
+    .log-content.player {
+      color: #3498db;
+    }
+
+    .log-content.enemy {
+      color: #e74c3c;
+    }
+
+    .log-content.crit {
+      color: #ffd700;
+    }
+
+    .log-content.reward {
+      color: #2ecc71;
+    }
+
+    .log-content.death {
+      color: #ff4444;
+    }
+
+    .log-content.move {
+      color: #95a5a6;
+    }
+
     .log-tooltip {
-      position: absolute; bottom: 110%; left: 0; right: 0;
-      background: rgba(10,10,30,0.95); border: 1px solid #ffd700;
-      border-radius: 8px; padding: 8px; max-height: 180px;
-      overflow-y: auto; display: none; font-size: 0.72em; line-height: 1.5;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      position: absolute;
+      bottom: 110%;
+      left: 0;
+      right: 0;
+      background: rgba(10, 10, 30, 0.95);
+      border: 1px solid #ffd700;
+      border-radius: 8px;
+      padding: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      display: none;
+      font-size: 0.72em;
+      line-height: 1.5;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
     }
-    .log-tooltip.show { display: block; }
-    .log-tooltip .log-entry { padding: 4px 6px; margin-bottom: 3px; border-radius: 4px; background: rgba(255,255,255,0.03); }
-    .log-tooltip .log-entry.player { border-left: 3px solid #3498db; }
-    .log-tooltip .log-entry.enemy { border-left: 3px solid #e74c3c; }
-    .log-tooltip .log-entry.crit { border-left: 3px solid #ffd700; }
-    .log-tooltip .log-entry.reward { border-left: 3px solid #2ecc71; }
-    .log-tooltip .log-entry.death { border-left: 3px solid #ff4444; }
-    .log-tooltip .log-entry.move { border-left: 3px solid #95a5a6; }
+
+    .log-tooltip.show {
+      display: block;
+    }
+
+    .log-tooltip .log-entry {
+      padding: 4px 6px;
+      margin-bottom: 3px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .log-tooltip .log-entry.player {
+      border-left: 3px solid #3498db;
+    }
+
+    .log-tooltip .log-entry.enemy {
+      border-left: 3px solid #e74c3c;
+    }
+
+    .log-tooltip .log-entry.crit {
+      border-left: 3px solid #ffd700;
+    }
+
+    .log-tooltip .log-entry.reward {
+      border-left: 3px solid #2ecc71;
+    }
+
+    .log-tooltip .log-entry.death {
+      border-left: 3px solid #ff4444;
+    }
+
+    .log-tooltip .log-entry.move {
+      border-left: 3px solid #95a5a6;
+    }
+
     .cooldown-ring {
-      position: absolute; bottom: 60px; right: 20px; z-index: 6;
-      width: 56px; height: 56px; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+      position: absolute;
+      bottom: 60px;
+      right: 20px;
+      z-index: 6;
+      width: 56px;
+      height: 56px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
-    .cooldown-ring.visible { opacity: 1; }
-    .cooldown-ring svg { width: 100%; height: 100%; }
+
+    .cooldown-ring.visible {
+      opacity: 1;
+    }
+
+    .cooldown-ring svg {
+      width: 100%;
+      height: 100%;
+    }
+
     .cooldown-ring circle {
-      fill: none; stroke: #ffd700; stroke-width: 3;
-      stroke-dasharray: 150.8; stroke-dashoffset: 0;
-      transform: rotate(-90deg); transform-origin: center;
+      fill: none;
+      stroke: #ffd700;
+      stroke-width: 3;
+      stroke-dasharray: 150.8;
+      stroke-dashoffset: 0;
+      transform: rotate(-90deg);
+      transform-origin: center;
       transition: stroke-dashoffset 0.1s linear;
     }
+
     .cooldown-ring .cd-text {
-      position: absolute; inset: 0; display: flex; align-items: center;
-      justify-content: center; color: #ffd700; font-size: 0.8em; font-weight: bold;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffd700;
+      font-size: 0.8em;
+      font-weight: bold;
     }
+
     .death-overlay {
-      position: absolute; inset: 0; background: rgba(0,0,0,0.85);
-      z-index: 20; display: none; flex-direction: column;
-      align-items: center; justify-content: center; gap: 15px;
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 20;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
     }
-    .death-overlay.show { display: flex; }
-    .death-overlay h2 { color: #e74c3c; font-size: 2.5em; }
-    .death-overlay p { color: #aaa; font-size: 1.1em; }
+
+    .death-overlay.show {
+      display: flex;
+    }
+
+    .death-overlay h2 {
+      color: #e74c3c;
+      font-size: 2.5em;
+    }
+
+    .death-overlay p {
+      color: #aaa;
+      font-size: 1.1em;
+    }
+
     .death-overlay .wait-msg {
-      padding: 15px 30px; border: 2px dashed #f1c40f;
-      background: rgba(241,196,15,0.1); color: #f1c40f; font-size: 1.2em;
-      font-weight: bold; letter-spacing: 1px; text-align: center;
-      text-shadow: 0 0 10px rgba(241,196,15,0.5);
+      padding: 15px 30px;
+      border: 2px dashed #f1c40f;
+      background: rgba(241, 196, 15, 0.1);
+      color: #f1c40f;
+      font-size: 1.2em;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-align: center;
+      text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
       animation: glowPulse 2s infinite;
     }
+
     .kill-popup {
-      position: absolute; z-index: 8; font-size: 1.4em; font-weight: bold;
-      color: #ffd700; pointer-events: none; animation: killFloat 1s ease-out forwards;
+      position: absolute;
+      z-index: 8;
+      font-size: 1.4em;
+      font-weight: bold;
+      color: #ffd700;
+      pointer-events: none;
+      animation: killFloat 1s ease-out forwards;
     }
+
     @keyframes killFloat {
-      0% { opacity: 1; transform: translateY(0) scale(1); }
-      100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(-60px) scale(1.3);
+      }
     }
+
     .boss-warning {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      z-index: 9; font-size: 1.8em; font-weight: bold; color: #e74c3c;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9;
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #e74c3c;
       text-shadow: 0 0 20px #e74c3c, 0 0 40px #c0392b;
-      pointer-events: none; animation: bossPulse 0.5s ease-out forwards; white-space: nowrap;
+      pointer-events: none;
+      animation: bossPulse 0.5s ease-out forwards;
+      white-space: nowrap;
     }
+
     @keyframes bossPulse {
-      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-      20% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
-      40% { transform: translate(-50%, -50%) scale(1.0); }
-      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.0) translateY(-30px); }
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+      }
+
+      20% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.3);
+      }
+
+      40% {
+        transform: translate(-50%, -50%) scale(1.0);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.0) translateY(-30px);
+      }
     }
+
     .env-banner {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      z-index: 9; font-size: 1.5em; font-weight: bold; color: #ffd700;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9;
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #ffd700;
       text-shadow: 0 0 20px #ffd700, 0 0 40px #f39c12;
-      pointer-events: none; animation: envBanner 1.5s ease-out forwards; white-space: nowrap;
+      pointer-events: none;
+      animation: envBanner 1.5s ease-out forwards;
+      white-space: nowrap;
     }
+
     @keyframes envBanner {
-      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-      15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-      35% { transform: translate(-50%, -50%) scale(1.0); }
-      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.0); }
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+
+      15% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+
+      35% {
+        transform: translate(-50%, -50%) scale(1.0);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.0);
+      }
     }
+
     @keyframes glowPulse {
-      0% { transform: scale(1); box-shadow: 0 0 5px #e67e22; }
-      50% { transform: scale(1.15); box-shadow: 0 0 20px #f39c12, 0 0 30px #e67e22; background: #f39c12; color: white; }
-      100% { transform: scale(1); box-shadow: 0 0 5px #e67e22; }
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #e67e22;
+      }
+
+      50% {
+        transform: scale(1.15);
+        box-shadow: 0 0 20px #f39c12, 0 0 30px #e67e22;
+        background: #f39c12;
+        color: white;
+      }
+
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #e67e22;
+      }
     }
+
     #level-up-plus {
-      display: none; background: #e67e22; border: 2px solid #d35400; color: white;
-      border-radius: 4px; padding: 2px 10px; font-weight: bold; font-size: 1.1em;
-      margin-left: 10px; animation: glowPulse 1s infinite;
+      display: none;
+      background: #e67e22;
+      border: 2px solid #d35400;
+      color: white;
+      border-radius: 4px;
+      padding: 2px 10px;
+      font-weight: bold;
+      font-size: 1.1em;
+      margin-left: 10px;
+      animation: glowPulse 1s infinite;
     }
+
     /* walking indicator */
     .walk-indicator {
-      position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
-      z-index: 6; font-size: 0.85em; color: #95a5a6;
-      pointer-events: none; opacity: 0; transition: opacity 0.3s;
-      background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 6px;
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 6;
+      font-size: 0.85em;
+      color: #95a5a6;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 12px;
+      border-radius: 6px;
     }
-    .walk-indicator.visible { opacity: 1; }
+
+    .walk-indicator.visible {
+      opacity: 1;
+    }
 
     @media (orientation: landscape) and (max-height: 500px) {
-      .menu-panel { padding: 10px; }
-      .menu-grid { flex-direction: row; }
-      .menu-col { min-height: 0; }
-      .class-icon { font-size: 2em; }
-      .class-name { font-size: 1.2em; margin: 4px 0 !important; }
-      .class-stats { font-size: 0.8em; margin-bottom: 5px !important; }
-      .controls-section { font-size: 0.8em; margin-bottom: 5px !important; }
-      .btn-start { padding: 10px; font-size: 1em !important; }
-      .carousel-btn { min-width: 36px; min-height: 36px; font-size: 1.3em; }
+      .menu-panel {
+        padding: 10px;
+      }
+
+      .menu-grid {
+        flex-direction: row;
+      }
+
+      .menu-col {
+        min-height: 0;
+      }
+
+      .class-icon {
+        font-size: 2em;
+      }
+
+      .class-name {
+        font-size: 1.2em;
+        margin: 4px 0 !important;
+      }
+
+      .class-stats {
+        font-size: 0.8em;
+        margin-bottom: 5px !important;
+      }
+
+      .controls-section {
+        font-size: 0.8em;
+        margin-bottom: 5px !important;
+      }
+
+      .btn-start {
+        padding: 10px;
+        font-size: 1em !important;
+      }
+
+      .carousel-btn {
+        min-width: 36px;
+        min-height: 36px;
+        font-size: 1.3em;
+      }
     }
 
     @media (min-width: 768px) {
-      .container { flex-direction: row; }
-      .main-area { flex: 1; }
-      .carousel-btn { min-width: 44px; min-height: 44px; font-size: 1.5em; }
-      .class-icon { font-size: 2em; }
-      .class-name { font-size: 1em; }
-      .class-stats { font-size: 0.68em; }
-      .controls-section { font-size: 0.85em; }
-      .btn-start { padding: 12px 30px; font-size: 1em; }
-      .hud { padding: 0; }
-      .party-list { width: 240px; top: 14px; left: 14px; }
-      .hp-container { padding: 8px 12px; }
-      .score-display { padding: 8px 12px; }
-      .skill-indicator { padding: 8px 14px; font-size: 0.72em; }
-      .hp-text { font-size: 0.78em; }
-      .score-display .kills { font-size: 0.9em; }
-      .score-display .level { font-size: 0.75em; }
-      .cooldown-ring { bottom: 60px; right: 20px; width: 56px; height: 56px; }
-      .compact-log { width: 340px; bottom: 12px; padding: 6px 10px; }
-      .compact-log .log-content { font-size: 0.78em; }
-      .walk-indicator { bottom: 80px; font-size: 0.85em; }
+      .container {
+        flex-direction: row;
+      }
+
+      .main-area {
+        flex: 1;
+      }
+
+      .carousel-btn {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 1.5em;
+      }
+
+      .class-icon {
+        font-size: 2em;
+      }
+
+      .class-name {
+        font-size: 1em;
+      }
+
+      .class-stats {
+        font-size: 0.68em;
+      }
+
+      .controls-section {
+        font-size: 0.85em;
+      }
+
+      .btn-start {
+        padding: 12px 30px;
+        font-size: 1em;
+      }
+
+      .hud {
+        padding: 0;
+      }
+
+      .party-list {
+        width: 240px;
+        top: 14px;
+        left: 14px;
+      }
+
+      .hp-container {
+        padding: 8px 12px;
+      }
+
+      .score-display {
+        padding: 8px 12px;
+      }
+
+      .skill-indicator {
+        padding: 8px 14px;
+        font-size: 0.72em;
+      }
+
+      .hp-text {
+        font-size: 0.78em;
+      }
+
+      .score-display .kills {
+        font-size: 0.9em;
+      }
+
+      .score-display .level {
+        font-size: 0.75em;
+      }
+
+      .cooldown-ring {
+        bottom: 60px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+      }
+
+      .compact-log {
+        width: 340px;
+        bottom: 12px;
+        padding: 6px 10px;
+      }
+
+      .compact-log .log-content {
+        font-size: 0.78em;
+      }
+
+      .walk-indicator {
+        bottom: 80px;
+        font-size: 0.85em;
+      }
     }
 
     @media (min-width: 1024px) {
-      .hud { padding: 14px 20px; }
-      .hp-container { padding: 10px 14px; min-width: 220px; }
-      .score-display { padding: 10px 16px; }
-      .skill-indicator { padding: 10px 16px; font-size: 0.78em; }
-      .compact-log { width: 400px; bottom: 16px; }
-      .walk-indicator { bottom: 90px; font-size: 0.9em; }
+      .hud {
+        padding: 14px 20px;
+      }
+
+      .hp-container {
+        padding: 10px 14px;
+        min-width: 220px;
+      }
+
+      .score-display {
+        padding: 10px 16px;
+      }
+
+      .skill-indicator {
+        padding: 10px 16px;
+        font-size: 0.78em;
+      }
+
+      .compact-log {
+        width: 400px;
+        bottom: 16px;
+      }
+
+      .walk-indicator {
+        bottom: 90px;
+        font-size: 0.9em;
+      }
     }
   </style>
 
   <!-- External libraries required for multiplayer & GUI -->
   <script src="./assets/js/bson.bundle.js"></script>
   <script src="./assets/js/tweakpane-1.5.7.min.js"></script>
-  
+
   <!-- Main entry point -->
   <script type="module" src="./app/main.js"></script>
 </head>
+
 <body>
   <!-- Global connection loader -->
-  <div id="loader" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:9999; font-size: 24px; color:#ffd700; background:rgba(0,0,0,0.8); padding:20px; border-radius:10px; border:2px solid #ffd700;">Connecting to Multi-Player Server...</div>
+  <div id="loader"
+    style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:9999; font-size: 24px; color:#ffd700; background:rgba(0,0,0,0.8); padding:20px; border-radius:10px; border:2px solid #ffd700;">
+    Connecting to Multi-Player Server...</div>
 
-  <div id="rebirth-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; flex-direction:column; color:#fff;">
-     <div style="background:#2c3e50; padding:20px 30px; border-radius:10px; border:2px solid #8e44ad; text-align:center; max-width:400px; box-shadow: 0 0 20px rgba(142,68,173,0.5);">
-         <h2 style="color:#9b59b6; margin-top:0;">🔄 Rebirth</h2>
-         <p id="rebirth-modal-text" style="font-size:1.1em; line-height:1.4;">Do you want to Rebirth?</p>
-         <div style="margin-top:25px; display:flex; justify-content:space-around;">
-             <button id="btn-rebirth-cancel" style="background:#c0392b; color:#fff; border:none; padding:10px 20px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s;">❌ No</button>
-             <button id="btn-rebirth-confirm" style="background:#27ae60; color:#fff; border:none; padding:10px 20px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s;">✅ Yes</button>
-         </div>
-     </div>
-  </div>
-  <div id="game-chat-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:10000; justify-content:center; align-items:center;">
-     <div style="background:#2c3e50; padding:15px; border-radius:10px; border:2px solid #3498db; width:80%; max-width:400px; display:flex; gap:10px; box-shadow: 0 0 15px rgba(52,152,219,0.5);">
-         <input type="text" id="game-chat-input" placeholder="Say something... (Press Enter)" style="flex:1; padding:10px; border-radius:5px; border:none; outline:none; font-size:16px;">
-         <button id="game-chat-send" style="background:#3498db; color:#fff; border:none; padding:10px 15px; border-radius:5px; cursor:pointer; font-weight:bold;">Send</button>
-     </div>
-  </div>
-
-  <div id="settings-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; flex-direction:column; color:#fff;">
-     <div style="background:#2c3e50; padding:20px 30px; border-radius:10px; border:2px solid #3498db; text-align:center; max-width:400px; width:90%; box-shadow: 0 0 20px rgba(52,152,219,0.5);">
-         <h2 style="color:#3498db; margin-top:0;">⚙️ Settings</h2>
-         
-         <div style="margin: 15px 0 25px 0; text-align: left; border-bottom: 1px dashed #34495e; padding-bottom: 15px;">
-             <label style="display:flex; align-items:center; cursor:pointer;">
-                 <input type="checkbox" id="auto-graphics-check" checked style="margin-right:10px; transform: scale(1.3);">
-                 <span style="font-weight:bold; color:#f1c40f;">Auto-Adjust Graphics (60 FPS)</span>
-             </label>
-             <label style="display:flex; align-items:center; cursor:pointer; margin-top: 10px;">
-                 <input type="checkbox" id="auto-limit-check" checked style="margin-right:10px; transform: scale(1.1);">
-                 <span style="font-size: 0.9em; color:#bdc3c7;">Prevent dropping below 50%</span>
-             </label>
-         </div>
-         
-         <div style="margin: 20px 0; text-align: left;">
-             <label for="particles-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                 <span>✨ Particles Multiplier</span>
-                 <span id="particles-val">100%</span>
-             </label>
-             <input type="range" id="particles-slider" min="0" max="200" value="100" style="width:100%;">
-         </div>
-         
-         <div style="margin: 20px 0; text-align: left;">
-             <label for="bg-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                 <span>🌄 Background Elements</span>
-                 <span id="bg-val">100%</span>
-             </label>
-             <input type="range" id="bg-slider" min="0" max="200" value="100" style="width:100%;">
-         </div>
-         
-         <div style="margin: 20px 0; text-align: left;">
-             <label for="ground-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                 <span>🌿 Ground Elements</span>
-                 <span id="ground-val">100%</span>
-             </label>
-             <input type="range" id="ground-slider" min="0" max="200" value="100" style="width:100%;">
-         </div>
-         
-         <div style="margin: 20px 0; text-align: left;">
-             <label for="atmos-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                 <span>🌧️ Atmospheric FX</span>
-                 <span id="atmos-val">100%</span>
-             </label>
-             <input type="range" id="atmos-slider" min="0" max="200" value="100" style="width:100%;">
-         </div>
-         
-     <div style="margin-top:25px;">
-              <button id="btn-settings-close" style="background:#3498db; color:#fff; border:none; padding:10px 30px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s;">Done</button>
-          </div>
+  <div id="rebirth-modal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; flex-direction:column; color:#fff;">
+    <div
+      style="background:#2c3e50; padding:20px 30px; border-radius:10px; border:2px solid #8e44ad; text-align:center; max-width:400px; box-shadow: 0 0 20px rgba(142,68,173,0.5);">
+      <h2 style="color:#9b59b6; margin-top:0;">🔄 Rebirth</h2>
+      <p id="rebirth-modal-text" style="font-size:1.1em; line-height:1.4;">Do you want to Rebirth?</p>
+      <div style="margin-top:25px; display:flex; justify-content:space-around;">
+        <button id="btn-rebirth-cancel"
+          style="background:#c0392b; color:#fff; border:none; padding:10px 20px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s;">❌
+          No</button>
+        <button id="btn-rebirth-confirm"
+          style="background:#27ae60; color:#fff; border:none; padding:10px 20px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s;">✅
+          Yes</button>
       </div>
-   </div>
+    </div>
+  </div>
+  <div id="game-chat-modal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:10000; justify-content:center; align-items:center;">
+    <div
+      style="background:#2c3e50; padding:15px; border-radius:10px; border:2px solid #3498db; width:80%; max-width:400px; display:flex; gap:10px; box-shadow: 0 0 15px rgba(52,152,219,0.5);">
+      <input type="text" id="game-chat-input" placeholder="Say something... (Press Enter)"
+        style="flex:1; padding:10px; border-radius:5px; border:none; outline:none; font-size:16px;">
+      <button id="game-chat-send"
+        style="background:#3498db; color:#fff; border:none; padding:10px 15px; border-radius:5px; cursor:pointer; font-weight:bold;">Send</button>
+    </div>
+  </div>
 
-   <div id="inventory-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; flex-direction:column; color:#fff;">
-      <div style="background:#2c3e50; padding:20px 30px; border-radius:10px; border:2px solid #f39c12; text-align:center; max-width:450px; width:95%; box-shadow: 0 0 20px rgba(243,156,18,0.5); max-height:90vh; overflow-y:auto;">
-          <h2 style="color:#f39c12; margin-top:0; margin-bottom:15px;">🎒 Inventory</h2>
-          
-          <div style="margin-bottom:15px;">
-              <div style="font-size:0.85em; color:#bdc3c7; margin-bottom:8px; font-weight:bold;">⚔️ EQUIPPED</div>
-              <div id="equip-grid" style="display:flex; justify-content:center; gap:8px; margin-bottom:10px;">
-                  <div class="inv-slot equip-slot" data-type="equip" data-slot="0" style="width:60px;height:60px;font-size:30px;"></div>
-                  <div class="inv-slot equip-slot" data-type="equip" data-slot="1" style="width:60px;height:60px;font-size:30px;"></div>
-                  <div class="inv-slot equip-slot" data-type="equip" data-slot="2" style="width:60px;height:60px;font-size:30px;"></div>
-              </div>
-          </div>
-          
-          <div style="border-top:1px solid #34495e; padding-top:15px;">
-              <div style="font-size:0.85em; color:#bdc3c7; margin-bottom:8px; font-weight:bold;">📦 BAG</div>
-              <div id="inv-grid" style="display:grid; grid-template-columns:repeat(5,1fr); gap:4px; justify-content:center;"></div>
-          </div>
-          
-          <div id="inv-item-info" style="margin:15px 0; padding:10px; background:rgba(0,0,0,0.3); border-radius:5px; font-size:0.85em; min-height:50px; text-align:left; color:#ddd;"></div>
-          
-          <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
-              <button id="btn-inv-equip" style="display:none; background:#27ae60; color:#fff; border:none; padding:8px 20px; font-weight:bold; cursor:pointer; border-radius:5px;">Equip</button>
-              <button id="btn-inv-drop" style="display:none; background:#e74c3c; color:#fff; border:none; padding:8px 20px; font-weight:bold; cursor:pointer; border-radius:5px;">Drop</button>
-              <button id="btn-inv-close" style="background:#7f8c8d; color:#fff; border:none; padding:8px 20px; font-weight:bold; cursor:pointer; border-radius:5px;">Close</button>
-          </div>
+  <div id="settings-modal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; flex-direction:column; color:#fff;">
+    <div
+      style="background:#2c3e50; padding:20px 30px; border-radius:10px; border:2px solid #3498db; text-align:center; max-width:400px; width:90%; box-shadow: 0 0 20px rgba(52,152,219,0.5);">
+      <h2 style="color:#3498db; margin-top:0;">⚙️ Settings</h2>
+
+      <div style="margin: 15px 0 25px 0; text-align: left; border-bottom: 1px dashed #34495e; padding-bottom: 15px;">
+        <label style="display:flex; align-items:center; cursor:pointer;">
+          <input type="checkbox" id="auto-graphics-check" checked style="margin-right:10px; transform: scale(1.3);">
+          <span style="font-weight:bold; color:#f1c40f;">Auto-Adjust Graphics (60 FPS)</span>
+        </label>
+        <label style="display:flex; align-items:center; cursor:pointer; margin-top: 10px;">
+          <input type="checkbox" id="auto-limit-check" checked style="margin-right:10px; transform: scale(1.1);">
+          <span style="font-size: 0.9em; color:#bdc3c7;">Prevent dropping below 50%</span>
+        </label>
       </div>
-   </div>
 
-   <div class="container" id="container" style="display:none;">
+      <div style="margin: 20px 0; text-align: left;">
+        <label for="particles-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+          <span>✨ Particles Multiplier</span>
+          <span id="particles-val">100%</span>
+        </label>
+        <input type="range" id="particles-slider" min="0" max="200" value="100" style="width:100%;">
+      </div>
+
+      <div style="margin: 20px 0; text-align: left;">
+        <label for="bg-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+          <span>🌄 Background Elements</span>
+          <span id="bg-val">100%</span>
+        </label>
+        <input type="range" id="bg-slider" min="0" max="200" value="100" style="width:100%;">
+      </div>
+
+      <div style="margin: 20px 0; text-align: left;">
+        <label for="ground-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+          <span>🌿 Ground Elements</span>
+          <span id="ground-val">100%</span>
+        </label>
+        <input type="range" id="ground-slider" min="0" max="200" value="100" style="width:100%;">
+      </div>
+
+      <div style="margin: 20px 0; text-align: left;">
+        <label for="atmos-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+          <span>🌧️ Atmospheric FX</span>
+          <span id="atmos-val">100%</span>
+        </label>
+        <input type="range" id="atmos-slider" min="0" max="200" value="100" style="width:100%;">
+      </div>
+
+      <div style="margin-top:25px;">
+        <button id="btn-settings-close"
+          style="background:#3498db; color:#fff; border:none; padding:10px 30px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s;">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" id="container" style="display:none;">
     <div class="menu-panel" id="menu-panel">
-      <div style="text-align:center; font-weight:bold; font-size: 2.5em; color: #ffd700; margin-bottom: 20px; text-shadow: 0 0 15px #f39c12; flex: none;">NIGHT VIBE ONLINE</div>
-      
+      <div
+        style="text-align:center; font-weight:bold; font-size: 2.5em; color: #ffd700; margin-bottom: 20px; text-shadow: 0 0 15px #f39c12; flex: none;">
+        NIGHT VIBE ONLINE</div>
+
       <div class="menu-grid">
-         <!-- Left Column: Player & Lobby -->
-         <div class="menu-col">
-             <div style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #f39c12; border-radius:6px; margin-bottom:15px;">
-               <label for="nick-input" style="font-size:0.9em; color:#bdc3c7; display:block; margin-bottom:5px;">Your Nickname:</label>
-               <input type="text" id="nick-input" maxlength="16" style="width:100%; padding:10px; background:rgba(0,0,0,0.6); border:none; border-bottom:2px solid #f39c12; color:white; border-radius:4px; font-size:1.1em; outline:none; box-sizing:border-box;" />
-               <div id="menu-resets-display" style="color:#9b59b6; font-weight:bold; margin-top:12px; font-size:1.1em; text-align:center;">🔄 Resets: 0</div>
+        <!-- Left Column: Player & Lobby -->
+        <div class="menu-col">
+          <div
+            style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #f39c12; border-radius:6px; margin-bottom:15px;">
+            <label for="nick-input" style="font-size:0.9em; color:#bdc3c7; display:block; margin-bottom:5px;">Your
+              Nickname:</label>
+            <input type="text" id="nick-input" maxlength="16"
+              style="width:100%; padding:10px; background:rgba(0,0,0,0.6); border:none; border-bottom:2px solid #f39c12; color:white; border-radius:4px; font-size:1.1em; outline:none; box-sizing:border-box;" />
+            <div id="menu-resets-display"
+              style="color:#9b59b6; font-weight:bold; margin-top:12px; font-size:1.1em; text-align:center;">🔄 Resets: 0
             </div>
-            
-            <div style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #3498db; border-radius:6px; margin-bottom:15px; font-size:0.85em; color:#ecf0f1; line-height:1.4;">
-                <div style="color:#3498db; font-size:1.2em; font-weight:bold; border-bottom:1px solid #34495e; padding-bottom:5px; margin-bottom:8px;">📖 Gameplay Rules</div>
-                <ul style="margin:0; padding-left:15px; display:flex; flex-direction:column; gap:6px;">
-                    <li><strong style="color:#f1c40f;">Controls:</strong> Click/Tap to move. Click enemies to auto-attack.</li>
-                    <li><strong style="color:#e74c3c;">Skills:</strong> Keyboard <b>1</b> and <b>2</b> (or tap skill icons) to aim/cast attacks.</li>
-                    <li><strong style="color:#e67e22;">Overcharge:</strong> Hold down Skill <b>2</b> to charge it! Auto-releases at max charge. <b>+1 Max Charge per Reset! Charging speed scales with SPD!</b></li>
-                    <li><strong style="color:#9b59b6;">Rebirth:</strong> At <b style="color:#fff;">Level 4</b> you can Reset! Gain permanent stat points. Every reset increases the level requirement by +5.</li>
-                    <li><strong style="color:#f39c12;">Equipment:</strong> Enemies drop items! <span style="color:#9b59b6">💍 Rings</span> grant random class skills. <span style="color:#3498db">🛡️ Armor</span> boosts HP. <span style="color:#e74c3c">⚔️ Weapons</span> boost ATK.</li>
-                    <li><strong style="color:#2ecc71;">Chat:</strong> Press <b>Enter</b> during gameplay to talk to everyone!</li>
-                </ul>
-             </div>
-            
-            <div class="menu-player-list" id="menu-player-list" style="flex:1; background:rgba(0,0,0,0.3); border:1px solid #34495e; border-radius:6px; padding:10px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
-               <div style="color:#ffd700; font-size:1.1em; font-weight:bold; border-bottom:1px solid #34495e; padding-bottom:8px; margin-bottom:4px;">Lobby Players</div>
-            </div>
-         </div>
-         
-         <!-- Middle Column: Class Selection -->
-          <div class="menu-col center-col">
-             <button class="btn-start" id="btn-start" style="font-size:1.5em; padding:12px 30px; width:100%; margin-bottom:15px;">🎮 START GAME</button>
-             <div class="carousel-nav" style="margin-bottom: 15px; flex: none;">
-               <button class="carousel-btn" id="btn-prev-class">◀</button>
-               <span class="carousel-title" id="current-class-name" style="font-size:1.8em;">Warrior</span>
-               <button class="carousel-btn" id="btn-next-class">▶</button>
-             </div>
-             <div class="class-card selected" id="class-card" style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; overflow:hidden;">
-                <div class="class-icon" id="class-icon" style="font-size:5em; margin-bottom:10px; align-self:center;">⚔️</div>
-                <div class="class-name" id="class-card-name" style="font-size:1.8em; margin: 10px 0; align-self:center;">Warrior</div>
-                <div class="class-card-scroll">
-                  <div class="class-stats" style="font-size:0.9em; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; text-align:left; align-self:stretch; background:rgba(0,0,0,0.5); padding:15px; border-radius:6px; border:1px solid #34495e;">
-                     <div class="stat hp" id="stat-hp">HP: 120</div>
-                     <div class="stat spd" id="stat-mp">SPD: 8</div>
-                     <div class="stat atk" id="stat-atk">ATK: 22</div>
-                   </div>
-                  <div class="controls-section" id="controls-section" style="font-size:1em; color:#aaa; align-self:center;"></div>
-                </div>
-              </div>
           </div>
-         
+
+          <div
+            style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #3498db; border-radius:6px; margin-bottom:15px; font-size:0.85em; color:#ecf0f1; line-height:1.4;">
+            <div
+              style="color:#3498db; font-size:1.2em; font-weight:bold; border-bottom:1px solid #34495e; padding-bottom:5px; margin-bottom:8px;">
+              📖 Gameplay Rules</div>
+            <ul style="margin:0; padding-left:15px; display:flex; flex-direction:column; gap:6px;">
+              <li><strong style="color:#f1c40f;">Controls:</strong> Click/Tap to move. Click enemies to auto-attack.
+              </li>
+              <li><strong style="color:#e74c3c;">Skills:</strong> Keyboard <b>1</b> and <b>2</b> (or tap skill icons) to
+                aim/cast attacks.</li>
+              <li><strong style="color:#e67e22;">Overcharge:</strong> Hold down Skill <b>2</b> to charge it!
+                Auto-releases at max charge. <b>+1 Max Charge per Reset!</b></li>
+              <li><strong style="color:#9b59b6;">Rebirth:</strong> At <b style="color:#fff;">Level 4</b> you can Reset!
+                Gain permanent stat points. Every reset increases the level requirement by +5.</li>
+              <li><strong style="color:#2ecc71;">Chat:</strong> Press <b>Enter</b> during gameplay to talk to everyone!
+              </li>
+            </ul>
+          </div>
+
+          <div class="menu-player-list" id="menu-player-list"
+            style="flex:1; background:rgba(0,0,0,0.3); border:1px solid #34495e; border-radius:6px; padding:10px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+            <div
+              style="color:#ffd700; font-size:1.1em; font-weight:bold; border-bottom:1px solid #34495e; padding-bottom:8px; margin-bottom:4px;">
+              Lobby Players</div>
+          </div>
+        </div>
+
+        <!-- Middle Column: Class Selection -->
+        <div class="menu-col center-col">
+          <button class="btn-start" id="btn-start"
+            style="font-size:1.5em; padding:12px 30px; width:100%; margin-bottom:15px;">🎮 START GAME</button>
+          <div class="carousel-nav" style="margin-bottom: 15px; flex: none;">
+            <button class="carousel-btn" id="btn-prev-class">◀</button>
+            <span class="carousel-title" id="current-class-name" style="font-size:1.8em;">Warrior</span>
+            <button class="carousel-btn" id="btn-next-class">▶</button>
+          </div>
+          <div class="class-card selected" id="class-card"
+            style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; overflow:hidden;">
+            <div class="class-icon" id="class-icon" style="font-size:5em; margin-bottom:10px; align-self:center;">⚔️
+            </div>
+            <div class="class-name" id="class-card-name" style="font-size:1.8em; margin: 10px 0; align-self:center;">
+              Warrior</div>
+            <div class="class-card-scroll">
+              <div class="class-stats"
+                style="font-size:0.9em; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; text-align:left; align-self:stretch; background:rgba(0,0,0,0.5); padding:15px; border-radius:6px; border:1px solid #34495e;">
+                <div class="stat hp" id="stat-hp">HP: 120</div>
+                <div class="stat spd" id="stat-mp">SPD: 8</div>
+                <div class="stat atk" id="stat-atk">ATK: 22</div>
+              </div>
+              <div class="controls-section" id="controls-section" style="font-size:1em; color:#aaa; align-self:center;">
+              </div>
+            </div>
+          </div>
+        </div>
+
 
       </div>
     </div>
@@ -607,59 +1422,78 @@
     <div class="main-area" id="main-area" style="display:none;">
       <canvas id="game-canvas" style="display:none;"></canvas>
       <div class="hud" id="hud">
-          <div class="party-list" id="party-list">
-            <div class="hp-container" id="player-hp-container" style="cursor:pointer;">
-              <div class="hp-text" id="hp-text">HP: 100 / 100</div>
-              <div class="hp-bar-bg"><div class="hp-bar-fill" id="hp-bar" style="width:100%"></div></div>
-              <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+        <div class="party-list" id="party-list">
+          <div class="hp-container" id="player-hp-container" style="cursor:pointer;">
+            <div class="hp-text" id="hp-text">HP: 100 / 100</div>
+            <div class="hp-bar-bg">
+              <div class="hp-bar-fill" id="hp-bar" style="width:100%"></div>
             </div>
-            <div id="buffs-container" style="display:flex; gap:10px; margin-top:6px; margin-bottom:2px; height: 24px;"></div>
-            <div class="score-display" id="player-score-container" style="cursor:pointer;">
-              <div class="kills"><span class="highlight-level">⭐ Lv.<span id="player-level">1</span></span> <span>| 💀 <span style="color:#e74c3c">Kills:</span> <span id="kill-count">0</span>/<span id="req-kill-count">5</span></span> <span id="level-up-plus">+</span></div>
-              <div class="level">📊 <span style="color:#3498db">Wave:</span> <span id="wave-count" style="color:#ffd700; font-size:1.1em">1</span> | 🌍 Env: <span id="env-name">Forest</span></div>
+            <div class="xp-bar-bg">
+              <div class="xp-bar-fill" id="xp-bar" style="width:0%"></div>
             </div>
-            <div class="stats-display" id="stats-display" style="display:none;">
-               <div id="stat-pts-row" style="display:none; border-bottom: 1px dashed #ffd700; padding-bottom: 4px; margin-bottom: 2px; color: #f1c40f;">
-                 <span>Stat Points:</span> <span class="highlight" id="stat-pts-val">0</span>
-               </div>
-               <div>
-                 <span>ATK:</span> 
-                 <span><span class="highlight" id="stat-atk-val">0</span> <button id="btn-up-atk" class="stat-up-btn" style="display:none;">+</button></span>
-               </div>
-               <div>
-                 <span>HP:</span>
-                 <span><span class="highlight" id="stat-hp-val">0</span> <button id="btn-up-hp" class="stat-up-btn" style="display:none;">+</button></span>
-               </div>
-               <div>
-                  <span>SPD:</span>
-                  <span><span class="highlight" id="stat-spd-val">0</span> <button id="btn-up-spd" class="stat-up-btn" style="display:none;">+</button></span>
-                </div>
-                <div style="border-top: 1px solid #7f8c8d; padding-top: 6px; margin-top: 4px;"><span>S1 Size/Range:</span> <span><span class="highlight" id="stat-s1-val">100%</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-s1-boost">0</span>%)</span></span></div>
-               <div><span>S2 AOE:</span> <span><span class="highlight" id="stat-aoe-val">100%</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-aoe-boost">0</span>%)</span></span></div>
-               <div><span>S2 CD:</span> <span><span class="highlight" id="stat-cd-val">5.0s</span> <span style="color:#2ecc71; font-size:0.9em;">(-<span id="stat-cd-red">0.0</span>s)</span></span></div>
-               <div><span>Charge Speed:</span> <span><span class="highlight" id="stat-charge-val">100%</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-charge-boost">0</span>%)</span></span></div>
-               <div style="border-top: 1px dashed #34495e; padding-top: 3px; margin-top: 1px;">
-                 <span>Armor (Reduction):</span> <span><span class="highlight" id="stat-armor-val">0</span> <span style="color:#2ecc71; font-size:0.9em;">(-<span id="stat-armor-red">0.0</span>%)</span></span>
-               </div>
-               <div style="border-top: 1px dashed #e74c3c; padding-top: 3px; margin-top: 1px; color: #e74c3c; font-weight:bold;">
-                 <span>🔄 Resets:</span> <span class="highlight" style="color:#fff;" id="stat-resets-val">0</span>
-               </div>
-               <button id="btn-rebirth" style="display:none; width:100%; margin-top:8px; background:#8e44ad; color:white; border: 2px solid #9b59b6; border-radius:4px; padding:4px; font-weight:bold; cursor:pointer;">🔄 REBIRTH (Start Over with Bonus Stats)</button>
-            </div>
-            <div id="remote-players-list"></div>
           </div>
+          <div id="buffs-container" style="display:flex; gap:10px; margin-top:6px; margin-bottom:2px; height: 24px;">
+          </div>
+          <div class="score-display" id="player-score-container" style="cursor:pointer;">
+            <div class="kills"><span class="highlight-level">⭐ Lv.<span id="player-level">1</span></span> <span>| 💀
+                <span style="color:#e74c3c">Kills:</span> <span id="kill-count">0</span>/<span
+                  id="req-kill-count">5</span></span> <span id="level-up-plus">+</span></div>
+            <div class="level">📊 <span style="color:#3498db">Wave:</span> <span id="wave-count"
+                style="color:#ffd700; font-size:1.1em">1</span> | 🌍 Env: <span id="env-name">Forest</span></div>
+          </div>
+          <div class="stats-display" id="stats-display" style="display:none;">
+            <div id="stat-pts-row"
+              style="display:none; border-bottom: 1px dashed #ffd700; padding-bottom: 4px; margin-bottom: 2px; color: #f1c40f;">
+              <span>Stat Points:</span> <span class="highlight" id="stat-pts-val">0</span>
+            </div>
+            <div>
+              <span>ATK:</span>
+              <span><span class="highlight" id="stat-atk-val">0</span> <button id="btn-up-atk" class="stat-up-btn"
+                  style="display:none;">+</button></span>
+            </div>
+            <div>
+              <span>HP:</span>
+              <span><span class="highlight" id="stat-hp-val">0</span> <button id="btn-up-hp" class="stat-up-btn"
+                  style="display:none;">+</button></span>
+            </div>
+            <div>
+              <span>SPD:</span>
+              <span><span class="highlight" id="stat-spd-val">0</span> <button id="btn-up-spd" class="stat-up-btn"
+                  style="display:none;">+</button></span>
+            </div>
+            <div><span>S1 Size/Range:</span> <span><span class="highlight" id="stat-s1-val">100%</span> <span
+                  style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-s1-boost">0</span>%)</span></span></div>
+            <div><span>S2 AOE:</span> <span><span class="highlight" id="stat-aoe-val">100%</span> <span
+                  style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-aoe-boost">0</span>%)</span></span></div>
+            <div><span>S2 CD:</span> <span><span class="highlight" id="stat-cd-val">5.0s</span> <span
+                  style="color:#2ecc71; font-size:0.9em;">(-<span id="stat-cd-red">0.0</span>s)</span></span></div>
+            <div style="border-top: 1px dashed #34495e; padding-top: 3px; margin-top: 1px;">
+              <span>Armor (Reduction):</span> <span><span class="highlight" id="stat-armor-val">0</span> <span
+                  style="color:#2ecc71; font-size:0.9em;">(-<span id="stat-armor-red">0.0</span>%)</span></span>
+            </div>
+            <div
+              style="border-top: 1px dashed #e74c3c; padding-top: 3px; margin-top: 1px; color: #e74c3c; font-weight:bold;">
+              <span>🔄 Resets:</span> <span class="highlight" style="color:#fff;" id="stat-resets-val">0</span>
+            </div>
+            <button id="btn-rebirth"
+              style="display:none; width:100%; margin-top:8px; background:#8e44ad; color:white; border: 2px solid #9b59b6; border-radius:4px; padding:4px; font-weight:bold; cursor:pointer;">🔄
+              REBIRTH (Start Over with Bonus Stats)</button>
+          </div>
+          <div id="remote-players-list"></div>
         </div>
-        <div class="game-btns" id="game-btns">
-          <button id="btn-inventory" title="Inventory">🎒 Inv</button>
-          <button id="btn-settings" title="Game Settings">⚙️ Settings</button>
-          <button id="btn-fullscreen" title="Toggle Fullscreen">⛶ Full</button>
-          <button class="btn-quit-game" id="btn-quit-game" title="Back to Menu">☰ Menu</button>
-        </div>
-        <div class="cooldown-ring" id="cd-ring">
-          <svg viewBox="0 0 60 60"><circle id="cd-circle" cx="30" cy="30" r="26" /></svg>
-          <div class="cd-text" id="cd-text"></div>
-        </div>
-        <div class="walk-indicator" id="walk-indicator">🚶 Walking...</div>
+      </div>
+      <div class="game-btns" id="game-btns">
+        <button id="btn-settings" title="Game Settings">⚙️ Settings</button>
+        <button id="btn-fullscreen" title="Toggle Fullscreen">⛶ Full</button>
+        <button class="btn-quit-game" id="btn-quit-game" title="Back to Menu">☰ Menu</button>
+      </div>
+      <div class="cooldown-ring" id="cd-ring">
+        <svg viewBox="0 0 60 60">
+          <circle id="cd-circle" cx="30" cy="30" r="26" />
+        </svg>
+        <div class="cd-text" id="cd-text"></div>
+      </div>
+      <div class="walk-indicator" id="walk-indicator">🚶 Walking...</div>
       <div class="compact-log" id="compact-log">
         <div class="log-content" id="log-display">Waiting for action...</div>
         <div class="log-tooltip" id="log-tooltip"></div>
@@ -668,9 +1502,12 @@
         <h2>💀 YOU DIED</h2>
         <p>Kills: <span id="death-kills">0</span> | Wave: <span id="death-wave">1</span></p>
         <div class="wait-msg" id="wait-msg">⏳ You will respawn automatically<br>at the start of the next wave!</div>
-        <button class="btn-start" id="btn-death-quit" style="width: auto; margin-top: 15px; padding: 10px 30px; font-size: 0.8em; border-color: #e74c3c; color: #e74c3c; background: rgba(231,76,60,0.15);">☰ RETURN TO MENU</button>
+        <button class="btn-start" id="btn-death-quit"
+          style="width: auto; margin-top: 15px; padding: 10px 30px; font-size: 0.8em; border-color: #e74c3c; color: #e74c3c; background: rgba(231,76,60,0.15);">☰
+          RETURN TO MENU</button>
       </div>
     </div>
   </div>
 </body>
+
 </html>
