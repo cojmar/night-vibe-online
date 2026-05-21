@@ -1467,19 +1467,32 @@ export default class Game {
               
               renderables.push({ y: item.y, draw: (ctx) => {
                   ctx.save();
-                  ctx.translate(item.x, item.y - 10 + Math.sin(this.globalTime/200)*5);
+                  const floatOffset = Math.sin(this.globalTime/200)*5;
+                  const pulse = Math.abs(Math.sin(this.globalTime/150));
+                  ctx.translate(item.x, item.y - 10 + floatOffset);
                   ctx.globalAlpha = Math.min(1, item.life / 1000);
-                  ctx.fillStyle = item.type === 'red' ? '#e74c3c' : '#3498db';
-                  ctx.shadowColor = item.type === 'red' ? '#c0392b' : '#2980b9';
-                  ctx.shadowBlur = 15;
+                  
+                  // Pulsating Aura
                   ctx.beginPath();
-                  ctx.arc(0, 0, 8, 0, Math.PI*2);
+                  ctx.arc(0, 0, 10 + pulse * 6, 0, Math.PI*2);
+                  ctx.fillStyle = item.type === 'red' ? `rgba(231, 76, 60, ${0.3 + pulse*0.3})` : `rgba(52, 152, 219, ${0.3 + pulse*0.3})`;
                   ctx.fill();
+
+                  // Core Orb
+                  ctx.fillStyle = item.type === 'red' ? '#e74c3c' : '#3498db';
+                  ctx.shadowColor = item.type === 'red' ? '#ff7979' : '#7ed6df';
+                  ctx.shadowBlur = 10 + pulse * 15;
+                  ctx.beginPath();
+                  ctx.arc(0, 0, 7 + pulse * 2, 0, Math.PI*2);
+                  ctx.fill();
+                  
+                  // Icon
                   ctx.fillStyle = 'white';
+                  ctx.shadowBlur = 0;
                   ctx.font = 'bold 12px sans-serif';
                   ctx.textAlign = 'center';
                   ctx.textBaseline = 'middle';
-                  ctx.fillText(item.type === 'red' ? '❤️' : '⚡', 0, -15);
+                  ctx.fillText(item.type === 'red' ? '❤️' : '⚡', 0, -18 - pulse * 2);
                   ctx.restore();
               }});
           }
