@@ -83,18 +83,33 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
       if (this.input_data.x !== undefined || this.input_data.y !== undefined) {
         const targetX = this.input_data.x !== undefined ? this.input_data.x : this.x;
         const targetY = this.input_data.y !== undefined ? this.input_data.y : this.y;
-        const dx = targetX - this.x;
-        const dy = targetY - this.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist > 2) {
+        if (this._interpActive && this._interpStartX !== null) {
+          const currentInterpX = this.interpolatedX;
+          const currentInterpY = this.interpolatedY;
+          this._interpStartX = currentInterpX;
+          this._interpStartY = currentInterpY;
+          this._interpEndX = targetX;
+          this._interpEndY = targetY;
+          this._interpStartT = Date.now();
+          const dx = targetX - currentInterpX;
+          const dy = targetY - currentInterpY;
+          const dist = Math.hypot(dx, dy);
+          const moveSpeed = this.moveSpeed || 2.5;
+           let duration = (dist / moveSpeed) * 16.67;
+           duration = Math.max(50, Math.min(duration, 500));
+           this._interpDuration = duration;
+         } else {
           this._interpStartX = this.x;
           this._interpStartY = this.y;
           this._interpEndX = targetX;
           this._interpEndY = targetY;
           this._interpStartT = Date.now();
+          const dx = targetX - this.x;
+          const dy = targetY - this.y;
+          const dist = Math.hypot(dx, dy);
           const moveSpeed = this.moveSpeed || 2.5;
           let duration = (dist / moveSpeed) * 16.67;
-          duration = Math.max(50, Math.min(duration, 250));
+          duration = Math.max(50, Math.min(duration, 500));
           this._interpDuration = duration;
           this._interpActive = true;
         }
@@ -222,9 +237,9 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     
     if (dist < 2) return;
     
-    const moveSpeed = this.moveSpeed || 2.5;
-    let duration = (dist / moveSpeed) * 16.67;
-    duration = Math.max(50, Math.min(duration, 250));
+   const moveSpeed = this.moveSpeed || 2.5;
+     let duration = (dist / moveSpeed) * 16.67;
+     duration = Math.max(50, Math.min(duration, 500));
     
     if (this._interpStartX !== null && this._interpStartT !== null) {
       const remaining = (this._interpStartT + this._interpDuration) - Date.now();
@@ -251,13 +266,14 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     if (!this._interpActive || this._interpStartX === null || this._interpStartT === null) return this.x;
     const elapsed = Date.now() - this._interpStartT;
     if (elapsed >= this._interpDuration) {
+      const endX = this._interpEndX;
       this._interpActive = false;
       this._interpStartX = null;
       this._interpStartY = null;
       this._interpEndX = null;
       this._interpEndY = null;
       this._interpStartT = null;
-      return this._interpEndX;
+      return endX;
     }
     const t = elapsed / this._interpDuration;
     const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
@@ -268,13 +284,14 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     if (!this._interpActive || this._interpStartX === null || this._interpStartT === null) return this.y;
     const elapsed = Date.now() - this._interpStartT;
     if (elapsed >= this._interpDuration) {
+      const endY = this._interpEndY;
       this._interpActive = false;
       this._interpStartX = null;
       this._interpStartY = null;
       this._interpEndX = null;
       this._interpEndY = null;
       this._interpStartT = null;
-      return this._interpEndY;
+      return endY;
     }
     const t = elapsed / this._interpDuration;
     const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
