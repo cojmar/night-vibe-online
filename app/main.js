@@ -41,7 +41,7 @@ window.app = new class {
             const msg = chatInput.value.trim();
             if (msg) {
                 const myUser = (this.net.me && this.net.me.info) ? this.net.me.info.user : '';
-                this.net.send_cmd('room.msg', { msg: msg, nick: nickInput.value, user: myUser });
+                this.net.send_cmd('msg', { msg: msg, nick: nickInput.value, user: myUser });
                 chatInput.value = '';
             }
         };
@@ -85,7 +85,11 @@ window.app = new class {
                 for (let uid in this.net.room.users) {
                     if (uid === myUid) continue;
                     const u = this.net.room.users[uid];
-                    const uNick = u.data && u.data.nick ? u.data.nick : uid.substring(0,8);
+                    let uNick = uid.substring(0,8);
+                    if (u.data && u.data.nick) uNick = u.data.nick;
+                    else if (u.nick) uNick = u.nick;
+                    else if (u.info && u.info.nick) uNick = u.info.nick;
+                    
                     const status = (u.data && u.data.inGame) ? '<span style="color:#e74c3c">[In Game]</span>' : '<span style="color:#2ecc71">[In Menu]</span>';
                     html += `<div style="font-size:0.9em; padding:2px 0;">${uNick} ${status}</div>`;
                 }

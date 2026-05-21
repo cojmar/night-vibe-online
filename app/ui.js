@@ -31,6 +31,19 @@ export default class UI {
     compactLog.addEventListener('mouseleave', () => { clearTimeout(this.logHoldTimer); this.hideTooltip(); });
     compactLog.addEventListener('touchstart', () => this.logHoldTimer = setTimeout(() => this.showTooltip(), 100));
     compactLog.addEventListener('touchend', () => { clearTimeout(this.logHoldTimer); this.hideTooltip(); });
+
+    const toggleStats = () => {
+       const stats = document.getElementById('stats-display');
+       stats.style.display = stats.style.display === 'none' ? 'flex' : 'none';
+       if (stats.style.display !== 'none') {
+           const plus = document.getElementById('level-up-plus');
+           if (plus) plus.style.display = 'none';
+       }
+    };
+    const hpCont = document.getElementById('player-hp-container');
+    if (hpCont) hpCont.addEventListener('click', toggleStats);
+    const scoreCont = document.getElementById('player-score-container');
+    if (scoreCont) scoreCont.addEventListener('click', toggleStats);
   }
 
   nextClass() {
@@ -174,6 +187,15 @@ export default class UI {
     document.getElementById('btn-up-atk').style.display = d;
     document.getElementById('btn-up-spd').style.display = d;
     document.getElementById('btn-up-hp').style.display = d;
+
+    const plus = document.getElementById('level-up-plus');
+    if (plus) {
+        if (pts > 0 && document.getElementById('stats-display').style.display === 'none') {
+            plus.style.display = 'inline';
+        } else {
+            plus.style.display = 'none';
+        }
+    }
   }
 
   updateScore(player, wave, waveKilled = 0, waveTotal = 0) {
