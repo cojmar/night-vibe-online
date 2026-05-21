@@ -969,11 +969,9 @@ export default class Game {
     this.ctx.fillStyle = skyGrad;
     this.ctx.fillRect(0,0,GAME_W,gY);
 
+    const nightAlpha = this.nightAlpha || 0;
+    const dayAlpha = this.dayAlpha || 0;
     const cycle = (this.globalTime % 300) / 300; 
-    let nightAlpha = 0;
-    if (cycle > 0.45 && cycle <= 0.55) nightAlpha = (cycle - 0.45) * 10;
-    else if (cycle > 0.55 && cycle <= 0.95) nightAlpha = 1;
-    else if (cycle > 0.95) nightAlpha = Math.max(0, 1 - (cycle - 0.95) * 20);
 
     const cx = GAME_W/2, cy = gY;
     // Shift angle so cycle=0 is sunrise (angle = PI)
@@ -996,6 +994,15 @@ export default class Game {
       this.ctx.fillRect(0,0,GAME_W,gY);
     }
     
+    this.ctx.save();
+    let filter = 'none';
+    if (nightAlpha > 0) {
+        filter = `grayscale(${nightAlpha * 95}%) brightness(${100 - nightAlpha * 25}%)`;
+    } else if (dayAlpha > 0) {
+        filter = `sepia(${dayAlpha * 60}%) brightness(${100 + dayAlpha * 25}%)`;
+    }
+    this.ctx.filter = filter;
+
     if (!this.scenery) this.generateScenery();
     for (let s of this.scenery) {
        this.ctx.fillStyle = s.color;
@@ -1023,6 +1030,7 @@ export default class Game {
            this.ctx.fill();
         }
     }
+    this.ctx.restore();
 
     this.ctx.fillStyle = env.ground;
     this.ctx.fillRect(0, gY, GAME_W, GAME_H - gY);
@@ -1034,6 +1042,17 @@ export default class Game {
       this.lastTime = time;
       this.globalTime += dt * 0.016;
       
+      const cycle = (this.globalTime % 300) / 300; 
+      this.nightAlpha = 0;
+      if (cycle > 0.45 && cycle <= 0.55) this.nightAlpha = (cycle - 0.45) * 10;
+      else if (cycle > 0.55 && cycle <= 0.95) this.nightAlpha = 1;
+      else if (cycle > 0.95) this.nightAlpha = Math.max(0, 1 - (cycle - 0.95) * 20);
+      
+      this.dayAlpha = 0;
+      if (cycle > 0.0 && cycle < 0.5) {
+         this.dayAlpha = Math.max(0, Math.sin(cycle * 2 * Math.PI));
+      }
+
       if (this.isHost) {
           const currentDay = Math.floor(this.globalTime / 300);
           const newEnv = ENV_LIST[currentDay % ENV_LIST.length];
@@ -1184,6 +1203,14 @@ export default class Game {
       if (this.groundFoliage) {
           for (let gf of this.groundFoliage) {
               renderables.push({ y: gf.y, draw: (ctx) => {
+                  ctx.save();
+                  let filter = 'none';
+                  if (this.nightAlpha > 0) {
+                      filter = `grayscale(${this.nightAlpha * 95}%) brightness(${100 - this.nightAlpha * 25}%)`;
+                  } else if (this.dayAlpha > 0) {
+                      filter = `sepia(${this.dayAlpha * 60}%) brightness(${100 + this.dayAlpha * 25}%)`;
+                  }
+                  ctx.filter = filter;
                   ctx.fillStyle = gf.color;
                   ctx.beginPath();
                   if (gf.type === 'grass') {
@@ -1197,6 +1224,7 @@ export default class Game {
                       ctx.arc(gf.x, gf.y, gf.size/2, 0, Math.PI*2);
                   }
                   ctx.fill();
+                  ctx.restore();
               }});
           }
       }
@@ -1299,23 +1327,12 @@ if (this.isHost && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0)
       }
 
       // Global Day/Night Lighting Overlays
-      const cycle = (this.globalTime % 300) / 300; 
-      let nightAlpha = 0;
-      if (cycle > 0.45 && cycle <= 0.55) nightAlpha = (cycle - 0.45) * 10;
-      else if (cycle > 0.55 && cycle <= 0.95) nightAlpha = 1;
-      else if (cycle > 0.95) nightAlpha = Math.max(0, 1 - (cycle - 0.95) * 20);
-      
-      let dayAlpha = 0;
-      if (cycle > 0.0 && cycle < 0.5) {
-         dayAlpha = Math.max(0, Math.sin(cycle * 2 * Math.PI));
-      }
-
-      if (nightAlpha > 0) {
-         this.ctx.fillStyle = `rgba(0, 0, 8, ${nightAlpha * 0.8})`;
+      if (this.nightAlpha > 0) {
+         this.ctx.fillStyle = `rgba(0, 0, 8, ${this.nightAlpha * 0.8})`;
          this.ctx.fillRect(0, 0, GAME_W, GAME_H);
       }
-      if (dayAlpha > 0) {
-         this.ctx.fillStyle = `rgba(255, 230, 150, ${dayAlpha * 0.1})`;
+      if (this.dayAlpha > 0) {
+         this.ctx.fillStyle = `rgba(255, 230, 150, ${this.dayAlpha * 0.1})`;
          this.ctx.fillRect(0, 0, GAME_W, GAME_H);
       }
 
