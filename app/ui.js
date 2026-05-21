@@ -25,6 +25,9 @@ export default class UI {
     document.getElementById('btn-up-atk').addEventListener('click', () => { if(this.game) this.game.upgradeStat('atk'); });
     document.getElementById('btn-up-spd').addEventListener('click', () => { if(this.game) this.game.upgradeStat('spd'); });
     document.getElementById('btn-up-hp').addEventListener('click', () => { if(this.game) this.game.upgradeStat('hp'); });
+    
+    const btnRebirth = document.getElementById('btn-rebirth');
+    if (btnRebirth) btnRebirth.addEventListener('click', () => { if(this.game) this.game.resetLevel(); });
 
     const compactLog = document.getElementById('compact-log');
     compactLog.addEventListener('mouseenter', () => this.logHoldTimer = setTimeout(() => this.showTooltip(), 300));
@@ -244,6 +247,19 @@ export default class UI {
             plus.style.display = 'inline-block';
         } else {
             plus.style.display = 'none';
+        }
+    }
+    
+    const resetsVal = document.getElementById('stat-resets-val');
+    if (resetsVal) resetsVal.textContent = player.resets || 0;
+    
+    const reqLevel = 10 * Math.pow(2, player.resets || 0);
+    const btnRebirth = document.getElementById('btn-rebirth');
+    if (btnRebirth) {
+        if (player.level >= reqLevel) {
+            btnRebirth.style.display = 'block';
+        } else {
+            btnRebirth.style.display = 'none';
         }
     }
   }

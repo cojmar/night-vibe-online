@@ -498,8 +498,18 @@ export default class Game {
     
     this.generateScenery();
     
+    let myData = null;
+    if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
+       myData = this.net.room.users[this.net.me.info.user].data;
+    }
+    const bonusStats = myData && myData.bonusStatPoints ? myData.bonusStatPoints : 0;
+    const resets = myData && myData.resets ? myData.resets : 0;
+
     const groundY = getGroundY(this.selectedEnv);
     this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, groundY - 20);
+    this.player.resets = resets;
+    this.player.statPoints = (this.player.statPoints || 0) + bonusStats;
+    
     const nickInput = document.getElementById('nick-input');
     if (nickInput) this.player.nick = nickInput.value;
     
@@ -544,6 +554,29 @@ export default class Game {
     
     this.ui.updateHUD(this.player);
     this.broadcastState();
+  }
+
+  resetLevel() {
+      if (!this.player) return;
+      const reqLevel = 10 * Math.pow(2, this.player.resets || 0);
+      if (this.player.level < reqLevel) return;
+      
+      if (confirm(`Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * 2} unallocated bonus stats on your next play!`)) {
+          const newResets = (this.player.resets || 0) + 1;
+          
+          let oldBonusStats = 0;
+          if (this.net && this.net.room && this.net.me && this.net.me.info) {
+              const myData = this.net.room.users[this.net.me.info.user]?.data;
+              if (myData && myData.bonusStatPoints) oldBonusStats = myData.bonusStatPoints;
+          }
+          
+          const extraPoints = this.player.level * 2; 
+          const newBonusStats = oldBonusStats + extraPoints;
+          
+          this.net.send_cmd('set_data', { resets: newResets, bonusStatPoints: newBonusStats });
+          
+          this.quitToMenu();
+      }
   }
 
   quitToMenu() {
@@ -772,6 +805,7 @@ export default class Game {
       hp: this.player.hp,
       maxHp: this.player.maxHp,
       level: this.player.level,
+      resets: this.player.resets,
       kills: this.player.kills,
       reqKills: this.player.reqKills,
       facing: this.player.facing,

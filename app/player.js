@@ -54,10 +54,15 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     this.kills++;
     this.reqKills = Math.floor(5 * Math.pow(this.level, 1.4) + Math.sin(this.level) * 2);
     if (this.kills >= this.reqKills) {
-        this.kills -= this.reqKills;
-        this.level++;
-        this.levelUp();
-        return true; // Leveled up
+        const reqLevel = 10 * Math.pow(2, this.resets || 0);
+        if (this.level < reqLevel) {
+            this.kills -= this.reqKills;
+            this.level++;
+            this.levelUp();
+            return true; // Leveled up
+        } else {
+            this.kills = this.reqKills; // cap
+        }
     }
     return false;
   }
@@ -96,6 +101,7 @@ updateFromNetwork() {
       if (this.input_data.animTimer !== undefined) this.animTimer = this.input_data.animTimer;
       if (this.input_data.hitFlash !== undefined) this.hitFlash = Math.max(this.hitFlash, this.input_data.hitFlash);
       if (this.input_data.level !== undefined) this.level = this.input_data.level;
+      if (this.input_data.resets !== undefined) this.resets = this.input_data.resets;
       if (this.input_data.kills !== undefined) this.kills = this.input_data.kills;
       if (this.input_data.reqKills !== undefined) this.reqKills = this.input_data.reqKills;
       if (this.input_data.maxHp !== undefined) this.maxHp = this.input_data.maxHp;
@@ -152,7 +158,8 @@ updateFromNetwork() {
             const e = this.autoAttackTarget;
             const cd = CLASS_DATA[this.classType];
             const wScale = 1 + (this.atk - cd.atk) * 0.005;
-            const lvlScale = Math.min(1.0, 0.5 + ((this.level || 1) - 1) * 0.055);
+            const reqLevel = 10 * Math.pow(2, this.resets || 0);
+            const lvlScale = 0.5 + 0.5 * ((this.level - 1) / Math.max(1, reqLevel - 1));
             
             let maxRange = 450; // default for ranged
             if (this.classType === 'warrior') maxRange = 90 * wScale * lvlScale * 0.8;
@@ -247,7 +254,8 @@ stopWalking(gameInstance) {
         return;
     }
 
-    const lvlScale = Math.min(1.0, 0.5 + ((this.level || 1) - 1) * 0.055);
+    const reqLevel = 10 * Math.pow(2, this.resets || 0);
+    const lvlScale = 0.5 + 0.5 * ((this.level - 1) / Math.max(1, reqLevel - 1));
 
     if ((this.isMoving || this.action === 'walk') && Math.random() < 0.5) {
       const trailX = px - this.facing * (8 + Math.random() * 10) * lvlScale;
