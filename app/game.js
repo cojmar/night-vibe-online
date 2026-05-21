@@ -46,6 +46,8 @@ export default class Game {
     this.isHost = false;
     this.syncTimer = 0;
     this.pendingHits = [];
+    
+    this.settings = { particles: 1.0, foliage: 1.0 };
 
     this.bindEvents();
     
@@ -942,14 +944,15 @@ export default class Game {
     if (enemy.attackTimer !== undefined) enemy.attackTimer = Math.max(enemy.attackTimer, 30);
   }
 
-  spawnParticles(x, y, color, count, speed, scale = 1) {
-    for (let i = 0; i < count; i++) {
+  spawnParticles(x, y, color, count = 20, speed = 5, sizeScale = 1.0) {
+    const finalCount = Math.floor(count * (this.settings ? this.settings.particles : 1.0));
+    for (let i = 0; i < finalCount; i++) {
       const angle = Math.random()*Math.PI*2;
       const spd = (0.5+Math.random())*speed;
       this.particles.push({
         x, y, vx: Math.cos(angle)*spd, vy: Math.sin(angle)*spd-1,
         life: 20+Math.floor(Math.random()*20), maxLife: 40, color,
-        size: (1.5+Math.random()*3) * scale
+        size: (1.5+Math.random()*3) * sizeScale
       });
     }
   }
@@ -974,7 +977,8 @@ export default class Game {
     const currentDay = Math.floor(this.globalTime / 300);
     let localPrng = new PRNG((currentDay + 1) * 9999);
     
-    for(let i=0; i<15; i++) {
+    const sceneryCount = Math.floor(15 * (this.settings ? this.settings.foliage : 1.0));
+    for(let i=0; i<sceneryCount; i++) {
        const w = 40 + localPrng.nextFloat() * 60;
        const h = 50 + localPrng.nextFloat() * 120;
        this.scenery.push({
@@ -983,7 +987,8 @@ export default class Game {
        });
     }
 
-    for (let i = 0; i < 25; i++) {
+    const horizonCount = Math.floor(25 * (this.settings ? this.settings.foliage : 1.0));
+    for (let i = 0; i < horizonCount; i++) {
        this.horizonFoliage.push({
           x: localPrng.nextFloat() * GAME_W,
           h: 20 + localPrng.nextFloat() * 50,
@@ -996,7 +1001,8 @@ export default class Game {
     }
 
     const groundY = GAME_H * env.groundY;
-    for (let i = 0; i < 60; i++) {
+    const groundCount = Math.floor(60 * (this.settings ? this.settings.foliage : 1.0));
+    for (let i = 0; i < groundCount; i++) {
        this.groundFoliage.push({
           x: localPrng.nextFloat() * GAME_W,
           y: groundY + 5 + localPrng.nextFloat() * (GAME_H - groundY - 10),
