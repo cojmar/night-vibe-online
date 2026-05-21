@@ -862,14 +862,14 @@ export default class Game {
     if (enemy.attackTimer !== undefined) enemy.attackTimer = Math.max(enemy.attackTimer, 30);
   }
 
-  spawnParticles(x, y, color, count, speed) {
+  spawnParticles(x, y, color, count, speed, scale = 1) {
     for (let i = 0; i < count; i++) {
       const angle = Math.random()*Math.PI*2;
       const spd = (0.5+Math.random())*speed;
       this.particles.push({
         x, y, vx: Math.cos(angle)*spd, vy: Math.sin(angle)*spd-1,
         life: 20+Math.floor(Math.random()*20), maxLife: 40, color,
-        size: 1.5+Math.random()*3
+        size: (1.5+Math.random()*3) * scale
       });
     }
   }

@@ -247,14 +247,15 @@ stopWalking(gameInstance) {
         return;
     }
 
-    if ((this.isMoving || this.action === 'walk') && Math.random() < 0.15) {
-      gameInstance.spawnParticles(px + (Math.random() - 0.5) * 10, py - 4, '#888', 1, 1);
+    const lvlScale = Math.min(1.0, 0.5 + ((this.level || 1) - 1) * 0.055);
+
+    if ((this.isMoving || this.action === 'walk') && Math.random() < 0.5) {
+      const trailX = px - this.facing * (8 + Math.random() * 10) * lvlScale;
+      gameInstance.spawnParticles(trailX, py + 2, '#a09080', 2 + Math.floor(Math.random() * 2), 0.8, lvlScale * 1.6);
     }
 
     ctx.save();
     
-    // Scale by level (50% at lvl 1 -> 100% at lvl 10)
-    const lvlScale = Math.min(1.0, 0.5 + ((this.level || 1) - 1) * 0.055);
     ctx.translate(px, py + walkBob);
     ctx.scale(lvlScale, lvlScale);
     if (this.facing < 0) ctx.scale(-1, 1);
