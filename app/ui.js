@@ -334,6 +334,15 @@ export default class UI {
     document.getElementById('stat-cd-val').textContent = (cdMs/1000).toFixed(1) + 's';
     document.getElementById('stat-cd-red').textContent = red.toFixed(1);
     
+    // SPD -> Charge Speed
+    const spdMulti = 1 + diffSpd * 0.05;
+    const baseChargeSpeed = (player.buffManaTimer && player.buffManaTimer > 0) ? 5 : 1;
+    const totalChargeSpeed = baseChargeSpeed * spdMulti;
+    const chargeBoost = ((totalChargeSpeed - 1) * 100).toFixed(0);
+    
+    document.getElementById('stat-charge-val').textContent = (totalChargeSpeed * 100).toFixed(0) + '%';
+    document.getElementById('stat-charge-boost').textContent = chargeBoost;
+    
     // Armor
     const armor = Math.floor(player.maxHp / 10);
     const dmgRed = (armor * 0.5).toFixed(1);
