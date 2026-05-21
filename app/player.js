@@ -248,7 +248,7 @@ stopWalking(gameInstance) {
     }
 
     if ((this.isMoving || this.action === 'walk') && Math.random() < 0.15) {
-      gameInstance.spawnParticles(px + (Math.random() - 0.5) * 10, groundY - 2, '#888', 1, 1);
+      gameInstance.spawnParticles(px + (Math.random() - 0.5) * 10, py - 4, '#888', 1, 1);
     }
 
     ctx.save();
