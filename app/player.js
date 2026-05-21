@@ -192,7 +192,11 @@ export default class Player {
     let armAnim = getArmAnim(this.animTimer);
     
     if (this.isChargingS2) {
-       armAnim = (Date.now() % 400) / 400 * Math.PI * 2;
+       if (this.classType === 'archer') {
+           armAnim = 0; // Archer just aims steadily
+       } else {
+           armAnim = (Date.now() % 400) / 400 * Math.PI * 2;
+       }
     }
 
     if (this.classType === 'warrior') {
@@ -387,7 +391,11 @@ export default class Player {
         const topX = 18 + Math.cos(-Math.PI*0.55)*35, topY = Math.sin(-Math.PI*0.55)*35;
         const botX = 18 + Math.cos(Math.PI*0.55)*35, botY = Math.sin(Math.PI*0.55)*35;
         let stringPull = 0;
-        if (this.animTimer > 0) stringPull = (1 - animP) * 18;
+        if (this.isChargingS2) {
+            stringPull = 18;
+        } else if (this.animTimer > 0) {
+            stringPull = Math.max(0, Math.min(18, (1 - animP) * 18));
+        }
         ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(topX, topY);
         ctx.lineTo(18 - stringPull, 0); ctx.lineTo(botX, botY); ctx.stroke();

@@ -605,7 +605,8 @@ export default class Game {
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12 + charges*5, 4);
         break;
       case 'mage':
-        this.projectiles.push(new Projectile({ type:'fireball', x:this.player.x, y:weaponY, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2*dmgMulti, critChance:0.2, ...projProps }));
+        const fbRadius = 15 + charges * 15;
+        this.projectiles.push(new Projectile({ type:'fireball', x:this.player.x, y:weaponY, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2*dmgMulti, critChance:0.2, radius: fbRadius, traveled:0, trailTimer:0, trailPositions:[], ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#e67e22', 20*atkScale + charges*10, 5);
         break;
       case 'archer':

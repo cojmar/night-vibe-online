@@ -78,12 +78,27 @@ export default class Projectile {
       if (this.type === 'arrow') {
         this.angle = Math.atan2(this.vy || 0, this.vx || 1);
       }
+      
+      if (this.type === 'fireball') {
+          this.trailTimer = (this.trailTimer || 0) + dt;
+          if (this.trailTimer > 1.5) {
+             this.trailTimer = 0;
+             if (!this.trailPositions) this.trailPositions = [];
+             this.trailPositions.push({ x: this.x, y: this.y, life: 15, maxLife: 15, radius: this.radius || 15 });
+             gameInstance.spawnParticles(this.x, this.y, this.color, 2, 2);
+          }
+          if (this.trailPositions) {
+             this.trailPositions = this.trailPositions.filter(t => t.life > 0);
+             for (let t of this.trailPositions) t.life -= dt;
+          }
+      }
+      
       if (Math.random() < 0.3) gameInstance.spawnParticles(this.x, this.y, this.color, 1, 1);
       
       for (let e of gameInstance.enemies) {
         if (!e.alive) continue;
         const enemyCenterY = e.y - 20;
-        const projHitRadius = (this.type === 'arrow') ? 12 : (this.type === 'bolt' ? 10 : 8);
+        const projHitRadius = (this.type === 'arrow') ? 12 : (this.type === 'bolt' ? 10 : (this.radius || 15));
         if (Math.hypot(this.x - e.x, this.y - enemyCenterY) < e.size + projHitRadius) {
           gameInstance.dealDamage(e, this.damage, this.critChance);
           gameInstance.spawnParticles(this.x, this.y, this.color, 8, 4);
@@ -94,11 +109,12 @@ export default class Projectile {
       if (this.x < -100 || this.x > GAME_W + 100 || this.y < -100 || this.y > GAME_H + 100) this.life = 0;
       
       if (this.type === 'fireball' && this.life <= 0) {
+        const explosionRadius = (this.radius || 15) * 4;
         for (let e of gameInstance.enemies) {
           if (!e.alive) continue;
           const enemyCenterY = e.y - 20;
           const d = Math.hypot(this.x - e.x, this.y - enemyCenterY);
-          if (d < 80) gameInstance.dealDamage(e, this.damage * (1 - d / 80), this.critChance);
+          if (d < explosionRadius) gameInstance.dealDamage(e, this.damage * (1 - d / explosionRadius), this.critChance);
         }
         gameInstance.spawnParticles(this.x, this.y, '#e67e22', 20, 6);
         gameInstance.spawnParticles(this.x, this.y, '#ffd700', 10, 4);
@@ -176,12 +192,22 @@ export default class Projectile {
       ctx.shadowBlur = 0;
     }
     else if (this.type === 'fireball') {
-      const grad = ctx.createRadialGradient(this.x, this.y, 2, this.x, this.y, 15);
+      if (this.trailPositions) {
+        for (let t of this.trailPositions) {
+           const prog = Math.max(0, t.life / t.maxLife);
+           ctx.globalAlpha = alpha * prog * 0.6;
+           ctx.fillStyle = this.color;
+           ctx.beginPath(); ctx.arc(t.x, t.y, Math.max(0.1, t.radius * prog), 0, Math.PI*2); ctx.fill();
+        }
+      }
+      ctx.globalAlpha = alpha;
+      const r = this.radius || 15;
+      const grad = ctx.createRadialGradient(this.x, this.y, r * 0.2, this.x, this.y, r);
       grad.addColorStop(0, '#fff');
       grad.addColorStop(0.3, this.color);
       grad.addColorStop(1, 'rgba(230,126,34,0)');
       ctx.fillStyle = grad; ctx.beginPath();
-      ctx.arc(this.x, this.y, 15, 0, Math.PI*2); ctx.fill();
+      ctx.arc(this.x, this.y, r, 0, Math.PI*2); ctx.fill();
     }
     else if (this.type === 'bolt') {
       ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 12;
