@@ -27,7 +27,14 @@ export default class Player {
     this.isMoving = false;
     this.moveTargetX = 0;
     this.moveTargetY = 0;
-    this.moveSpeed = 2.5; // From MOVE_SPEED
+    
+    switch (this.classType) {
+        case 'warrior': this.moveSpeed = 2.5; break;
+        case 'magicgladiator': this.moveSpeed = 2.3; break;
+        case 'archer': this.moveSpeed = 2.0; break;
+        case 'mage': this.moveSpeed = 1.7; break;
+        default: this.moveSpeed = 2.5;
+    }
     this.action = 'idle';
     this.mouseX = x;
     this.mouseY = y;

@@ -579,6 +579,12 @@ export default class Game {
     
     for (let e of this.enemies) {
       if (!e.alive) continue;
+      
+      // Melee classes cannot click or lock onto enemies in the upper half of the screen
+      if ((this.player.classType === 'warrior' || this.player.classType === 'magicgladiator') && e.y < GAME_H / 2) {
+          continue;
+      }
+      
       const dist = Math.hypot(cx - e.x, cy - e.y);
       if (dist < e.size + 30) {
         clickedEnemy = e; break;
