@@ -32,18 +32,68 @@ export default class UI {
     compactLog.addEventListener('touchstart', () => this.logHoldTimer = setTimeout(() => this.showTooltip(), 100));
     compactLog.addEventListener('touchend', () => { clearTimeout(this.logHoldTimer); this.hideTooltip(); });
 
-    const toggleStats = () => {
+    const toggleStats = (e) => {
+       if (e) {
+           // Prevent the click from propagating to the document listener
+           e.stopPropagation();
+       }
        const stats = document.getElementById('stats-display');
+       const partyList = document.getElementById('party-list');
        stats.style.display = stats.style.display === 'none' ? 'flex' : 'none';
+       
        if (stats.style.display !== 'none') {
+           if (partyList) partyList.classList.add('info-open');
            const plus = document.getElementById('level-up-plus');
            if (plus) plus.style.display = 'none';
+       } else {
+           if (partyList) partyList.classList.remove('info-open');
+           // check if we need to show the plus again
+           if (this.game && this.game.player && this.game.player.statPoints > 0) {
+               const plus = document.getElementById('level-up-plus');
+               if (plus) plus.style.display = 'inline';
+           }
        }
     };
     const hpCont = document.getElementById('player-hp-container');
     if (hpCont) hpCont.addEventListener('click', toggleStats);
     const scoreCont = document.getElementById('player-score-container');
     if (scoreCont) scoreCont.addEventListener('click', toggleStats);
+    
+    // Close extra info when clicking outside
+    document.addEventListener('click', (e) => {
+        const partyList = document.getElementById('party-list');
+        const stats = document.getElementById('stats-display');
+        
+        if (stats && stats.style.display !== 'none') {
+            if (partyList && !partyList.contains(e.target)) {
+                stats.style.display = 'none';
+                partyList.classList.remove('info-open');
+                
+                if (this.game && this.game.player && this.game.player.statPoints > 0) {
+                    const plus = document.getElementById('level-up-plus');
+                    if (plus) plus.style.display = 'inline';
+                }
+            }
+        }
+    });
+    
+    // Handle touch outside to clear any stuck hover states on mobile
+    document.addEventListener('touchstart', (e) => {
+        const partyList = document.getElementById('party-list');
+        const stats = document.getElementById('stats-display');
+        
+        if (stats && stats.style.display !== 'none') {
+            if (partyList && !partyList.contains(e.target)) {
+                stats.style.display = 'none';
+                partyList.classList.remove('info-open');
+                
+                if (this.game && this.game.player && this.game.player.statPoints > 0) {
+                    const plus = document.getElementById('level-up-plus');
+                    if (plus) plus.style.display = 'inline';
+                }
+            }
+        }
+    });
   }
 
   nextClass() {
