@@ -98,6 +98,12 @@ window.app = new class {
                     list.innerHTML = html;
                     lastLobbyHtml = html;
                 }
+                
+                if (myUid && this.net.room.users[myUid] && this.net.room.users[myUid].data) {
+                    const myResets = this.net.room.users[myUid].data.resets || 0;
+                    const menuResets = document.getElementById('menu-resets-display');
+                    if (menuResets) menuResets.textContent = `🔄 Resets: ${myResets}`;
+                }
             }
         }, 1000);
         
