@@ -600,6 +600,7 @@ export default class Game {
               this.player.moveTargetX = Math.max(20, Math.min(GAME_W - 20, cx));
               this.player.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 45, cy));
               this.player.action = 'walk';
+              document.getElementById('walk-indicator').innerHTML = '⚔️ Attacking...';
               document.getElementById('walk-indicator').classList.add('visible');
               this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30 };
               this.broadcastState();
@@ -614,6 +615,7 @@ export default class Game {
       this.player.moveTargetX = Math.max(20, Math.min(GAME_W - 20, cx));
       this.player.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 45, cy));
       this.player.action = 'walk';
+      document.getElementById('walk-indicator').innerHTML = '🚶 Walking...';
       document.getElementById('walk-indicator').classList.add('visible');
     }
 
@@ -733,8 +735,8 @@ export default class Game {
         this.spawnParticles(this.player.x, weaponY, '#e74c3c', 10 + charges*5, 4);
         break;
       case 'magicgladiator':
-        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.x, y:this.player.y-40, radius:130*aoeScale*areaMulti*lvlScale, life:25, maxLife:25, color:'#ffd700', damage:this.player.atk*3.0*dmgMulti, critChance:0.25, ...projProps }));
-        this.spawnParticles(this.player.x, this.player.y, '#ffd700', 30*aoeScale + charges*15, 8);
+        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.x, y: weaponY, radius:130*aoeScale*areaMulti*lvlScale, life:25, maxLife:25, color:'#ffd700', damage:this.player.atk*3.0*dmgMulti, critChance:0.25, ...projProps }));
+        this.spawnParticles(this.player.x, weaponY, '#ffd700', 30*aoeScale + charges*15, 8);
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
         break;
     }
@@ -742,6 +744,7 @@ export default class Game {
   }
   
   broadcastState() {
+    if (!this.player) return;
     const data = {
       inGame: true,
       state: this.state,
