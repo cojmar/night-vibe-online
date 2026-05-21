@@ -1337,8 +1337,8 @@ export default class Game {
           
           if (!e.alive && !e.deadProcessed) {
               e.deadProcessed = true;
-              if (Math.random() < 0.15) { // 15% drop chance
-                  const type = Math.random() < 0.5 ? 'blue' : 'red';
+              if (Math.random() < 0.25) { // 25% drop chance
+                  const type = Math.random() < 0.55 ? 'red' : 'blue';
                   this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: 15000 });
               }
           }
@@ -1550,6 +1550,11 @@ export default class Game {
 
       // UI
       this.ui.updatePartyList(this.otherPlayers);
+      if (this.player && this.player.alive && this.state === 'PLAYING') {
+          this.ui.updateBuffs(this.player.buffHpTimer, this.player.buffManaTimer);
+      } else {
+          this.ui.updateBuffs(0, 0);
+      }
       
       let cdSpeedMultiplier = 1;
       if (this.player && this.player.alive && this.state === 'PLAYING') {

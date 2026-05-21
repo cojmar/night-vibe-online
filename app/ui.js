@@ -14,6 +14,32 @@ export default class UI {
     this.updateClassCarousel();
   }
 
+  updateBuffs(hpTimer, manaTimer) {
+    const container = document.getElementById('buffs-container');
+    if (!container) return;
+    
+    let html = '';
+    if (hpTimer > 0) {
+      const pct = Math.min(100, (hpTimer / 10000) * 100);
+      html += `
+        <div style="flex:1; background:rgba(0,0,0,0.5); border:1px solid #c0392b; border-radius:3px; position:relative; overflow:hidden;">
+          <div style="position:absolute; left:0; top:0; height:100%; width:${pct}%; background:rgba(231, 76, 60, 0.4);"></div>
+          <div style="position:relative; font-size:12px; font-weight:bold; color:#fff; text-align:center; line-height:24px;">❤️ Regen ${Math.ceil(hpTimer/1000)}s</div>
+        </div>
+      `;
+    }
+    if (manaTimer > 0) {
+      const pct = Math.min(100, (manaTimer / 10000) * 100);
+      html += `
+        <div style="flex:1; background:rgba(0,0,0,0.5); border:1px solid #2980b9; border-radius:3px; position:relative; overflow:hidden;">
+          <div style="position:absolute; left:0; top:0; height:100%; width:${pct}%; background:rgba(52, 152, 219, 0.4);"></div>
+          <div style="position:relative; font-size:12px; font-weight:bold; color:#fff; text-align:center; line-height:24px;">⚡ CD Buff ${Math.ceil(manaTimer/1000)}s</div>
+        </div>
+      `;
+    }
+    container.innerHTML = html;
+  }
+
   bindEvents() {
     document.getElementById('btn-prev-class').addEventListener('click', () => this.prevClass());
     document.getElementById('btn-next-class').addEventListener('click', () => this.nextClass());
