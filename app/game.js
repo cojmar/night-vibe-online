@@ -431,6 +431,7 @@ export default class Game {
     this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, groundY - 20);
     
     this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
+    this.ui.updateHUD(this.player);
     this.ui.updateEnvironment(this.selectedEnv);
     this.initBgParticles();
     
@@ -456,12 +457,12 @@ export default class Game {
     this.player.statPoints--;
     
     if (statType === 'atk') {
-        this.player.atk += 2.0;
+        this.player.atk += 1.0;
     } else if (statType === 'spd') {
         this.player.spd += 1.0;
     } else if (statType === 'hp') {
-        this.player.maxHp += 20;
-        this.player.hp += 20;
+        this.player.maxHp += 1;
+        this.player.hp += 1;
     }
     
     this.ui.updateHUD(this.player);
