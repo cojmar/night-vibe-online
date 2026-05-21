@@ -227,10 +227,17 @@ export default class Enemy {
     ctx.arc(this.x + 6, this.y - 4, 3, 0, Math.PI * 2);
     ctx.fill();
 
+    // Add smooth animation bobbing for moving monsters
+    let drawY = this.y;
+    if (this.alive && this.name !== 'MISSILE') {
+        const bounce = Math.sin(now / 120 + this.x * 0.05) * 3.5;
+        drawY += bounce;
+    }
+
     ctx.font = `${this.size}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(this.icon, this.x, this.y);
+    ctx.fillText(this.icon, this.x, drawY);
     ctx.textBaseline = 'alphabetic';
 
     // HP Bar

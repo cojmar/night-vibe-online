@@ -589,7 +589,7 @@ export default class Game {
 
   requestRebirth() {
       if (!this.player) return;
-      const reqLevel = 2 + (this.player.resets || 0) * 5;
+      const reqLevel = 4 + (this.player.resets || 0) * 5;
       if (this.player.level < reqLevel) return;
       
       const modal = document.getElementById('rebirth-modal');
@@ -602,7 +602,7 @@ export default class Game {
 
   performRebirth() {
       if (!this.player) return;
-      const reqLevel = 2 + (this.player.resets || 0) * 5;
+      const reqLevel = 4 + (this.player.resets || 0) * 5;
       if (this.player.level < reqLevel) return;
       
       const newResets = (this.player.resets || 0) + 1;
@@ -718,7 +718,7 @@ export default class Game {
   doSkill1(tx, ty) {
     this.player.stopWalking(this);
     const cd = CLASS_DATA[this.player.classType];
-    const reqLevel = 2 + (this.player.resets || 0) * 5;
+    const reqLevel = 4 + (this.player.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
     const weaponY = this.player.y - 40 * lvlScale;
     const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
@@ -781,7 +781,7 @@ export default class Game {
     
     // SPD controls AOE
     const aoeScale = 1 + (this.player.spd - CLASS_DATA[this.player.classType].spd) * 0.02;
-    const reqLevel = 2 + (this.player.resets || 0) * 5;
+    const reqLevel = 4 + (this.player.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
     
     // Charges scale logic:
