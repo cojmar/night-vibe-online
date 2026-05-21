@@ -486,6 +486,8 @@ export default class Game {
     
     const groundY = getGroundY(this.selectedEnv);
     this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, groundY - 20);
+    const nickInput = document.getElementById('nick-input');
+    if (nickInput) this.player.nick = nickInput.value;
     
     this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
     this.ui.updateHUD(this.player);
@@ -746,6 +748,7 @@ export default class Game {
     if (!this.player) return;
     const data = {
       inGame: true,
+      nick: this.player.nick,
       state: this.state,
       alive: this.player.alive,
       x: this.player.x,
