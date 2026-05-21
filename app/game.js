@@ -1341,8 +1341,8 @@ if (this.isHost && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0)
          nightGrad.addColorStop(0, `rgba(15, 20, 40, ${this.nightAlpha * 0.25})`); 
          nightGrad.addColorStop(gY / GAME_H, `rgba(5, 10, 25, ${this.nightAlpha * 0.35})`);
          // Ground stays very dark
-         nightGrad.addColorStop(gY / GAME_H + 0.01, `rgba(0, 0, 5, ${this.nightAlpha * 0.85})`);
-         nightGrad.addColorStop(1, `rgba(0, 0, 0, ${this.nightAlpha * 0.95})`);
+         nightGrad.addColorStop(gY / GAME_H + 0.01, `rgba(0, 0, 5, ${this.nightAlpha * 0.5})`);
+         nightGrad.addColorStop(1, `rgba(0, 0, 0, ${this.nightAlpha * 0.65})`);
 
          this.ctx.fillStyle = nightGrad;
          this.ctx.fillRect(0, 0, GAME_W, GAME_H);
