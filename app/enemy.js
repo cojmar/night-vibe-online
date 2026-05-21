@@ -141,6 +141,26 @@ export default class Enemy {
     if (this.y < depthTop) this.y = depthTop;
     if (this.y > GAME_H - 45) this.y = GAME_H - 45;
 
+    if (this.name === 'BOSS') {
+      this.missileTimer = (this.missileTimer || 0) + dt;
+      if (this.missileTimer > 150) { // spawn every 2.5s roughly
+          this.missileTimer = 0;
+          let missile = new Enemy(this.game, false, false);
+          missile.name = 'MISSILE';
+          missile.icon = '🚀';
+          missile.hp = Math.round(50 * (1 + (this.game.wave - 1) * 0.15));
+          missile.maxHp = missile.hp;
+          missile.atk = this.atk;
+          missile.speed = this.speed * 1.5;
+          missile.size = 20;
+          missile.color = '#e74c3c';
+          missile.x = this.x;
+          missile.y = this.y - 20;
+          missile.attackCooldown = 0; 
+          this.game.enemies.push(missile);
+      }
+    }
+
     if (closestDist < 55) {
       this.attackTimer += dt;
       if (this.attackTimer >= this.attackCooldown) {
@@ -150,6 +170,13 @@ export default class Enemy {
             this.game.dealDamageToPlayer(this.atk);
         } else {
             this.game.net.send_cmd('set_data', { enemyHitPlayer: { id: targetPlayer.id, dmg: this.atk } });
+        }
+        
+        if (this.name === 'MISSILE') {
+            this.hp = 0;
+            this.alive = false;
+            this.deathTime = Date.now();
+            this.game.spawnParticles(this.x, this.y, '#e74c3c', 20, 5);
         }
       }
     }

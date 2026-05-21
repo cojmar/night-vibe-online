@@ -115,19 +115,27 @@ export default class UI {
     document.getElementById('stat-spd-val').textContent = player.spd.toFixed(1);
     
     const baseAtk = CLASS_DATA[player.classType].atk;
-    const atkScale = 1 + (player.atk - baseAtk) * 0.02;
-    const aoeBoost = ((atkScale - 1) * 100).toFixed(0);
+    const baseSpd = CLASS_DATA[player.classType].spd;
     
+    // ATK -> S1 Scale
+    const s1Scale = 1 + (player.atk - baseAtk) * 0.02;
+    const s1Boost = ((s1Scale - 1) * 100).toFixed(0);
+    document.getElementById('stat-s1-val').textContent = (100 + parseInt(s1Boost)) + '%';
+    document.getElementById('stat-s1-boost').textContent = s1Boost;
+    
+    // MP -> S2 AOE
+    const aoeScale = 1 + (player.spd - baseSpd) * 0.02;
+    const aoeBoost = ((aoeScale - 1) * 100).toFixed(0);
     document.getElementById('stat-aoe-val').textContent = (100 + parseInt(aoeBoost)) + '%';
     document.getElementById('stat-aoe-boost').textContent = aoeBoost;
     
-    const baseSpd = CLASS_DATA[player.classType].spd;
-    const diff = Math.max(0, player.spd - baseSpd);
-    const cdReduction = diff * 0.2; // 200ms per point
-    const currentCd = Math.max(1.0, 5.0 - cdReduction);
+    // MP -> S2 CD
+    const diffSpd = Math.max(0, player.spd - baseSpd);
+    const cdMs = Math.max(1000, 5000 - diffSpd * 200);
+    const red = (5000 - cdMs) / 1000;
     
-    document.getElementById('stat-cd-val').textContent = currentCd.toFixed(1) + 's';
-    document.getElementById('stat-cd-red').textContent = cdReduction.toFixed(1);
+    document.getElementById('stat-cd-val').textContent = (cdMs/1000).toFixed(1) + 's';
+    document.getElementById('stat-cd-red').textContent = red.toFixed(1);
     
     const pts = player.statPoints || 0;
     const row = document.getElementById('stat-pts-row');

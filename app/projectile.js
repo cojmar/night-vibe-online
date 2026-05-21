@@ -54,7 +54,7 @@ export default class Projectile {
         const dx = e.x - this.originX, dy = e.y - this.originY;
         const dist = Math.hypot(dx, dy);
         const hitInner = this.hitInner || 5;
-        const hitOuter = this.radius || 140;
+        const hitOuter = this.hitOuter || (this.radius || 140);
         const inHitbox = this.isKnockback ?
           (dist > hitInner && dist < hitOuter) :
           pointInSweepArc(this.originX, this.originY, this.angle, 0.55, hitInner, hitOuter, e.x, e.y);
@@ -230,16 +230,18 @@ export default class Projectile {
       ctx.arc(this.x, this.y, r, 0, Math.PI*2); ctx.fill();
     }
     else if (this.type === 'bolt') {
-      ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 12;
-      ctx.beginPath(); ctx.arc(this.x, this.y, 6, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(this.x-3, this.y); ctx.lineTo(this.x+3, this.y); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(this.x, this.y-3); ctx.lineTo(this.x, this.y+3); ctx.stroke();
+      const r = this.radius || 6;
+      ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = r * 2;
+      ctx.beginPath(); ctx.arc(this.x, this.y, r, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, r/6);
+      ctx.beginPath(); ctx.moveTo(this.x-r/2, this.y); ctx.lineTo(this.x+r/2, this.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(this.x, this.y-r/2); ctx.lineTo(this.x, this.y+r/2); ctx.stroke();
       ctx.shadowBlur = 0;
     }
     else if (this.type === 'arrow') {
       const a = this.angle || Math.atan2(this.vy || 0, this.vx || 1);
-      ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(a);
+      const scale = (this.radius || 12) / 12;
+      ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(a); ctx.scale(scale, scale);
       ctx.fillStyle = '#a07828'; ctx.fillRect(-12, -1.5, 24, 3);
       ctx.fillStyle = '#888'; ctx.beginPath();
       ctx.moveTo(14, 0); ctx.lineTo(7, -4); ctx.lineTo(7, 4);

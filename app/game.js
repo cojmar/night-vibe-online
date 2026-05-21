@@ -584,22 +584,23 @@ export default class Game {
     this.player.action = 'attack';
     this.player.lastSkill = 1;
     this.player.facing = tx > this.player.x ? 1 : -1;
+    const s1Scale = 1 + (this.player.atk - cd.atk) * 0.02;
     
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing, damage: this.player.atk, critChance: 0.1 };
     
     switch (this.player.classType) {
       case 'warrior':
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 85, hitInner: -10, hitOuter: 150, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 85 * s1Scale, hitInner: -10 + (s1Scale-1)*50, hitOuter: 150 * s1Scale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, cd.s1Color, 5, 3);
         break;
       case 'mage':
-        this.projectiles.push(new Projectile({ type:'bolt', x:this.player.x, y:weaponY, tx:tx, ty:ty, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'bolt', x:this.player.x, y:weaponY, tx:tx, ty:ty, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale, ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#3498db', 3, 2);
         break;
       case 'archer':
         const speed = 10;
-        this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, speed, vx:Math.cos(aimAngle)*speed, vy:Math.sin(aimAngle)*speed, life:60, maxLife:60, color:'#f1c40f', damage: this.player.atk * 0.95, critChance: 0.15, ...projProps }));
-        this.spawnParticles(this.player.x, weaponY, '#f1c40f', 3, 2);
+        this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(aimAngle)*speed, vy:Math.sin(aimAngle)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale, ...projProps }));
+        this.spawnParticles(this.player.x, weaponY, '#bdc3c7', 4, 3);
         break;
       case 'magicgladiator':
         this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:20, maxLife:20, color:'#e74c3c', radius: 80, hitInner: -10, hitOuter: 140, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
@@ -631,7 +632,8 @@ export default class Game {
     this.s2MaxCooldown = Math.max(1000, 5000 - diff * 200);
     this.s2Cooldown = this.s2MaxCooldown;
     
-    const atkScale = 1 + (this.player.atk - CLASS_DATA[this.player.classType].atk) * 0.02;
+    // MP controls AOE
+    const aoeScale = 1 + (this.player.spd - CLASS_DATA[this.player.classType].spd) * 0.02;
     
     // Charges scale logic:
     // charge = 0 -> 1x
@@ -658,36 +660,38 @@ export default class Game {
         const waveCount = 1 + charges;
         const mpDiff = Math.max(0, this.player.spd - CLASS_DATA.warrior.spd);
         const waveDistance = (120 + mpDiff * 6) * areaMulti;
-        const waveSpread = 0.12 + (atkScale - 1) * 0.08;
+        const waveSpread = 0.12 + (aoeScale - 1) * 0.08;
         
         for (let i = 0; i < waveCount; i++) {
           const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
-          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance: waveDistance, radius:15*atkScale*areaMulti, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a, charges: charges }));
+          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance: waveDistance, radius:15*aoeScale*areaMulti, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a, charges: charges }));
         }
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12 + charges*5, 4);
         break;
       case 'mage':
         const fbRadius = 15 + charges * 15;
-        this.projectiles.push(new Projectile({ type:'fireball', x:this.player.x, y:weaponY, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2*dmgMulti, critChance:0.2, radius: fbRadius, traveled:0, trailTimer:0, trailPositions:[], ...projProps }));
-        this.spawnParticles(this.player.x, weaponY, '#e67e22', 20*atkScale + charges*10, 5);
+        this.projectiles.push(new Projectile({ type:'fireball', x:this.player.x, y:weaponY, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2*dmgMulti, critChance:0.2, radius: fbRadius * aoeScale, traveled:0, trailTimer:0, trailPositions:[], ...projProps }));
+        this.spawnParticles(this.player.x, weaponY, '#e67e22', 20*aoeScale + charges*10, 5);
         break;
       case 'archer':
-        const arrowCount = Math.min(7, 3 + Math.floor((this.player.atk - CLASS_DATA.archer.atk) / 8)) + charges;
+        const arrowCount = Math.min(7, 3 + Math.floor((this.player.spd - CLASS_DATA.archer.spd) / 8)) + charges;
         for(let i=0; i<arrowCount; i++) {
-          const a = aimAngle + (i - Math.floor(arrowCount/2)) * 0.2;
+          const a = aimAngle + (i - Math.floor(arrowCount/2)) * (0.2 + (aoeScale-1)*0.1);
           const speed = 11;
-          this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage:this.player.atk*1.3*dmgMulti, critChance:0.15, angle:a }));
+          this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage:this.player.atk*1.3*dmgMulti, critChance:0.15, angle:a, radius: 12 * aoeScale }));
         }
+        this.spawnParticles(this.player.x, weaponY, '#e74c3c', 10 + charges*5, 4);
         break;
       case 'magicgladiator':
-        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.x, y:this.player.y-40, radius:130*atkScale*areaMulti, life:25, maxLife:25, color:'#ffd700', damage:this.player.atk*3.0*dmgMulti, critChance:0.25, ...projProps }));
-        this.spawnParticles(this.player.x, this.player.y, '#ffd700', 30*atkScale + charges*15, 8);
+        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.x, y:this.player.y-40, radius:130*aoeScale*areaMulti, life:25, maxLife:25, color:'#ffd700', damage:this.player.atk*3.0*dmgMulti, critChance:0.25, ...projProps }));
+        this.spawnParticles(this.player.x, this.player.y, '#ffd700', 30*aoeScale + charges*15, 8);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
         break;
     }
     this.broadcastState();
   }
+  
   broadcastState() {
-    if(this.state !== 'PLAYING' || !this.player) return;
     const data = {
       inGame: true,
       state: this.state,
