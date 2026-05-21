@@ -157,8 +157,18 @@
     .stats-display {
       background: rgba(0,0,0,0.6); border: 1px solid #34495e;
       border-radius: 0; padding: 6px 10px; font-size: 0.65em; color: #bdc3c7;
-      display: flex; flex-direction: column; gap: 3px;
+      display: flex; flex-direction: column; gap: 4px;
+      transition: all 0.2s ease-in-out;
+      transform-origin: top left;
+      pointer-events: auto;
     }
+    .stats-display:hover, .stats-display:active {
+      transform: scale(1.65);
+      background: rgba(10,10,20,0.95);
+      border-color: #ffd700;
+      z-index: 100;
+    }
+    .stats-display div { display: flex; justify-content: space-between; gap: 10px; }
     .stats-display .highlight { color: #f1c40f; font-weight: bold; }
     .remote-player-hp {
       background: rgba(0,0,0,0.6); border: 1px solid #4a4a6a;
@@ -391,9 +401,10 @@
               <div class="level">📊 Wave: <span id="wave-count">1</span> | Env: <span id="env-name">Forest</span></div>
             </div>
             <div class="stats-display" id="stats-display">
-               <div>ATK: <span class="highlight" id="stat-atk-val">0</span> | SPD: <span class="highlight" id="stat-spd-val">0</span></div>
-               <div>DMG Boost: <span class="highlight" id="stat-dmg-boost">0</span> | AOE Boost: <span class="highlight" id="stat-aoe-boost">0</span></div>
-               <div>S2 CD: <span class="highlight" id="stat-cd-val">5.0s</span> <span style="font-size: 0.85em; color:#2ecc71;">(-<span id="stat-cd-red">0.0</span>s)</span></div>
+               <div><span>ATK:</span> <span><span class="highlight" id="stat-atk-val">0</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-dmg-boost">0</span>)</span></span></div>
+               <div><span>AOE:</span> <span><span class="highlight" id="stat-aoe-val">100%</span> <span style="color:#2ecc71; font-size:0.9em;">(+<span id="stat-aoe-boost">0</span>%)</span></span></div>
+               <div><span>S2 CD:</span> <span><span class="highlight" id="stat-cd-val">5.0s</span> <span style="color:#2ecc71; font-size:0.9em;">(-<span id="stat-cd-red">0.0</span>s)</span></span></div>
+               <div><span>SPD:</span> <span><span class="highlight" id="stat-spd-val">0</span></span></div>
             </div>
             <div id="remote-players-list"></div>
           </div>

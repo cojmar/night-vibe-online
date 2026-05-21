@@ -112,10 +112,11 @@ export default class UI {
     const baseAtk = CLASS_DATA[player.classType].atk;
     const dmgBoost = (player.atk - baseAtk).toFixed(1);
     const atkScale = 1 + (player.atk - baseAtk) * 0.1;
-    const aoeBoost = ((atkScale - 1) * 100).toFixed(0) + '%';
+    const aoeBoost = ((atkScale - 1) * 100).toFixed(0);
     
-    document.getElementById('stat-dmg-boost').textContent = '+' + dmgBoost;
-    document.getElementById('stat-aoe-boost').textContent = '+' + aoeBoost;
+    document.getElementById('stat-dmg-boost').textContent = dmgBoost;
+    document.getElementById('stat-aoe-val').textContent = (100 + parseInt(aoeBoost)) + '%';
+    document.getElementById('stat-aoe-boost').textContent = aoeBoost;
     
     const baseSpd = CLASS_DATA[player.classType].spd;
     const diff = Math.max(0, player.spd - baseSpd);
