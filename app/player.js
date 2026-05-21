@@ -102,13 +102,39 @@ export default class Player {
         return;
     }
 
+    if (!this.isMoving && !this.autoAttackTarget) return;
+
+    if (this.autoAttackTarget) {
+        if (!this.autoAttackTarget.alive) {
+            this.autoAttackTarget = null;
+        } else {
+            const e = this.autoAttackTarget;
+            const cd = CLASS_DATA[this.classType];
+            const wScale = 1 + (this.atk - cd.atk) * 0.005;
+            const lvlScale = Math.min(1.0, 0.5 + ((this.level || 1) - 1) * 0.055);
+            const maxRange = (this.classType === 'warrior' ? 90 : 80) * wScale * lvlScale + e.size;
+            
+            const distToE = Math.hypot(e.x - this.x, e.y - this.y);
+            if (distToE <= maxRange) {
+                this.autoAttackTarget = null;
+                gameInstance.doSkill1(e.x, e.y);
+                return;
+            } else {
+                this.moveTargetX = e.x;
+                const groundY = getGroundY(gameInstance.selectedEnv);
+                this.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 45, e.y));
+                this.isMoving = true;
+            }
+        }
+    }
+    
     if (!this.isMoving) return;
 
     const dx = this.moveTargetX - this.x;
     const dy = this.moveTargetY - this.y;
     const dist = Math.hypot(dx, dy);
 
-    if (dist <= 3) { // MOVE_STOP_DIST
+    if (dist <= 3 && !this.autoAttackTarget) { // MOVE_STOP_DIST
       this.x = this.moveTargetX;
       this.y = this.moveTargetY;
       this.stopWalking(gameInstance);

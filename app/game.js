@@ -586,8 +586,30 @@ export default class Game {
     }
 
     if (!onGround || clickedEnemy) {
+      // Check if melee and out of range
+      if (clickedEnemy && (this.player.classType === 'warrior' || this.player.classType === 'magicgladiator')) {
+          const cd = CLASS_DATA[this.player.classType];
+          const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
+          const lvlScale = Math.min(1.0, 0.5 + ((this.player.level || 1) - 1) * 0.055);
+          const maxRange = (this.player.classType === 'warrior' ? 90 : 80) * wScale * lvlScale + clickedEnemy.size;
+          const distToEnemy = Math.hypot(clickedEnemy.x - this.player.x, clickedEnemy.y - this.player.y);
+          
+          if (distToEnemy > maxRange) {
+              this.player.autoAttackTarget = clickedEnemy;
+              this.player.isMoving = true;
+              this.player.moveTargetX = Math.max(20, Math.min(GAME_W - 20, cx));
+              this.player.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 45, cy));
+              this.player.action = 'walk';
+              document.getElementById('walk-indicator').classList.add('visible');
+              this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30 };
+              this.broadcastState();
+              return;
+          }
+      }
+      this.player.autoAttackTarget = null;
       this.doSkill1(cx, cy);
     } else {
+      this.player.autoAttackTarget = null;
       this.player.isMoving = true;
       this.player.moveTargetX = Math.max(20, Math.min(GAME_W - 20, cx));
       this.player.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 45, cy));
