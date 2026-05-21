@@ -70,6 +70,7 @@ export default class Player {
 
   updateFromNetwork() {
     if (this.input_data) {
+      if (this.input_data.nick !== undefined) this.nick = this.input_data.nick;
       if (this.input_data.x !== undefined) this.x = this.input_data.x;
       if (this.input_data.y !== undefined) this.y = this.input_data.y;
       if (this.input_data.hp !== undefined) this.hp = this.input_data.hp;
@@ -566,12 +567,13 @@ export default class Player {
     ctx.save();
     ctx.translate(px, py + walkBob);
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.fillRect(-35, -114, 70, 16);
-    ctx.fillStyle = this.isLocal ? '#3498db' : '#ecf0f1';
+    ctx.fillRect(-45, -114, 90, 16);
+    ctx.fillStyle = this.isLocal ? '#f39c12' : '#ecf0f1';
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(this.id.substring(0, 12), 0, -106);
+    const dispName = (this.nick && this.nick.trim() !== '') ? this.nick : this.id.substring(0, 12);
+    ctx.fillText(dispName, 0, -106);
     
     if (this.isChargingS2) {
       const chargeCount = this.s2ChargeCount || 0;
