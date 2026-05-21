@@ -49,9 +49,9 @@ export default class UI {
     document.getElementById('current-class-name').textContent = cd.name;
     document.getElementById('class-icon').textContent = cd.icon;
     document.getElementById('class-card-name').textContent = cd.name;
-    document.getElementById('stat-hp').textContent = 'HP: ' + cd.hp;
-    document.getElementById('stat-atk').textContent = 'ATK: ' + cd.atk;
-    document.getElementById('stat-spd').textContent = 'SPD: ' + cd.spd;
+    document.getElementById('stat-hp').innerHTML = `<strong style="color:#e74c3c">HP (Health Points): ${cd.hp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Capacitatea maximă de viață. Dacă ajunge la 0, mori.</span>`;
+    document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Valoarea de bază a daunelor provocate inamicilor.</span>`;
+    document.getElementById('stat-spd').innerHTML = `<strong style="color:#3498db">SPD (Move Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Viteza de deplasare pe hartă (Warrior este cel mai rapid).</span>`;
 
     const sk = SKILL_DESC[this.selectedClass];
     document.getElementById('controls-section').innerHTML =

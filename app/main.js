@@ -36,7 +36,7 @@ window.app = new class {
         const sendChat = () => {
             const msg = chatInput.value.trim();
             if (msg) {
-                this.net.send_cmd('room.msg', { msg: msg });
+                this.net.send_cmd('msg', { msg: msg });
                 chatInput.value = '';
             }
         };
@@ -49,7 +49,7 @@ window.app = new class {
             let sender = data.user || 'Unknown';
             if (this.net.room && this.net.room.users && this.net.room.users[data.user] && this.net.room.users[data.user].data && this.net.room.users[data.user].data.nick) {
                 sender = this.net.room.users[data.user].data.nick;
-            } else if (data.user === this.net.me.user) {
+            } else if (this.net.me && this.net.me.info && data.user === this.net.me.info.user) {
                 sender = nickInput.value;
             }
             const msgEl = document.createElement('div');
