@@ -49,14 +49,14 @@ export default class UI {
     document.getElementById('current-class-name').textContent = cd.name;
     document.getElementById('class-icon').textContent = cd.icon;
     document.getElementById('class-card-name').textContent = cd.name;
-    document.getElementById('stat-hp').innerHTML = `<strong style="color:#e74c3c">HP (Health Points): ${cd.hp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Capacitatea maximă de viață. Dacă ajunge la 0, mori.</span>`;
-    document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Valoarea de bază a daunelor provocate inamicilor.</span>`;
-    document.getElementById('stat-spd').innerHTML = `<strong style="color:#3498db">SPD (Move Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Viteza de deplasare pe hartă (Warrior este cel mai rapid).</span>`;
+    document.getElementById('stat-hp').innerHTML = `<strong style="color:#e74c3c">HP (Health Points): ${cd.hp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Maximum life capacity. If it reaches 0, you die.</span>`;
+    document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies.</span>`;
+    document.getElementById('stat-spd').innerHTML = `<strong style="color:#3498db">SPD (Move Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Movement speed on the map.</span>`;
 
     const sk = SKILL_DESC[this.selectedClass];
     document.getElementById('controls-section').innerHTML =
       `<div class="ctrl-line"><span class="ctrl-label">S1:</span> ${sk.s1.ctrl} → <span class="s">${sk.s1.name}</span><br>${sk.s1.desc}</div>` +
-      `<div class="ctrl-line"><span class="ctrl-label">S2:</span> ${sk.s2.ctrl} → <span class="s">${sk.s2.name}</span><br>${sk.s2.desc} <span style="color:#f66">(1s CD)</span></div>`;
+      `<div class="ctrl-line"><span class="ctrl-label">S2:</span> ${sk.s2.ctrl} → <span class="s">${sk.s2.name}</span><br>${sk.s2.desc} <span style="color:#f66">(5s CD)</span></div>`;
       
     if (this.game && this.game.state === 'PLAYING' && this.game.player) {
       this.game.player.color = cd.color;

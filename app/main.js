@@ -36,7 +36,8 @@ window.app = new class {
         const sendChat = () => {
             const msg = chatInput.value.trim();
             if (msg) {
-                this.net.send_cmd('msg', { msg: msg });
+                const myUser = (this.net.me && this.net.me.info) ? this.net.me.info.user : '';
+                this.net.send_cmd('room.msg', { msg: msg, nick: nickInput.value, user: myUser });
                 chatInput.value = '';
             }
         };
@@ -45,13 +46,20 @@ window.app = new class {
 
         this.net.on('room.msg', (data) => {
             const chatBox = document.getElementById('chat-messages');
-            // 'data' usually contains 'user', we can map it to nick if it exists in users
-            let sender = data.user || 'Unknown';
-            if (this.net.room && this.net.room.users && this.net.room.users[data.user] && this.net.room.users[data.user].data && this.net.room.users[data.user].data.nick) {
-                sender = this.net.room.users[data.user].data.nick;
-            } else if (this.net.me && this.net.me.info && data.user === this.net.me.info.user) {
-                sender = nickInput.value;
+            let sender = 'Unknown';
+            
+            if (data.nick) {
+                sender = data.nick;
+            } else if (data.user) {
+                if (this.net.room && this.net.room.users && this.net.room.users[data.user] && this.net.room.users[data.user].data && this.net.room.users[data.user].data.nick) {
+                    sender = this.net.room.users[data.user].data.nick;
+                } else if (this.net.me && this.net.me.info && data.user === this.net.me.info.user) {
+                    sender = nickInput.value;
+                } else {
+                    sender = data.user.substring(0,8);
+                }
             }
+            
             const msgEl = document.createElement('div');
             msgEl.innerHTML = `<span style="color:#f39c12;font-weight:bold;">${sender}:</span> <span style="color:#eee;">${data.msg}</span>`;
             chatBox.appendChild(msgEl);
