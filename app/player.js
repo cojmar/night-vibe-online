@@ -48,6 +48,9 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     this.targetX = x;
     this.targetY = y;
     this.hasTarget = false;
+    
+    this.chatMsg = null;
+    this.chatTimer = 0;
   }
 
   addKill() {
@@ -105,6 +108,10 @@ updateFromNetwork() {
       if (this.input_data.kills !== undefined) this.kills = this.input_data.kills;
       if (this.input_data.reqKills !== undefined) this.reqKills = this.input_data.reqKills;
       if (this.input_data.maxHp !== undefined) this.maxHp = this.input_data.maxHp;
+      if (this.input_data.chatMsg !== undefined && this.input_data.chatMsg !== this.chatMsg) {
+          this.chatMsg = this.input_data.chatMsg;
+          if (this.chatMsg) this.chatTimer = 5000;
+      }
       if (this.input_data.mouseX !== undefined) this.mouseX = this.input_data.mouseX;
       if (this.input_data.mouseY !== undefined) this.mouseY = this.input_data.mouseY;
       if (this.input_data.isChargingS2 !== undefined) this.isChargingS2 = this.input_data.isChargingS2;
@@ -118,6 +125,13 @@ updateFromNetwork() {
   updateMovement(dt, gameInstance) {
     if (this.hitFlash > 0) this.hitFlash -= dt;
     if (this.animTimer > 0) this.animTimer -= dt;
+    if (this.chatTimer > 0) {
+        this.chatTimer -= dt * 16.67;
+        if (this.chatTimer <= 0) {
+            this.chatMsg = null;
+            if (this.isLocal) gameInstance.broadcastState();
+        }
+    }
 
     if (!this.isLocal) {
         this.updateFromNetwork();
@@ -619,6 +633,47 @@ stopWalking(gameInstance) {
     ctx.textBaseline = 'middle';
     const dispName = (this.nick && this.nick.trim() !== '') ? this.nick : this.id.substring(0, 12);
     ctx.fillText(dispName, 0, tagBaseY);
+    
+    // Chat Bubble
+    if (this.chatMsg && this.chatTimer > 0) {
+        ctx.save();
+        ctx.font = 'bold 14px sans-serif';
+        const msgWidth = Math.max(40, ctx.measureText(this.chatMsg).width + 20);
+        const msgHeight = 28;
+        const bubbleY = tagBaseY - 25; // above the name
+        
+        const alpha = Math.min(1, this.chatTimer / 500); // fade out at end
+        ctx.globalAlpha = alpha;
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 4;
+        
+        // draw bubble
+        const bx = -msgWidth/2;
+        const by = bubbleY - msgHeight/2;
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(bx, by, msgWidth, msgHeight, 8);
+        } else {
+            ctx.rect(bx, by, msgWidth, msgHeight);
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // draw tail
+        ctx.beginPath();
+        ctx.moveTo(-6, by + msgHeight);
+        ctx.lineTo(6, by + msgHeight);
+        ctx.lineTo(0, by + msgHeight + 6);
+        ctx.fill();
+        
+        ctx.fillStyle = '#2c3e50';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.chatMsg, 0, bubbleY);
+        ctx.restore();
+    }
     
     if (this.isChargingS2) {
       const chargeCount = this.s2ChargeCount || 0;

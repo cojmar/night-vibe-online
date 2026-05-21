@@ -866,6 +866,7 @@ export default class Game {
       s2ChargeCount: this.player.s2ChargeCount,
       mouseX: this.player.mouseX,
       mouseY: this.player.mouseY,
+      chatMsg: this.player.chatMsg,
       projectiles: this.projectiles.map(p => ({
           type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
           radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions

@@ -68,10 +68,6 @@ window.app = new class {
             msgEl.innerHTML = `<span style="color:#f39c12;font-weight:bold;">${sender}:</span> <span style="color:#eee;">${data.msg}</span>`;
             chatBox.appendChild(msgEl);
             chatBox.scrollTop = chatBox.scrollHeight;
-            
-            if (this.game && this.game.state === 'PLAYING') {
-                this.game.ui.addLog(`💬 ${sender}: ${data.msg}`, 'player');
-            }
         });
 
         // In-game chat modal logic
@@ -81,9 +77,10 @@ window.app = new class {
         
         const sendGameChat = () => {
             const msg = gameChatInput.value.trim();
-            if (msg) {
-                const myUser = (this.net.me && this.net.me.info) ? this.net.me.info.user : '';
-                this.net.send_cmd('msg', { msg: msg, nick: nickInput.value, user: myUser, isGameChat: true });
+            if (msg && this.game && this.game.player) {
+                this.game.player.chatMsg = msg;
+                this.game.player.chatTimer = 5000;
+                this.game.broadcastState();
                 gameChatInput.value = '';
             }
             gameChatModal.style.display = 'none';
