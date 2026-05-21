@@ -44,14 +44,10 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     // Multiplayer sync fields
     this.input_data = null;
     
-    // Smooth interpolation for remote players
-    this._interpStartX = null;
-    this._interpStartY = null;
-    this._interpEndX = null;
-    this._interpEndY = null;
-    this._interpStartT = null;
-    this._interpDuration = 150;
-    this._interpActive = false;
+    // Smooth movement for remote players - stores target position
+    this.targetX = x;
+    this.targetY = y;
+    this.hasTarget = false;
   }
 
   addKill() {
@@ -77,44 +73,13 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     }
   }
 
-  updateFromNetwork() {
+updateFromNetwork() {
     if (this.input_data) {
       if (this.input_data.nick !== undefined) this.nick = this.input_data.nick;
+      if (this.input_data.x !== undefined) this.targetX = this.input_data.x;
+      if (this.input_data.y !== undefined) this.targetY = this.input_data.y;
       if (this.input_data.x !== undefined || this.input_data.y !== undefined) {
-        const targetX = this.input_data.x !== undefined ? this.input_data.x : this.x;
-        const targetY = this.input_data.y !== undefined ? this.input_data.y : this.y;
-        if (this._interpActive && this._interpStartX !== null) {
-          const currentInterpX = this.interpolatedX;
-          const currentInterpY = this.interpolatedY;
-          this._interpStartX = currentInterpX;
-          this._interpStartY = currentInterpY;
-          this._interpEndX = targetX;
-          this._interpEndY = targetY;
-          this._interpStartT = Date.now();
-          const dx = targetX - currentInterpX;
-          const dy = targetY - currentInterpY;
-          const dist = Math.hypot(dx, dy);
-          const moveSpeed = this.moveSpeed || 2.5;
-           let duration = (dist / moveSpeed) * 16.67;
-           duration = Math.max(50, Math.min(duration, 500));
-           this._interpDuration = duration;
-         } else {
-          this._interpStartX = this.x;
-          this._interpStartY = this.y;
-          this._interpEndX = targetX;
-          this._interpEndY = targetY;
-          this._interpStartT = Date.now();
-          const dx = targetX - this.x;
-          const dy = targetY - this.y;
-          const dist = Math.hypot(dx, dy);
-          const moveSpeed = this.moveSpeed || 2.5;
-          let duration = (dist / moveSpeed) * 16.67;
-          duration = Math.max(50, Math.min(duration, 500));
-          this._interpDuration = duration;
-          this._interpActive = true;
-        }
-        this.x = targetX;
-        this.y = targetY;
+        this.hasTarget = true;
       }
       if (this.input_data.hp !== undefined) this.hp = this.input_data.hp;
       if (this.input_data.facing !== undefined) this.facing = this.input_data.facing;
@@ -150,6 +115,30 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
 
     if (!this.isLocal) {
         this.updateFromNetwork();
+        // Smooth lerp toward network target position based on moveSpeed
+        if (this.hasTarget) {
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 0.5) {
+                // moveSpeed units per 16.67ms (1 frame at 60fps)
+                // Scale dt to match this: dt is in frame units (dt=1 = 16.67ms)
+                const speedPerFrame = this.moveSpeed || 2.5;
+                const moveAmount = speedPerFrame * dt;
+                if (moveAmount >= dist) {
+                    this.x = this.targetX;
+                    this.y = this.targetY;
+                    this.hasTarget = false;
+                } else {
+                    this.x += (dx / dist) * moveAmount;
+                    this.y += (dy / dist) * moveAmount;
+                }
+            } else {
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this.hasTarget = false;
+            }
+        }
         return;
     }
 
@@ -216,7 +205,7 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     else if (dx < -2) this.facing = -1;
   }
 
-  stopWalking(gameInstance) {
+stopWalking(gameInstance) {
     if (this.isMoving) {
       this.isMoving = false;
       this.moveTargetX = 0;
@@ -226,76 +215,6 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
           document.getElementById('walk-indicator').classList.remove('visible');
       }
     }
-  }
-
-  startInterpolation(nx, ny) {
-    if (this.isLocal) return;
-    
-    const dx = nx - this.x;
-    const dy = ny - this.y;
-    const dist = Math.hypot(dx, dy);
-    
-    if (dist < 2) return;
-    
-   const moveSpeed = this.moveSpeed || 2.5;
-     let duration = (dist / moveSpeed) * 16.67;
-     duration = Math.max(50, Math.min(duration, 500));
-    
-    if (this._interpStartX !== null && this._interpStartT !== null) {
-      const remaining = (this._interpStartT + this._interpDuration) - Date.now();
-      if (remaining > 0 && duration < remaining * 0.8) {
-        const t = duration / remaining;
-        this._interpStartX = this.x + (this._interpEndX - this.x) * t;
-        this._interpStartY = this.y + (this._interpEndY - this.y) * t;
-      } else {
-        this._interpStartX = this.x;
-        this._interpStartY = this.y;
-      }
-    } else {
-      this._interpStartX = this.x;
-      this._interpStartY = this.y;
-    }
-    
-    this._interpEndX = nx;
-    this._interpEndY = ny;
-    this._interpStartT = Date.now();
-    this._interpDuration = duration;
-  }
-
-  get interpolatedX() {
-    if (!this._interpActive || this._interpStartX === null || this._interpStartT === null) return this.x;
-    const elapsed = Date.now() - this._interpStartT;
-    if (elapsed >= this._interpDuration) {
-      const endX = this._interpEndX;
-      this._interpActive = false;
-      this._interpStartX = null;
-      this._interpStartY = null;
-      this._interpEndX = null;
-      this._interpEndY = null;
-      this._interpStartT = null;
-      return endX;
-    }
-    const t = elapsed / this._interpDuration;
-    const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-    return this._interpStartX + (this._interpEndX - this._interpStartX) * eased;
-  }
-
-  get interpolatedY() {
-    if (!this._interpActive || this._interpStartX === null || this._interpStartT === null) return this.y;
-    const elapsed = Date.now() - this._interpStartT;
-    if (elapsed >= this._interpDuration) {
-      const endY = this._interpEndY;
-      this._interpActive = false;
-      this._interpStartX = null;
-      this._interpStartY = null;
-      this._interpEndX = null;
-      this._interpEndY = null;
-      this._interpStartT = null;
-      return endY;
-    }
-    const t = elapsed / this._interpDuration;
-    const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-    return this._interpStartY + (this._interpEndY - this._interpStartY) * eased;
   }
 
   draw(ctx, dt, gameInstance) {

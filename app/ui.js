@@ -50,24 +50,35 @@ export default class UI {
     document.getElementById('class-icon').textContent = cd.icon;
     document.getElementById('class-card-name').textContent = cd.name;
     document.getElementById('stat-hp').innerHTML = `<strong style="color:#e74c3c">HP (Health Points): ${cd.hp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Maximum life capacity. If it reaches 0, you die.</span>`;
-    document.getElementById('stat-mp').innerHTML = `<strong style="color:#3498db">MP (Mana Points): ${cd.mp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">S2 charge multiplier — more MP = larger AOE and faster cooldown.</span>`;
-    document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies.</span>`;
-    document.getElementById('stat-spd').innerHTML = `<strong style="color:#2ecc71">SPD (Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Movement speed and S2 cooldown reduction.</span>`;
-    
-    let moveSpeed;
-    switch (this.selectedClass) {
-        case 'warrior': moveSpeed = 2.5; break;
-        case 'magicgladiator': moveSpeed = 2.3; break;
-        case 'archer': moveSpeed = 2.0; break;
-        case 'mage': moveSpeed = 1.7; break;
-        default: moveSpeed = 2.5;
-    }
-    document.getElementById('stat-move').innerHTML = `<strong style="color:#2ecc71">MOVE SPEED: ${moveSpeed}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base movement speed on the map.</span>`;
+    document.getElementById('stat-mp').innerHTML = `<strong style="color:#3498db">MP (Mana Points): ${cd.mp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Controls S2 AOE size and cooldown — higher MP = bigger area and faster recharge.</span>`;
+    document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies. Scales with level and stat upgrades.</span>`;
 
     const sk = SKILL_DESC[this.selectedClass];
+    
+    // Calculate derived stats from HP/MP/ATK
+    const baseMoveSpeed = { warrior: 2.5, magicgladiator: 2.3, archer: 2.0, mage: 1.7 }[this.selectedClass] || 2.5;
+    const baseS2Cooldown = Math.max(1000, 5000 - (cd.spd * 200));
+    const s1Scale = 1.0;
+    const aoeScale = 1.0;
+    const armor = Math.floor(cd.hp / 10);
+    const dmgReduction = (armor * 0.5).toFixed(1);
+
     document.getElementById('controls-section').innerHTML =
       `<div class="ctrl-line"><span class="ctrl-label">S1:</span> ${sk.s1.ctrl} → <span class="s">${sk.s1.name}</span><br>${sk.s1.desc}</div>` +
-      `<div class="ctrl-line"><span class="ctrl-label">S2:</span> ${sk.s2.ctrl} → <span class="s">${sk.s2.name}</span><br>${sk.s2.desc} <span style="color:#f66">(5s CD)</span></div>`;
+      `<div class="ctrl-line"><span class="ctrl-label">S2:</span> ${sk.s2.ctrl} → <span class="s">${sk.s2.name}</span><br>${sk.s2.desc} <span style="color:#f66">(${(baseS2Cooldown/1000).toFixed(0)}s CD)</span></div>` +
+      `<div style="margin-top:8px; border-top:1px solid #4a4a6a; padding-top:6px;">` +
+      `<div class="ctrl-line"><span class="ctrl-label">MOVE:</span> ${baseMoveSpeed} base — increased by SPD stat upgrades</div>` +
+      `<div class="ctrl-line"><span class="ctrl-label">S1 Scale:</span> ${((s1Scale - 1) * 100).toFixed(0)}% — scales with ATK upgrades</div>` +
+      `<div class="ctrl-line"><span class="ctrl-label">S2 AOE:</span> ${((aoeScale - 1) * 100).toFixed(0)}% — scales with SPD stat</div>` +
+      `<div class="ctrl-line"><span class="ctrl-label">S2 CD:</span> ${baseS2Cooldown}ms base — reduced by SPD stat</div>` +
+      `<div class="ctrl-line"><span class="ctrl-label">Armor:</span> ${armor} (reduces incoming damage by ${dmgReduction}%) — based on HP</div>` +
+      `</div>` +
+      `<div style="margin-top:6px; border-top:1px solid #4a4a6a; padding-top:6px;">` +
+      `<div class="ctrl-line"><span class="ctrl-label">Combat:</span> Left-click enemies to attack, left-click ground to move</div>` +
+      `<div class="ctrl-line"><span class="ctrl-label">Targeting:</span> Click enemy icon to auto-track and chase within range</div>` +
+      `<div class="ctrl-line"><span class="ctrl-label">Melee:</span> Warrior/MagicGladiator — short range, close combat</div>` +
+      `<div class="ctrl-line"><span class="ctrl-label">Ranged:</span> Archer/Mage — can attack from distance, must close in for melee</div>` +
+      `</div>`;
       
     if (this.game && this.game.state === 'PLAYING' && this.game.player) {
       this.game.player.color = cd.color;
