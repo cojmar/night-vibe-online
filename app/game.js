@@ -84,6 +84,16 @@ export default class Game {
            this.otherPlayers[data.user].state = data.data.state;
         }
         
+        if (data.data.level !== undefined) {
+           const oldLevel = this.otherPlayers[data.user].level || 1;
+           if (data.data.level > oldLevel) {
+               this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 20, '#ffd700', 60, 10);
+               this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 20, '#fff', 40, 15);
+               this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 20, '#f1c40f', 50, 5);
+               this.ui.addLog(`🌟 ${data.user.substring(0,8)} Leveled Up! (Lv.${data.data.level})`, 'reward');
+           }
+        }
+        
         if (this.otherPlayers[data.user].inGame !== oldInGame || this.otherPlayers[data.user].state !== oldState) {
            this.checkHost();
         }
@@ -131,7 +141,10 @@ export default class Game {
             if (this.player.addKill()) {
                 this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
                 this.ui.updateHUD(this.player);
-                this.spawnParticles(this.player.x, this.player.y - 20, '#ffd700', 40, 6);
+                this.spawnParticles(this.player.x, this.player.y - 20, '#ffd700', 60, 10);
+                this.spawnParticles(this.player.x, this.player.y - 20, '#fff', 40, 15);
+                this.spawnParticles(this.player.x, this.player.y - 20, '#f1c40f', 50, 5);
+                this.broadcastState();
             }
             if (this.state === 'PLAYING') {
                 this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
@@ -602,6 +615,10 @@ export default class Game {
       x: this.player.x,
       y: this.player.y,
       hp: this.player.hp,
+      maxHp: this.player.maxHp,
+      level: this.player.level,
+      kills: this.player.kills,
+      reqKills: this.player.reqKills,
       facing: this.player.facing,
       action: this.player.action,
       classType: this.player.classType,

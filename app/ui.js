@@ -108,6 +108,9 @@ export default class UI {
         document.getElementById('kill-count').textContent = player.kills;
         document.getElementById('req-kill-count').textContent = player.reqKills;
         document.getElementById('player-level').textContent = player.level;
+        
+        const xpPct = player.reqKills > 0 ? Math.max(0, Math.min(100, (player.kills / player.reqKills) * 100)) : 100;
+        document.getElementById('xp-bar').style.width = xpPct + '%';
     }
     const progress = waveTotal > 1 ? ` [${waveKilled}/${waveTotal}]` : '';
     document.getElementById('wave-count').textContent = wave + progress;
@@ -185,6 +188,7 @@ export default class UI {
        html += `
          <div class="remote-player-hp">
            <div class="remote-player-name">${key.substring(0,8)}${aliveText}</div>
+           <div class="remote-player-info">Lv.${p.level || 1} | Kills: ${p.kills || 0}/${p.reqKills || 5}</div>
            <div class="remote-hp-bg"><div class="remote-hp-fill" style="width:${pct}%"></div></div>
          </div>
        `;

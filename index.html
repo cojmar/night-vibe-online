@@ -134,7 +134,7 @@
     }
     .hud.visible { opacity: 1; }
     .party-list {
-      position: absolute; top: 44px; right: 10px; z-index: 5;
+      position: absolute; top: 10px; left: 10px; z-index: 5;
       display: flex; flex-direction: column; gap: 4px; pointer-events: auto;
       width: 200px;
     }
@@ -145,6 +145,8 @@
     .hp-text { font-size: 0.78em; color: #ccc; margin-bottom: 4px; }
     .hp-bar-bg { height: 10px; background: rgba(255,255,255,0.1); border-radius: 0; overflow: hidden; }
     .hp-bar-fill { height: 100%; background: linear-gradient(90deg, #e74c3c, #2ecc71); transition: width 0.3s; }
+    .xp-bar-bg { height: 4px; background: rgba(255,255,255,0.1); border-radius: 0; overflow: hidden; margin-top: 4px; }
+    .xp-bar-fill { height: 100%; background: #f1c40f; transition: width 0.3s; }
     .score-display {
       background: rgba(0,0,0,0.6); border: 2px solid #ffd700;
       border-radius: 0; padding: 6px 10px; text-align: left;
@@ -155,7 +157,8 @@
       background: rgba(0,0,0,0.6); border: 1px solid #4a4a6a;
       padding: 4px 6px; border-radius: 0;
     }
-    .remote-player-name { font-size: 0.7em; color: #ccc; margin-bottom: 2px; }
+    .remote-player-name { font-size: 0.75em; color: #ccc; margin-bottom: 2px; font-weight: bold; }
+    .remote-player-info { font-size: 0.65em; color: #aaa; margin-bottom: 4px; }
     .remote-hp-bg { height: 6px; background: rgba(255,255,255,0.1); }
     .remote-hp-fill { height: 100%; background: #3498db; transition: width 0.3s; }
     .skill-indicator {
@@ -312,7 +315,7 @@
       .controls-section { font-size: 0.85em; }
       .btn-start { padding: 12px 30px; font-size: 1em; }
       .hud { padding: 0; }
-      .party-list { width: 220px; top: 44px; right: 14px; }
+      .party-list { width: 240px; top: 14px; left: 14px; }
       .hp-container { padding: 8px 12px; }
       .score-display { padding: 8px 12px; }
       .skill-indicator { padding: 8px 14px; font-size: 0.72em; }
