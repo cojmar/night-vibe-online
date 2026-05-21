@@ -115,10 +115,15 @@ export default class Player {
             const lvlScale = Math.min(1.0, 0.5 + ((this.level || 1) - 1) * 0.055);
             
             let maxRange = 450; // default for ranged
-            if (this.classType === 'warrior') maxRange = 90 * wScale * lvlScale + e.size;
-            else if (this.classType === 'magicgladiator') maxRange = 80 * wScale * lvlScale + e.size;
+            if (this.classType === 'warrior') maxRange = 90 * wScale * lvlScale * 0.8;
+            else if (this.classType === 'magicgladiator') maxRange = 80 * wScale * lvlScale * 0.8;
             
             const distToE = Math.hypot(e.x - this.x, e.y - this.y);
+            
+            // Force aim to target
+            this.mouseX = e.x;
+            this.mouseY = e.y;
+            
             if (distToE <= maxRange) {
                 if (this.animTimer <= 0) {
                     gameInstance.doSkill1(e.x, e.y);
