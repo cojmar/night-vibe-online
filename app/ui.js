@@ -60,6 +60,21 @@ export default class UI {
         });
     }
     
+    const autoGraphicsCheck = document.getElementById('auto-graphics-check');
+    if (autoGraphicsCheck) {
+        autoGraphicsCheck.addEventListener('change', (e) => {
+            const isAuto = e.target.checked;
+            if (this.game) this.game.settings.autoGraphics = isAuto;
+            if (partSlider) partSlider.disabled = isAuto;
+            if (bgSlider) bgSlider.disabled = isAuto;
+            if (groundSlider) groundSlider.disabled = isAuto;
+        });
+        // initial state
+        if (partSlider) partSlider.disabled = autoGraphicsCheck.checked;
+        if (bgSlider) bgSlider.disabled = autoGraphicsCheck.checked;
+        if (groundSlider) groundSlider.disabled = autoGraphicsCheck.checked;
+    }
+    
     document.getElementById('btn-up-atk').addEventListener('click', () => { if(this.game) this.game.upgradeStat('atk'); });
     document.getElementById('btn-up-spd').addEventListener('click', () => { if(this.game) this.game.upgradeStat('spd'); });
     document.getElementById('btn-up-hp').addEventListener('click', () => { if(this.game) this.game.upgradeStat('hp'); });

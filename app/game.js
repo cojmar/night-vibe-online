@@ -47,7 +47,7 @@ export default class Game {
     this.syncTimer = 0;
     this.pendingHits = [];
     
-    this.settings = { particles: 1.0, bgElements: 1.0, groundElements: 1.0 };
+    this.settings = { particles: 1.0, bgElements: 1.0, groundElements: 1.0, autoGraphics: true };
 
     this.bindEvents();
     
@@ -1131,6 +1131,39 @@ export default class Game {
       const dt = this.lastTime ? Math.min((time - this.lastTime) / 16.67, 3) : 1;
       this.lastTime = time;
       this.globalTime += dt * 0.016;
+      
+      this.frameCount = (this.frameCount || 0) + 1;
+      const now = Date.now();
+      if (!this.lastFpsTime) this.lastFpsTime = now;
+      if (now - this.lastFpsTime >= 1000) {
+          this.fps = this.frameCount;
+          this.frameCount = 0;
+          this.lastFpsTime = now;
+          
+          if (this.settings && this.settings.autoGraphics) {
+              let changed = false;
+              if (this.fps < 50) {
+                  this.settings.particles = Math.max(0, this.settings.particles - 0.15);
+                  this.settings.bgElements = Math.max(0, this.settings.bgElements - 0.15);
+                  this.settings.groundElements = Math.max(0, this.settings.groundElements - 0.15);
+                  changed = true;
+              } else if (this.fps >= 58 && (this.settings.particles < 2.0 || this.settings.bgElements < 2.0 || this.settings.groundElements < 2.0)) {
+                  this.settings.particles = Math.min(2.0, this.settings.particles + 0.05);
+                  this.settings.bgElements = Math.min(2.0, this.settings.bgElements + 0.05);
+                  this.settings.groundElements = Math.min(2.0, this.settings.groundElements + 0.05);
+                  changed = true;
+              }
+              if (changed) {
+                  document.getElementById('particles-slider').value = Math.round(this.settings.particles * 100);
+                  document.getElementById('particles-val').textContent = `${Math.round(this.settings.particles * 100)}%`;
+                  document.getElementById('bg-slider').value = Math.round(this.settings.bgElements * 100);
+                  document.getElementById('bg-val').textContent = `${Math.round(this.settings.bgElements * 100)}%`;
+                  document.getElementById('ground-slider').value = Math.round(this.settings.groundElements * 100);
+                  document.getElementById('ground-val').textContent = `${Math.round(this.settings.groundElements * 100)}%`;
+                  this.generateScenery();
+              }
+          }
+      }
       
       const cycle = (this.globalTime % 300) / 300; 
       this.nightAlpha = 0;
