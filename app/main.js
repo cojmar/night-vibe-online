@@ -68,6 +68,41 @@ window.app = new class {
             msgEl.innerHTML = `<span style="color:#f39c12;font-weight:bold;">${sender}:</span> <span style="color:#eee;">${data.msg}</span>`;
             chatBox.appendChild(msgEl);
             chatBox.scrollTop = chatBox.scrollHeight;
+            
+            if (this.game && this.game.state === 'PLAYING') {
+                this.game.ui.addLog(`${sender}: ${data.msg}`, 'reward');
+            }
+        });
+
+        // In-game chat modal logic
+        const gameChatModal = document.getElementById('game-chat-modal');
+        const gameChatInput = document.getElementById('game-chat-input');
+        const gameChatSendBtn = document.getElementById('game-chat-send');
+        
+        const sendGameChat = () => {
+            const msg = gameChatInput.value.trim();
+            if (msg) {
+                const myUser = (this.net.me && this.net.me.info) ? this.net.me.info.user : '';
+                this.net.send_cmd('msg', { msg: msg, nick: nickInput.value, user: myUser });
+                gameChatInput.value = '';
+            }
+            gameChatModal.style.display = 'none';
+        };
+
+        gameChatSendBtn.addEventListener('click', sendGameChat);
+        
+        window.addEventListener('keydown', (e) => {
+            if (this.game && this.game.state === 'PLAYING' && e.key === 'Enter') {
+                if (gameChatModal.style.display === 'flex') {
+                    sendGameChat();
+                } else {
+                    gameChatModal.style.display = 'flex';
+                    gameChatInput.focus();
+                }
+            }
+            if (e.key === 'Escape' && gameChatModal.style.display === 'flex') {
+                gameChatModal.style.display = 'none';
+            }
         });
         
         let lastLobbyHtml = '';
