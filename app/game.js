@@ -425,9 +425,9 @@ export default class Game {
     this.selectedEnv = ENV_LIST[0];
     this.kills = 0;
     this.wave = 1;
-    this.waveTotalEnemies = 10 + Math.floor(this.wave * 2.5 + Math.pow(this.wave, 1.2));
+    this.waveTotalEnemies = 10;
     this.waveEnemiesKilled = 0;
-    this.waveEnemiesToSpawn = this.waveTotalEnemies;
+    this.waveEnemiesToSpawn = 10;
     this.bossActive = false;
     this.waveTransitionTimer = 0;
     this.emptyWaveTimer = 0;
@@ -440,6 +440,24 @@ export default class Game {
     this.s2Cooldown = 0;
     this.ui.recentLogs = [];
     this.prng = new PRNG(this.wave * 12345);
+    
+    // Attempt to inherit current room state if a host exists
+    if (this.net && this.net.room && this.net.room.users) {
+        for (const u in this.net.room.users) {
+            const userData = this.net.room.users[u].data;
+            if (userData && userData.isHost && userData.hostData) {
+                this.wave = userData.hostData.wave || 1;
+                this.waveTotalEnemies = userData.hostData.waveTotal || 10;
+                this.waveEnemiesKilled = userData.hostData.waveKilled || 0;
+                this.waveEnemiesToSpawn = userData.hostData.waveSpawn || 10;
+                this.bossActive = userData.hostData.bossActive || false;
+                this.selectedEnv = userData.hostData.env || ENV_LIST[0];
+                this.prng = new PRNG(userData.hostData.seed || (this.wave * 12345));
+                break;
+            }
+        }
+    }
+    
     this.generateScenery();
     
     const groundY = getGroundY(this.selectedEnv);
