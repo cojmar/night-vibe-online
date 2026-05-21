@@ -11,6 +11,7 @@ export default class UI {
     this.logHoldTimer = null;
     
     this.bindEvents();
+    this.bindInventoryEvents();
     this.updateClassCarousel();
   }
 
@@ -505,5 +506,216 @@ export default class UI {
            list.removeChild(child);
        }
     });
+  }
+  
+  bindInventoryEvents() {
+      const btnInv = document.getElementById('btn-inventory');
+      const btnClose = document.getElementById('btn-inv-close');
+      const modal = document.getElementById('inventory-modal');
+      this.selectedInvSlot = null;
+      
+      if(btnInv) btnInv.addEventListener('click', () => {
+          if (modal) modal.style.display = 'flex';
+          this.renderInventory();
+      });
+      if(btnClose) btnClose.addEventListener('click', () => {
+          if (modal) modal.style.display = 'none';
+      });
+      
+      const bagGrid = document.getElementById('inv-grid');
+      if (bagGrid) {
+          bagGrid.innerHTML = '';
+          for (let i = 0; i < 15; i++) {
+              let slot = document.createElement('div');
+              slot.className = 'inv-slot bag-slot';
+              slot.dataset.type = 'bag';
+              slot.dataset.slot = i;
+              slot.addEventListener('click', (e) => this.selectInventorySlot(e.currentTarget));
+              bagGrid.appendChild(slot);
+          }
+      }
+      
+      const equipGrid = document.getElementById('equip-grid');
+      if (equipGrid) {
+          const slots = equipGrid.querySelectorAll('.equip-slot');
+          slots.forEach(s => {
+              s.addEventListener('click', (e) => this.selectInventorySlot(e.currentTarget));
+          });
+      }
+      
+      const equipBtn = document.getElementById('btn-inv-equip');
+      const dropBtn = document.getElementById('btn-inv-drop');
+      if(equipBtn) equipBtn.addEventListener('click', () => this.handleEquipAction());
+      if(dropBtn) dropBtn.addEventListener('click', () => this.handleDropAction());
+  }
+
+  renderInventory() {
+      if (!this.game || !this.game.player) return;
+      const inv = this.game.player.inventory || [];
+      const equip = this.game.player.equipped || [];
+      
+      // render bag
+      const bagSlots = document.querySelectorAll('.bag-slot');
+      bagSlots.forEach(s => {
+          const idx = parseInt(s.dataset.slot);
+          const item = inv[idx];
+          if (item) {
+              s.innerHTML = `<span class="inv-item-icon">${this.getItemIcon(item.type)}</span>`;
+          } else {
+              s.innerHTML = '';
+          }
+      });
+      
+      // render equip
+      const equipSlots = document.querySelectorAll('.equip-slot');
+      equipSlots.forEach(s => {
+          const idx = parseInt(s.dataset.slot);
+          const item = equip[idx];
+          if (item) {
+              s.innerHTML = `<span class="inv-item-icon">${this.getItemIcon(item.type)}</span>`;
+          } else {
+              s.innerHTML = '';
+          }
+      });
+      
+      this.updateInventorySelection();
+  }
+
+  getItemIcon(type) {
+      if (type === 'ring') return '💍';
+      if (type === 'armor') return '🛡️';
+      if (type === 'weapon') return '⚔️';
+      return '❓';
+  }
+
+  selectInventorySlot(slotEl) {
+      this.selectedInvSlot = {
+          type: slotEl.dataset.type,
+          index: parseInt(slotEl.dataset.slot)
+      };
+      this.updateInventorySelection();
+  }
+
+  updateInventorySelection() {
+      document.querySelectorAll('.inv-slot').forEach(s => s.classList.remove('selected'));
+      const infoEl = document.getElementById('inv-item-info');
+      const equipBtn = document.getElementById('btn-inv-equip');
+      const dropBtn = document.getElementById('btn-inv-drop');
+      
+      if (!this.selectedInvSlot || !this.game || !this.game.player) {
+          if (infoEl) infoEl.textContent = 'Select an item to view stats.';
+          if (equipBtn) equipBtn.style.display = 'none';
+          if (dropBtn) dropBtn.style.display = 'none';
+          return;
+      }
+      
+      const q = `.inv-slot[data-type="${this.selectedInvSlot.type}"][data-slot="${this.selectedInvSlot.index}"]`;
+      const el = document.querySelector(q);
+      if (el) el.classList.add('selected');
+      
+      let item = null;
+      if (this.selectedInvSlot.type === 'bag') {
+          item = (this.game.player.inventory || [])[this.selectedInvSlot.index];
+          if (equipBtn) {
+              equipBtn.style.display = item ? 'inline-block' : 'none';
+              equipBtn.textContent = 'Equip';
+          }
+      } else {
+          item = (this.game.player.equipped || [])[this.selectedInvSlot.index];
+          if (equipBtn) {
+              equipBtn.style.display = item ? 'inline-block' : 'none';
+              equipBtn.textContent = 'Unequip';
+          }
+      }
+      
+      if (dropBtn) dropBtn.style.display = item ? 'inline-block' : 'none';
+      
+      if (item) {
+           let desc = '';
+           if (item.type === 'ring') {
+               desc = `💍 RING - ${item.displayName || 'Unknown'}`;
+               if (item.skillName) {
+                   desc += `<br><span style="color:#9b59b6;">${item.skillName}</span> (from ${item.skillClass || 'unknown'})`;
+                   if (item.originalSkillName) {
+                       desc += `<br><span style="color:#bdc3c7;font-size:0.9em;">Replaces: ${item.originalSkillName}</span>`;
+                   }
+               }
+               desc += `<br><span style="color:#bdc3c7;font-size:0.9em;">From: ${item.monsterName || 'Unknown'}</span>`;
+           } else if (item.type === 'armor') {
+               desc = `🛡️ ARMOR - ${item.displayName || 'Unknown'}`;
+               desc += `<br><span style="color:#e74c3c;">+${Math.round(item.bonus)} Max HP</span>`;
+               desc += `<br><span style="color:#bdc3c7;font-size:0.9em;">From: ${item.monsterName || 'Unknown'} (${item.monsterSize || '?'})</span>`;
+           } else if (item.type === 'weapon') {
+               desc = `⚔️ WEAPON - ${item.displayName || 'Unknown'}`;
+               desc += `<br><span style="color:#f39c12;">+${item.bonus ? item.bonus.toFixed(1) : '0'} ATK</span>`;
+               desc += `<br><span style="color:#bdc3c7;font-size:0.9em;">From: ${item.monsterName || 'Unknown'} (${item.monsterSize || '?'})</span>`;
+           }
+           
+           if (infoEl) infoEl.innerHTML = desc;
+       } else {
+           if (infoEl) infoEl.textContent = 'Empty slot.';
+       }
+   }
+
+  handleEquipAction() {
+      if (!this.selectedInvSlot || !this.game || !this.game.player) return;
+      
+      const inv = this.game.player.inventory || [];
+      const equip = this.game.player.equipped || [];
+      
+      if (this.selectedInvSlot.type === 'bag') {
+          const item = inv[this.selectedInvSlot.index];
+          if (!item) return;
+          // Find empty equip slot
+          let emptyIdx = -1;
+          for (let i = 0; i < 3; i++) {
+              if (!equip[i]) { emptyIdx = i; break; }
+          }
+          if (emptyIdx !== -1) {
+              equip[emptyIdx] = item;
+              inv[this.selectedInvSlot.index] = null;
+              this.selectedInvSlot = { type: 'equip', index: emptyIdx };
+              this.game.applyEquipmentStats();
+          } else {
+              this.addLog('Equipment full! Unequip something first.', 'error');
+          }
+      } else {
+          const item = equip[this.selectedInvSlot.index];
+          if (!item) return;
+          // Find empty bag slot
+          let emptyIdx = -1;
+          for (let i = 0; i < 15; i++) {
+              if (!inv[i]) { emptyIdx = i; break; }
+          }
+          if (emptyIdx !== -1) {
+              inv[emptyIdx] = item;
+              equip[this.selectedInvSlot.index] = null;
+              this.selectedInvSlot = { type: 'bag', index: emptyIdx };
+              this.game.applyEquipmentStats();
+          } else {
+              this.addLog('Bag is full! Drop something first.', 'error');
+          }
+      }
+      
+      this.game.saveInventory();
+      this.renderInventory();
+  }
+  
+  handleDropAction() {
+      if (!this.selectedInvSlot || !this.game || !this.game.player) return;
+      
+      const inv = this.game.player.inventory || [];
+      const equip = this.game.player.equipped || [];
+      
+      if (this.selectedInvSlot.type === 'bag') {
+          inv[this.selectedInvSlot.index] = null;
+      } else {
+          equip[this.selectedInvSlot.index] = null;
+          this.game.applyEquipmentStats();
+      }
+      
+      this.game.saveInventory();
+      this.selectedInvSlot = null;
+      this.renderInventory();
   }
 }

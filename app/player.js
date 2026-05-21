@@ -54,6 +54,15 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     
     this.buffHpTimer = 0;
     this.buffManaTimer = 0;
+    
+    // Inventory
+    this.inventory = Array(15).fill(null);
+    this.equipped = Array(3).fill(null);
+    this.bonusHp = 0;
+    this.bonusAtk = 0;
+    this.ringSkills = {};
+    this.skill1Override = null;
+    this.skill2Override = null;
   }
 
   addKill() {
@@ -120,6 +129,11 @@ updateFromNetwork() {
       if (this.input_data.isChargingS2 !== undefined) this.isChargingS2 = this.input_data.isChargingS2;
       if (this.input_data.s2ChargeCount !== undefined) this.s2ChargeCount = this.input_data.s2ChargeCount;
       if (this.input_data.projectiles) this.projectiles = this.input_data.projectiles;
+      if (this.input_data.ringSkills !== undefined) this.ringSkills = this.input_data.ringSkills || {};
+      if (this.input_data.bonusHp !== undefined) this.bonusHp = this.input_data.bonusHp || 0;
+      if (this.input_data.bonusAtk !== undefined) this.bonusAtk = this.input_data.bonusAtk || 0;
+      if (this.input_data.skill1Override !== undefined) this.skill1Override = this.input_data.skill1Override || null;
+      if (this.input_data.skill2Override !== undefined) this.skill2Override = this.input_data.skill2Override || null;
       
       this.input_data = null;
     }

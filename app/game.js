@@ -546,6 +546,10 @@ export default class Game {
     this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, groundY - 20);
     this.player.resets = resets;
     this.player.statPoints = (this.player.statPoints || 0) + bonusStats;
+    this.player.inventory = myData && myData.inventory ? myData.inventory : Array(15).fill(null);
+    this.player.equipped = myData && myData.equipped ? myData.equipped : Array(3).fill(null);
+    this.player.ringSkills = myData && myData.ringSkills ? myData.ringSkills : {};
+    this.applyEquipmentStats();
     
     const nickInput = document.getElementById('nick-input');
     if (nickInput) this.player.nick = nickInput.value;
@@ -597,6 +601,25 @@ export default class Game {
     
     this.ui.updateHUD(this.player);
     this.broadcastState();
+  }
+
+  applyEquipmentStats() {
+    if (!this.player) return;
+    const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
+    this.player.maxHp = cd.hp;
+    this.player.hp = cd.hp;
+    this.player.atk = cd.atk;
+    const equip = this.player.equipped || [];
+    for (let item of equip) {
+      if (!item) continue;
+      if (item.type === 'weapon') {
+        this.player.atk += item.bonus || 0;
+      } else if (item.type === 'armor') {
+        this.player.maxHp += item.bonus || 0;
+        this.player.hp += item.bonus || 0;
+      }
+    }
+    this.ui.updateHUD(this.player);
   }
 
   requestRebirth() {
@@ -742,23 +765,28 @@ export default class Game {
     
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing, damage: this.player.atk, critChance: 0.1 };
     
-    switch (this.player.classType) {
+    const s1Class = this.player.skill1Override || this.player.classType;
+    const s1Cd = CLASS_DATA[s1Class];
+    const s1BaseAtk = s1Class === this.player.classType ? cd.atk : s1Cd.atk;
+    const s1ScaleAdj = 1 + (this.player.atk - s1BaseAtk) * 0.02;
+    
+    switch (s1Class) {
       case 'warrior':
-        const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
-        this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, cd.s1Color, 5, 3);
+        const wScale = 1 + (this.player.atk - s1BaseAtk) * 0.005;
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:s1Cd.s1Color, radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+        this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, s1Cd.s1Color, 5, 3);
         break;
       case 'mage':
-        this.projectiles.push(new Projectile({ type:'bolt', x:this.player.x, y:weaponY, tx:tx, ty:ty, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'bolt', x:this.player.x, y:weaponY, tx:tx, ty:ty, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, radius: 6 * s1ScaleAdj * lvlScale, ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#3498db', 3, 2);
         break;
       case 'archer':
         const speed = 10;
-        this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(aimAngle)*speed, vy:Math.sin(aimAngle)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale * lvlScale, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(aimAngle)*speed, vy:Math.sin(aimAngle)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1ScaleAdj * lvlScale, ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#bdc3c7', 4, 3);
         break;
       case 'magicgladiator':
-        const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
+        const mgScale = 1 + (this.player.atk - s1BaseAtk) * 0.005;
         this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:20, maxLife:20, color:'#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, '#e74c3c', 7, 4);
         break;
@@ -806,7 +834,9 @@ export default class Game {
     const areaMulti = 1 + (charges * 0.15);
     
     const tx = this.player.mouseX, ty = this.player.mouseY;
-    const cd = CLASS_DATA[this.player.classType];
+    const s2Class = this.player.skill2Override || this.player.classType;
+    const s2Cd = CLASS_DATA[s2Class];
+    const s2BaseSpd = s2Class === this.player.classType ? CLASS_DATA[this.player.classType].spd : s2Cd.spd;
     const weaponY = this.player.y - 30 * lvlScale;
     const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
     this.player.facing = tx > this.player.x ? 1 : -1;
@@ -816,18 +846,18 @@ export default class Game {
     
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing };
     
-    switch (this.player.classType) {
+    switch (s2Class) {
       case 'warrior':
         const waveCount = 1 + charges;
-        const spdDiff = Math.max(0, this.player.spd - CLASS_DATA.warrior.spd);
+        const spdDiff = Math.max(0, this.player.spd - s2BaseSpd);
         const waveDistance = (120 + spdDiff * 6) * areaMulti;
         const waveSpread = 0.12 + (aoeScale - 1) * 0.08;
         
         for (let i = 0; i < waveCount; i++) {
           const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
-          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance: waveDistance, radius:15*aoeScale*areaMulti*lvlScale, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a, charges: charges }));
+          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:s2Cd.s2Color, damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance: waveDistance, radius:15*aoeScale*areaMulti*lvlScale, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a, charges: charges }));
         }
-        this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12 + charges*5, 4);
+        this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, s2Cd.s2Color, 12 + charges*5, 4);
         break;
       case 'mage':
         const fbRadius = 15 + charges * 15;
@@ -835,7 +865,7 @@ export default class Game {
         this.spawnParticles(this.player.x, weaponY, '#e67e22', 20*aoeScale + charges*10, 5);
         break;
       case 'archer':
-        const arrowCount = Math.min(7, 3 + Math.floor((this.player.spd - CLASS_DATA.archer.spd) / 8)) + charges;
+        const arrowCount = Math.min(7, 3 + Math.floor((this.player.spd - s2BaseSpd) / 8)) + charges;
         for(let i=0; i<arrowCount; i++) {
           const a = aimAngle + (i - Math.floor(arrowCount/2)) * (0.2 + (aoeScale-1)*0.1);
           const speed = 11;
@@ -852,6 +882,65 @@ export default class Game {
     this.broadcastState();
   }
   
+  applyEquipmentStats() {
+    if (!this.player) return;
+    const cd = CLASS_DATA[this.player.classType];
+    const baseHp = cd.hp;
+    const baseAtk = cd.atk;
+    
+    this.player.bonusHp = 0;
+    this.player.bonusAtk = 0;
+    this.player.ringSkills = {};
+    this.player.skill1Override = null;
+    this.player.skill2Override = null;
+    
+    const equip = this.player.equipped || [];
+    for (let i = 0; i < 3; i++) {
+      const item = equip[i];
+      if (!item) continue;
+      if (item.type === 'armor') {
+        this.player.bonusHp += item.bonus;
+      } else if (item.type === 'weapon') {
+        this.player.bonusAtk += item.bonus;
+      } else if (item.type === 'ring') {
+        if (item.skillIndex === 1) {
+          this.player.skill1Override = item.skillClass;
+          this.player.ringSkills.s1 = { name: item.skillName, classType: item.skillClass };
+        } else {
+          this.player.skill2Override = item.skillClass;
+          this.player.ringSkills.s2 = { name: item.skillName, classType: item.skillClass };
+        }
+      }
+    }
+    
+    this.player.maxHp = baseHp + this.player.bonusHp;
+    this.player.atk = baseAtk + this.player.bonusAtk;
+    
+    if (this.player.hp > this.player.maxHp) {
+      this.player.hp = this.player.maxHp;
+    }
+    
+    this.ui.updateHUD(this.player);
+  }
+
+  saveInventory() {
+    if (!this.player || !this.net) return;
+    const inv = this.player.inventory || [];
+    const equipped = this.player.equipped || [];
+    const ringSkills = this.player.ringSkills || {};
+    const s1Override = this.player.skill1Override || null;
+    const s2Override = this.player.skill2Override || null;
+    this.net.send_cmd('set_data', {
+      inventory: inv,
+      equipped: equipped,
+      ringSkills: ringSkills,
+      skill1Override: s1Override,
+      skill2Override: s2Override,
+      bonusHp: this.player.bonusHp || 0,
+      bonusAtk: this.player.bonusAtk || 0
+    });
+  }
+
   broadcastState() {
     if (!this.player) return;
     const data = {
@@ -879,6 +968,13 @@ export default class Game {
       mouseX: this.player.mouseX,
       mouseY: this.player.mouseY,
       chatMsg: this.player.chatMsg,
+      inventory: this.player.inventory || Array(15).fill(null),
+      equipped: this.player.equipped || Array(3).fill(null),
+      ringSkills: this.player.ringSkills || {},
+      skill1Override: this.player.skill1Override || null,
+      skill2Override: this.player.skill2Override || null,
+      bonusHp: this.player.bonusHp || 0,
+      bonusAtk: this.player.bonusAtk || 0,
       projectiles: this.projectiles.map(p => ({
           type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
           radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions
@@ -982,6 +1078,50 @@ export default class Game {
         life: 20+Math.floor(Math.random()*20), maxLife: 40, color,
         size: (1.5+Math.random()*3) * sizeScale
       });
+    }
+  }
+
+  generateItemData(type, enemy, monsterSize) {
+    const cls = CLASS_DATA;
+    const classKeys = Object.keys(cls);
+    
+    if (type === 'ring') {
+      const skillClass = classKeys[Math.floor(Math.random() * classKeys.length)];
+      const skillIndex = Math.random() < 0.5 ? 1 : 2;
+      const skillName = cls[skillClass][`s${skillIndex}Name`] || `S${skillIndex}`;
+      const originalClass = this.player ? this.player.classType : 'warrior';
+      const originalSkillName = cls[originalClass][`s${skillIndex}Name`] || `S${skillIndex}`;
+      
+      return {
+        type: 'ring',
+        displayName: `${enemy.name} Ring`,
+        bonus: 0,
+        monsterName: enemy.name,
+        monsterSize: monsterSize,
+        skillClass: skillClass,
+        skillIndex: skillIndex,
+        skillName: skillName,
+        originalSkillName: originalSkillName,
+        originalClass: originalClass
+      };
+    } else if (type === 'armor') {
+      const bonus = Math.max(5, Math.round(monsterSize * 2.5 + this.wave * 2));
+      return {
+        type: 'armor',
+        displayName: `${enemy.name} Armor`,
+        bonus: bonus,
+        monsterName: enemy.name,
+        monsterSize: monsterSize
+      };
+    } else if (type === 'weapon') {
+      const bonus = Math.max(2, (monsterSize * 0.8 + this.wave * 1.5) * 0.5);
+      return {
+        type: 'weapon',
+        displayName: `${enemy.name} Weapon`,
+        bonus: Math.round(bonus * 10) / 10,
+        monsterName: enemy.name,
+        monsterSize: monsterSize
+      };
     }
   }
 
@@ -1349,11 +1489,27 @@ export default class Game {
           
           if (this.isHost && !e.alive && !e.deadProcessed) {
               e.deadProcessed = true;
-              const dropChance = Math.max(0.04, 0.35 - (this.wave * 0.025));
+              const dropChance = Math.max(0.03, 0.25 - (this.wave * 0.015));
               if (Math.random() < dropChance) { 
-                  const type = Math.random() < 0.55 ? 'red' : 'blue';
-                  const lifeTime = 15000 + this.wave * 2000;
-                  this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: lifeTime });
+                  const roll = Math.random();
+                  let itemType, monsterSize = e.size || 20;
+                  
+                  if (roll < 0.15) {
+                      itemType = 'ring';
+                  } else if (roll < 0.6) {
+                      itemType = 'armor';
+                  } else {
+                      itemType = 'weapon';
+                  }
+                  
+                  const itemData = this.generateItemData(itemType, e, monsterSize);
+                  this.items.push({ 
+                      id: Math.random().toString(36).substr(2, 9), 
+                      ...itemData, 
+                      x: e.x, 
+                      y: e.y, 
+                      life: 30000 + this.wave * 2000 
+                  });
               }
           }
           
@@ -1473,48 +1629,31 @@ export default class Game {
                   for (let p of activePlayersList) {
                       if (!p.obj || !p.obj.alive || p.obj.hp <= 0) continue;
                       if (Math.hypot(p.obj.x - item.x, p.obj.y - item.y) < 40) {
-                          pickedUp = true;
                           if (p.id === (this.net.me ? this.net.me.info.user : 'host')) {
-                              this.player.buffHpTimer = item.type === 'red' ? 10000 : this.player.buffHpTimer;
-                              this.player.buffManaTimer = item.type === 'blue' ? 10000 : this.player.buffManaTimer;
-                              this.spawnParticles(this.player.x, this.player.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                              this.ui.addLog(item.type === 'red' ? '❤️ Hp Regen Buff!' : '⚡ Skill Cooldown Buff!', 'reward');
+                              const inv = this.player.inventory || [];
+                              let emptySlot = -1;
+                              for (let j = 0; j < 15; j++) {
+                                  if (!inv[j]) { emptySlot = j; break; }
+                              }
+                              if (emptySlot !== -1) {
+                                  inv[emptySlot] = {...item};
+                                  this.player.inventory = inv;
+                                  this.spawnParticles(this.player.x, this.player.y - 20, '#f1c40f', 20, 5);
+                                  const icons = {ring:'💍',armor:'🛡️',weapon:'⚔️'};
+                                  this.ui.addLog(`${icons[item.type]||'✨'} Picked up ${item.displayName}!`, 'reward');
+                                  this.broadcastState();
+                              } else {
+                                  this.ui.addLog('🎒 Inventory full!', 'error');
+                              }
                           } else {
                               this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
                           }
+                          pickedUp = true;
                           break;
                       }
                   }
                   if (pickedUp) {
                       this.items.splice(i, 1); i--; continue;
-                  }
-              } else {
-                  // Process buffs assigned to us by the host
-                  let hostUserId = null;
-                  if (this.net && this.net.room && this.net.room.users) {
-                      for (let u in this.net.room.users) {
-                          if (this.net.room.users[u].data && this.net.room.users[u].data.isHost) {
-                              hostUserId = u;
-                              break;
-                          }
-                      }
-                  }
-                  if (hostUserId && this.net.room.users[hostUserId].data) {
-                      const hData = this.net.room.users[hostUserId].data;
-                      if (hData && hData.giveBuff) {
-                          const buff = hData.giveBuff;
-                          if (buff.target === (this.net.me ? this.net.me.info.user : null) && buff.id !== this.lastProcessedBuffId) {
-                              this.lastProcessedBuffId = buff.id;
-                              if (buff.type === 'red') {
-                                  this.player.buffHpTimer = 10000;
-                                  this.ui.addLog('❤️ Hp Regen Buff!', 'reward');
-                              } else {
-                                  this.player.buffManaTimer = 10000;
-                                  this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');
-                              }
-                              this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                          }
-                      }
                   }
               }
               
@@ -1525,15 +1664,27 @@ export default class Game {
                   ctx.translate(item.x, item.y - 10 + floatOffset);
                   ctx.globalAlpha = Math.min(1, item.life / 1000);
                   
+                  let itemColor, itemShadow;
+                  if (item.type === 'ring') {
+                      itemColor = '#9b59b6'; itemShadow = '#c39bd3';
+                  } else if (item.type === 'armor') {
+                      itemColor = '#3498db'; itemShadow = '#7ed6df';
+                  } else if (item.type === 'weapon') {
+                      itemColor = '#e74c3c'; itemShadow = '#ff7979';
+                  } else {
+                      itemColor = item.type === 'red' ? '#e74c3c' : '#3498db';
+                      itemShadow = item.type === 'red' ? '#ff7979' : '#7ed6df';
+                  }
+                  
                   // Pulsating Aura
                   ctx.beginPath();
                   ctx.arc(0, 0, 10 + pulse * 6, 0, Math.PI*2);
-                  ctx.fillStyle = item.type === 'red' ? `rgba(231, 76, 60, ${0.3 + pulse*0.3})` : `rgba(52, 152, 219, ${0.3 + pulse*0.3})`;
+                  ctx.fillStyle = `${itemColor}44`;
                   ctx.fill();
 
                   // Core Orb
-                  ctx.fillStyle = item.type === 'red' ? '#e74c3c' : '#3498db';
-                  ctx.shadowColor = item.type === 'red' ? '#ff7979' : '#7ed6df';
+                  ctx.fillStyle = itemColor;
+                  ctx.shadowColor = itemShadow;
                   ctx.shadowBlur = 10 + pulse * 15;
                   ctx.beginPath();
                   ctx.arc(0, 0, 7 + pulse * 2, 0, Math.PI*2);
@@ -1545,7 +1696,11 @@ export default class Game {
                   ctx.font = 'bold 12px sans-serif';
                   ctx.textAlign = 'center';
                   ctx.textBaseline = 'middle';
-                  ctx.fillText(item.type === 'red' ? '❤️' : '⚡', 0, -18 - pulse * 2);
+                  let icon = '✨';
+                  if (item.type === 'ring') icon = '💍';
+                  else if (item.type === 'armor') icon = '🛡️';
+                  else if (item.type === 'weapon') icon = '⚔️';
+                  ctx.fillText(icon, 0, -18 - pulse * 2);
                   ctx.restore();
               }});
           }
