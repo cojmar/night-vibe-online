@@ -22,6 +22,33 @@ export default class UI {
     document.getElementById('btn-quit-game').addEventListener('click', () => this.game.quitToMenu());
     document.getElementById('btn-death-quit').addEventListener('click', () => this.game.quitToMenu());
     
+    const btnSettings = document.getElementById('btn-settings');
+    const settingsModal = document.getElementById('settings-modal');
+    const btnSettingsClose = document.getElementById('btn-settings-close');
+    const partSlider = document.getElementById('particles-slider');
+    const partVal = document.getElementById('particles-val');
+    const folSlider = document.getElementById('foliage-slider');
+    const folVal = document.getElementById('foliage-val');
+    
+    if (btnSettings) btnSettings.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
+    if (btnSettingsClose) btnSettingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
+    
+    if (partSlider) {
+        partSlider.addEventListener('input', (e) => {
+            partVal.textContent = `${e.target.value}%`;
+            if (this.game) this.game.settings.particles = parseInt(e.target.value) / 100;
+        });
+    }
+    if (folSlider) {
+        folSlider.addEventListener('input', (e) => {
+            folVal.textContent = `${e.target.value}%`;
+            if (this.game) {
+                this.game.settings.foliage = parseInt(e.target.value) / 100;
+                this.game.generateScenery(this.game.selectedEnv); // Regenerate foliage when changed
+            }
+        });
+    }
+    
     document.getElementById('btn-up-atk').addEventListener('click', () => { if(this.game) this.game.upgradeStat('atk'); });
     document.getElementById('btn-up-spd').addEventListener('click', () => { if(this.game) this.game.upgradeStat('spd'); });
     document.getElementById('btn-up-hp').addEventListener('click', () => { if(this.game) this.game.upgradeStat('hp'); });
