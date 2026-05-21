@@ -31,6 +31,8 @@ export default class UI {
     const bgVal = document.getElementById('bg-val');
     const groundSlider = document.getElementById('ground-slider');
     const groundVal = document.getElementById('ground-val');
+    const atmosSlider = document.getElementById('atmos-slider');
+    const atmosVal = document.getElementById('atmos-val');
     
     if (btnSettings) btnSettings.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
     if (btnSettingsClose) btnSettingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
@@ -59,6 +61,12 @@ export default class UI {
             }
         });
     }
+    if (atmosSlider) {
+        atmosSlider.addEventListener('input', (e) => {
+            atmosVal.textContent = `${e.target.value}%`;
+            if (this.game) this.game.settings.atmos = parseInt(e.target.value) / 100;
+        });
+    }
     
     const autoGraphicsCheck = document.getElementById('auto-graphics-check');
     if (autoGraphicsCheck) {
@@ -68,11 +76,13 @@ export default class UI {
             if (partSlider) partSlider.disabled = isAuto;
             if (bgSlider) bgSlider.disabled = isAuto;
             if (groundSlider) groundSlider.disabled = isAuto;
+            if (atmosSlider) atmosSlider.disabled = isAuto;
         });
         // initial state
         if (partSlider) partSlider.disabled = autoGraphicsCheck.checked;
         if (bgSlider) bgSlider.disabled = autoGraphicsCheck.checked;
         if (groundSlider) groundSlider.disabled = autoGraphicsCheck.checked;
+        if (atmosSlider) atmosSlider.disabled = autoGraphicsCheck.checked;
     }
     
     document.getElementById('btn-up-atk').addEventListener('click', () => { if(this.game) this.game.upgradeStat('atk'); });

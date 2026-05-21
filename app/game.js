@@ -47,7 +47,8 @@ export default class Game {
     this.syncTimer = 0;
     this.pendingHits = [];
     
-    this.settings = { particles: 1.0, bgElements: 1.0, groundElements: 1.0, autoGraphics: true };
+    this.settings = { particles: 1.0, bgElements: 1.0, groundElements: 1.0, atmos: 1.0, autoGraphics: true };
+    this.atmosEffects = [];
 
     this.bindEvents();
     
@@ -1157,11 +1158,13 @@ export default class Game {
                   this.settings.particles = Math.max(0, this.settings.particles - 0.15);
                   this.settings.bgElements = Math.max(0, this.settings.bgElements - 0.15);
                   this.settings.groundElements = Math.max(0, this.settings.groundElements - 0.15);
+                  this.settings.atmos = Math.max(0, this.settings.atmos - 0.15);
                   changed = true;
-              } else if (this.fps >= 58 && (this.settings.particles < 2.0 || this.settings.bgElements < 2.0 || this.settings.groundElements < 2.0)) {
+              } else if (this.fps >= 58 && (this.settings.particles < 2.0 || this.settings.bgElements < 2.0 || this.settings.groundElements < 2.0 || this.settings.atmos < 2.0)) {
                   this.settings.particles = Math.min(2.0, this.settings.particles + 0.05);
                   this.settings.bgElements = Math.min(2.0, this.settings.bgElements + 0.05);
                   this.settings.groundElements = Math.min(2.0, this.settings.groundElements + 0.05);
+                  this.settings.atmos = Math.min(2.0, this.settings.atmos + 0.05);
                   changed = true;
               }
               if (changed) {
@@ -1171,6 +1174,8 @@ export default class Game {
                   document.getElementById('bg-val').textContent = `${Math.round(this.settings.bgElements * 100)}%`;
                   document.getElementById('ground-slider').value = Math.round(this.settings.groundElements * 100);
                   document.getElementById('ground-val').textContent = `${Math.round(this.settings.groundElements * 100)}%`;
+                  document.getElementById('atmos-slider').value = Math.round(this.settings.atmos * 100);
+                  document.getElementById('atmos-val').textContent = `${Math.round(this.settings.atmos * 100)}%`;
                   this.generateScenery();
               }
           }
@@ -1203,6 +1208,72 @@ export default class Game {
               this.hostCheckTimer = 0;
               this.checkHost();
           }
+      }
+      
+      // Atmospheric effects processing
+      if (this.settings.atmos > 0) {
+          const isNight = this.nightAlpha > 0.3;
+          const rainColorsNight = ['rgba(255,255,255,0.4)', 'rgba(255,50,50,0.4)', 'rgba(50,255,50,0.4)'];
+          const rainColorsDay = ['rgba(0,0,0,0.4)', 'rgba(100,0,0,0.4)'];
+          const rColors = isNight ? rainColorsNight : rainColorsDay;
+          
+          const rainDensity = Math.floor(3 * this.settings.atmos * dt);
+          for (let i = 0; i < rainDensity; i++) {
+              if (Math.random() < 0.2) {
+                  this.atmosEffects.push({
+                      type: 'rain',
+                      x: Math.random() * GAME_W,
+                      y: -10,
+                      vx: -1 + Math.random() * 2,
+                      vy: 10 + Math.random() * 5,
+                      color: rColors[Math.floor(Math.random() * rColors.length)],
+                      size: 1 + Math.random() * 1.5,
+                      life: 1.0
+                  });
+              }
+          }
+          
+          if (Math.random() < 0.005 * this.settings.atmos * dt) {
+              this.atmosEffects.push({
+                  type: 'cloud',
+                  x: Math.random() < 0.5 ? -150 : GAME_W + 150,
+                  y: Math.random() * (GAME_H * 0.5),
+                  vx: (Math.random() < 0.5 ? 1 : -1) * (0.1 + Math.random() * 0.3),
+                  vy: 0,
+                  color: isNight ? `rgba(255,255,255,${0.03 + Math.random()*0.05})` : `rgba(0,0,0,${0.03 + Math.random()*0.05})`,
+                  size: 60 + Math.random() * 80,
+                  life: 1.0
+              });
+          }
+          
+          if (Math.random() < 0.02 * this.settings.atmos * dt) {
+              const groundY = getGroundY(this.selectedEnv);
+              this.atmosEffects.push({
+                  type: 'smoke',
+                  x: Math.random() * GAME_W,
+                  y: groundY + (Math.random() * (GAME_H - groundY)),
+                  vx: -0.5 + Math.random(),
+                  vy: -0.5 - Math.random() * 0.5,
+                  color: isNight ? `rgba(150,255,150,${0.05 + Math.random()*0.1})` : `rgba(50,50,50,${0.05 + Math.random()*0.1})`,
+                  size: 10 + Math.random() * 15,
+                  life: 1.0
+              });
+          }
+      }
+      
+      for (let i = this.atmosEffects.length - 1; i >= 0; i--) {
+          let ef = this.atmosEffects[i];
+          ef.x += ef.vx * dt;
+          ef.y += ef.vy * dt;
+          let dead = false;
+          if (ef.type === 'rain' && ef.y > GAME_H) dead = true;
+          if (ef.type === 'cloud' && (ef.x < -200 || ef.x > GAME_W + 200)) dead = true;
+          if (ef.type === 'smoke') {
+              ef.life -= 0.005 * dt;
+              ef.size += 0.2 * dt;
+              if (ef.life <= 0) dead = true;
+          }
+          if (dead) this.atmosEffects.splice(i, 1);
       }
 
       this.ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1386,6 +1457,20 @@ export default class Game {
       }
       this.ctx.globalAlpha = 1;
       this.particles = this.particles.filter(p => p.life > 0);
+      
+      // Render atmospheric effects behind UI
+      if (this.atmosEffects && this.atmosEffects.length > 0) {
+          for (let ef of this.atmosEffects) {
+              this.ctx.fillStyle = ef.color;
+              this.ctx.beginPath();
+              if (ef.type === 'rain') {
+                  this.ctx.fillRect(ef.x, ef.y, ef.size, ef.size * 6);
+              } else if (ef.type === 'cloud' || ef.type === 'smoke') {
+                  this.ctx.arc(ef.x, ef.y, ef.size, 0, Math.PI*2);
+                  this.ctx.fill();
+              }
+          }
+      }
 
       for (let ft of this.floatingTexts) {
         ft.y -= 0.8*dt; ft.life -= dt;
