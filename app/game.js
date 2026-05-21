@@ -77,6 +77,9 @@ export default class Game {
         }
         
         this.otherPlayers[data.user].lastDataTime = Date.now();
+        if (data.data.lastInputTime !== undefined) {
+           this.otherPlayers[data.user].lastInputTime = data.data.lastInputTime;
+        }
         
         // Apply immediately if relevant to checkHost
         if (data.data.inGame !== undefined) {
@@ -203,18 +206,41 @@ export default class Game {
         return;
     }
     
-    // Prefer the user who is already broadcasting as host
     let currentHost = null;
+    let currentHostInputTime = 0;
+    
     for (const u of hostCandidates) {
         if (u === (this.net.me && this.net.me.info ? this.net.me.info.user : null)) {
-            if (this.isHost) { currentHost = u; break; }
+            if (this.isHost) { 
+                currentHost = u; 
+                currentHostInputTime = this.player ? (this.player.lastInputTime || 0) : 0;
+            }
         } else {
             const op = this.otherPlayers[u] || (this.net.room && this.net.room.users[u] && this.net.room.users[u].data);
-            if (op && op.isHost) { currentHost = u; break; }
+            if (op && op.isHost) { 
+                currentHost = u; 
+                currentHostInputTime = this.otherPlayers[u] ? (this.otherPlayers[u].lastInputTime || 0) : 0;
+            }
         }
     }
     
-    const bestHost = currentHost || hostCandidates.sort()[0];
+    let bestHost = null;
+    const now = Date.now();
+    
+    if (currentHost && (now - currentHostInputTime <= 5000)) {
+        bestHost = currentHost; // Keep current host if they gave input in last 5s
+    } else {
+        // Find player with most recent input
+        bestHost = hostCandidates.sort((a, b) => {
+            let aTime = (a === (this.net.me && this.net.me.info ? this.net.me.info.user : null) && this.player) 
+                         ? (this.player.lastInputTime || 0) : (this.otherPlayers[a] ? this.otherPlayers[a].lastInputTime || 0 : 0);
+            let bTime = (b === (this.net.me && this.net.me.info ? this.net.me.info.user : null) && this.player) 
+                         ? (this.player.lastInputTime || 0) : (this.otherPlayers[b] ? this.otherPlayers[b].lastInputTime || 0 : 0);
+            if (bTime === aTime) return a.localeCompare(b);
+            return bTime - aTime;
+        })[0];
+    }
+    
     const isHost = bestHost === (this.net.me && this.net.me.info ? this.net.me.info.user : null);
     
     if (this.isHost !== isHost) {
@@ -624,6 +650,7 @@ export default class Game {
 
   handleLeftClick(cx, cy) {
     if (!this.player || !this.player.alive) return;
+    this.player.lastInputTime = Date.now();
     const groundY = getGroundY(this.selectedEnv);
     const onGround = cy >= groundY - GROUND_TOLERANCE;
     let clickedEnemy = null;
@@ -712,7 +739,8 @@ export default class Game {
   }
 
   startChargingSkill2() {
-    if (this.s2Cooldown > 0) return;
+    if (this.s2Cooldown > 0 || !this.player) return;
+    this.player.lastInputTime = Date.now();
     this.player.autoAttackTarget = null;
     this.player.stopWalking(this);
     this.player.isChargingS2 = true;
@@ -726,6 +754,7 @@ export default class Game {
 
   releaseSkill2() {
     if (!this.player || !this.player.isChargingS2) return;
+    this.player.lastInputTime = Date.now();
     this.player.isChargingS2 = false;
     
     // Calculate dynamic cooldown based on SPD. Starts at 5000ms.
@@ -815,6 +844,7 @@ export default class Game {
       classType: this.player.classType,
       animTimer: this.player.animTimer,
       hitFlash: this.player.hitFlash,
+      lastInputTime: this.player.lastInputTime || 0,
       lastSkill: this.player.lastSkill || 1,
       isChargingS2: this.player.isChargingS2,
       s2ChargeCount: this.player.s2ChargeCount,
