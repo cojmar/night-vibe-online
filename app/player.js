@@ -95,6 +95,8 @@ export default class Player {
       if (this.input_data.maxHp !== undefined) this.maxHp = this.input_data.maxHp;
       if (this.input_data.mouseX !== undefined) this.mouseX = this.input_data.mouseX;
       if (this.input_data.mouseY !== undefined) this.mouseY = this.input_data.mouseY;
+      if (this.input_data.isChargingS2 !== undefined) this.isChargingS2 = this.input_data.isChargingS2;
+      if (this.input_data.s2ChargeCount !== undefined) this.s2ChargeCount = this.input_data.s2ChargeCount;
       if (this.input_data.projectiles) this.projectiles = this.input_data.projectiles;
       
       this.input_data = null;
@@ -187,7 +189,11 @@ export default class Player {
     let rawAim = Math.atan2(this.mouseY - (py - 40), this.mouseX - px);
     let localAim = (this.facing < 0) ? Math.PI - rawAim : rawAim;
     const animP = this.animTimer / 15;
-    const armAnim = getArmAnim(this.animTimer);
+    let armAnim = getArmAnim(this.animTimer);
+    
+    if (this.isChargingS2) {
+       armAnim = (Date.now() % 400) / 400 * Math.PI * 2;
+    }
 
     if (this.classType === 'warrior') {
         ctx.fillStyle = cd.color; ctx.fillRect(-18, -55, 36, 60);
@@ -511,6 +517,24 @@ export default class Player {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(this.id.substring(0, 12), 0, -106);
+    
+    if (this.isChargingS2) {
+      const chargeCount = this.s2ChargeCount || 0;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(-30, -130, 60, 10);
+      for (let i=0; i<3; i++) {
+        if (i < chargeCount) {
+          ctx.fillStyle = '#ffd700';
+          ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 5;
+        } else {
+          ctx.fillStyle = '#555';
+          ctx.shadowBlur = 0;
+        }
+        ctx.fillRect(-27 + i*19, -128, 16, 6);
+      }
+      ctx.shadowBlur = 0;
+    }
+    
     ctx.restore();
     ctx.globalAlpha = 1;
   }

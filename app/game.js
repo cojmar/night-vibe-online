@@ -291,11 +291,28 @@ export default class Game {
       this.handleLeftClick(p.x, p.y);
     });
 
+    this.canvas.addEventListener('mousedown', (e) => {
+      if (this.state !== 'PLAYING' || !this.player) return;
+      if (e.button === 2) {
+         e.preventDefault();
+         const p = this.toGameCoords(e.clientX, e.clientY);
+         this.startChargingSkill2();
+      }
+    });
+
+    this.canvas.addEventListener('mouseup', (e) => {
+      if (this.state !== 'PLAYING' || !this.player) return;
+      if (e.button === 2) {
+         e.preventDefault();
+         const p = this.toGameCoords(e.clientX, e.clientY);
+         this.player.mouseX = p.x;
+         this.player.mouseY = p.y;
+         this.releaseSkill2();
+      }
+    });
+
     this.canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      if (this.state !== 'PLAYING' || !this.player) return;
-      const p = this.toGameCoords(e.clientX, e.clientY);
-      this.doSkill2(p.x, p.y);
     });
 
     let touchActive = false;
@@ -313,9 +330,11 @@ export default class Game {
       clearTimeout(touchLongPressTimer);
       touchLongPressTimer = setTimeout(() => {
         if (!touchActive) return;
-        this.doSkill2(pos.x, pos.y);
-        touchActive = false;
+        this.startChargingSkill2();
       }, 400);
+      
+      // Only do S1/walk if we didn't just release S2. We will just trigger it anyway for now,
+      // but maybe if we are charging we shouldn't. startChargingSkill2 handles stopping walk.
       this.handleLeftClick(pos.x, pos.y);
     }, { passive: false });
 
@@ -328,8 +347,20 @@ export default class Game {
       this.player.mouseY = pos.y;
     }, { passive: false });
 
-    this.canvas.addEventListener('touchend', () => { touchActive = false; clearTimeout(touchLongPressTimer); });
-    this.canvas.addEventListener('touchcancel', () => { touchActive = false; clearTimeout(touchLongPressTimer); });
+    this.canvas.addEventListener('touchend', () => { 
+      touchActive = false; 
+      clearTimeout(touchLongPressTimer); 
+      if (this.player && this.player.isChargingS2) {
+        this.releaseSkill2();
+      }
+    });
+    this.canvas.addEventListener('touchcancel', () => { 
+      touchActive = false; 
+      clearTimeout(touchLongPressTimer); 
+      if (this.player && this.player.isChargingS2) {
+        this.releaseSkill2();
+      }
+    });
   }
 
   updateLayout() {
@@ -527,9 +558,21 @@ export default class Game {
     this.broadcastState();
   }
 
-  doSkill2(tx, ty) {
+  startChargingSkill2() {
     if (this.s2Cooldown > 0) return;
     this.player.stopWalking(this);
+    this.player.isChargingS2 = true;
+    this.player.s2ChargeTime = 0;
+    this.player.s2ChargeCount = 0;
+    this.player.action = 'attack';
+    this.player.animTimer = 9999;
+    this.player.lastSkill = 2;
+    this.broadcastState();
+  }
+
+  releaseSkill2() {
+    if (!this.player || !this.player.isChargingS2) return;
+    this.player.isChargingS2 = false;
     
     // Calculate dynamic cooldown based on SPD. Starts at 5000ms.
     const baseSpd = CLASS_DATA[this.player.classType].spd;
@@ -539,11 +582,21 @@ export default class Game {
     
     const atkScale = 1 + (this.player.atk - CLASS_DATA[this.player.classType].atk) * 0.1;
     
+    // Charges scale logic:
+    // charge = 0 -> 1x
+    // charge = 1 -> 1.25x dmg, larger area
+    // charge = 2 -> 1.50x dmg
+    // charge = 3 -> 1.75x dmg
+    const charges = this.player.s2ChargeCount || 0;
+    const dmgMulti = 1 + (charges * 0.25);
+    const areaMulti = 1 + (charges * 0.15);
+    
+    const tx = this.player.mouseX, ty = this.player.mouseY;
     const cd = CLASS_DATA[this.player.classType];
     const weaponY = this.player.y - 30;
     const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
     this.player.facing = tx > this.player.x ? 1 : -1;
-    this.player.animTimer = 25;
+    this.player.animTimer = 25; // finalize attack animation
     this.player.action = 'attack';
     this.player.lastSkill = 2;
     
@@ -551,31 +604,29 @@ export default class Game {
     
     switch (this.player.classType) {
       case 'warrior':
-        this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5, critChance:0.2, maxDistance:250, radius:40*atkScale, traveled:0, trailTimer:0, trailPositions:[], ...projProps }));
-        this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12, 4);
+        this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance:250 * areaMulti, radius:40*atkScale*areaMulti, traveled:0, trailTimer:0, trailPositions:[], ...projProps }));
+        this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12 + charges*5, 4);
         break;
       case 'mage':
-        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.mouseX, y:this.player.mouseY, radius:100*atkScale, life:20, maxLife:20, color:'#e67e22', damage:this.player.atk*2.2, critChance:0.2, ...projProps }));
-        this.spawnParticles(this.player.mouseX, this.player.mouseY, '#e67e22', 20*atkScale, 5);
+        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.mouseX, y:this.player.mouseY, radius:100*atkScale*areaMulti, life:20, maxLife:20, color:'#e67e22', damage:this.player.atk*2.2*dmgMulti, critChance:0.2, ...projProps }));
+        this.spawnParticles(this.player.mouseX, this.player.mouseY, '#e67e22', 20*atkScale + charges*10, 5);
         break;
       case 'archer':
         const bowX = this.player.x + (this.player.facing)*20;
-        const arrowCount = Math.min(7, 3 + Math.floor((this.player.atk - CLASS_DATA.archer.atk) / 8));
+        const arrowCount = Math.min(7, 3 + Math.floor((this.player.atk - CLASS_DATA.archer.atk) / 8)) + charges;
         for(let i=0; i<arrowCount; i++) {
           const a = aimAngle + (i - Math.floor(arrowCount/2)) * 0.2;
           const speed = 11;
-          this.projectiles.push(new Projectile({ type:'arrow', x:bowX, y:this.player.y - 42, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage:this.player.atk*1.3, critChance:0.15, angle:a }));
+          this.projectiles.push(new Projectile({ type:'arrow', x:bowX, y:this.player.y - 42, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage:this.player.atk*1.3*dmgMulti, critChance:0.15, angle:a }));
         }
         break;
       case 'magicgladiator':
-        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.x, y:this.player.y-40, radius:130*atkScale, life:25, maxLife:25, color:'#ffd700', damage:this.player.atk*3.0, critChance:0.25, ...projProps }));
-        this.spawnParticles(this.player.x, this.player.y, '#ffd700', 30*atkScale, 8);
+        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.x, y:this.player.y-40, radius:130*atkScale*areaMulti, life:25, maxLife:25, color:'#ffd700', damage:this.player.atk*3.0*dmgMulti, critChance:0.25, ...projProps }));
+        this.spawnParticles(this.player.x, this.player.y, '#ffd700', 30*atkScale + charges*15, 8);
         break;
     }
     this.broadcastState();
   }
-
-
   broadcastState() {
     if(this.state !== 'PLAYING' || !this.player) return;
     const data = {
@@ -595,6 +646,8 @@ export default class Game {
       animTimer: this.player.animTimer,
       hitFlash: this.player.hitFlash,
       lastSkill: this.player.lastSkill || 1,
+      isChargingS2: this.player.isChargingS2,
+      s2ChargeCount: this.player.s2ChargeCount,
       mouseX: this.player.mouseX,
       mouseY: this.player.mouseY,
       projectiles: this.projectiles.map(p => ({
@@ -872,7 +925,18 @@ export default class Game {
       
       if(this.player) {
          this.player.updateMovement(dt, this);
-         if(this.player.action === 'attack' && this.player.animTimer <= 0) {
+         
+         if (this.player.isChargingS2) {
+             this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67;
+             const newCount = Math.min(3, Math.floor(this.player.s2ChargeTime / 1000));
+             if (newCount > (this.player.s2ChargeCount || 0)) {
+                 this.player.s2ChargeCount = newCount;
+                 this.spawnParticles(this.player.x, this.player.y - 40, '#ffd700', 15, 4);
+                 this.broadcastState();
+             }
+         }
+         
+         if(this.player.action === 'attack' && this.player.animTimer <= 0 && !this.player.isChargingS2) {
              this.player.action = 'idle';
              this.broadcastState();
          } else if (this.player.action === 'walk' && !this.player.isMoving) {
