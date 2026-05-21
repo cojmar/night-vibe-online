@@ -76,6 +76,8 @@ export default class Game {
            this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 40, '#c0392b', 15, 16);
         }
         
+        this.otherPlayers[data.user].lastDataTime = Date.now();
+        
         // Apply immediately if relevant to checkHost
         if (data.data.inGame !== undefined) {
            this.otherPlayers[data.user].inGame = data.data.inGame;
@@ -175,6 +177,10 @@ export default class Game {
         // Remote player: check inGame status and state from otherPlayers or from room data
         const otherPlayer = this.otherPlayers[user];
         if (otherPlayer) {
+          // If the player hasn't sent any network data in 3 seconds, consider them idle/inactive
+          if (otherPlayer.lastDataTime && Date.now() - otherPlayer.lastDataTime > 3000) {
+              return false;
+          }
           return otherPlayer.inGame && otherPlayer.state !== 'MENU' && otherPlayer.state !== 'GAME_OVER';
         }
         const roomUser = this.net.room.users[user];
@@ -216,6 +222,10 @@ export default class Game {
       this.ui.addLog(this.isHost ? '👑 You are the Host!' : '👥 You are a Client', 'reward');
       if (this.isHost) {
           this.net.send_cmd('set_data', { isHost: true });
+          // If we just became host, make sure we sync the global time to avoid jump
+          if (this.globalTime) {
+              // Time is already matched
+          }
       } else {
           this.net.send_cmd('set_data', { isHost: false });
       }
@@ -1067,6 +1077,13 @@ export default class Game {
               this.generateScenery();
               this.ui.updateEnvironment(this.selectedEnv);
               this.initBgParticles();
+          }
+      } else {
+          // Periodically check if host is idle while we are a client
+          this.hostCheckTimer = (this.hostCheckTimer || 0) + dt * 16.67;
+          if (this.hostCheckTimer > 1000) {
+              this.hostCheckTimer = 0;
+              this.checkHost();
           }
       }
 
