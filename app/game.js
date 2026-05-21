@@ -335,6 +335,10 @@ export default class Game {
     });
     // Remove enemies not in host, but keep dead ones until their death animation finishes
     this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
+    
+    if (hostData.items) {
+        this.items = hostData.items.map(item => ({...item}));
+    }
   }
 
   init() {
@@ -890,7 +894,8 @@ export default class Game {
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
             id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, color: e.color, icon: e.icon, deathTime: e.deathTime
-        }))
+        })),
+        items: this.items
       };
     }
     this.net.send_cmd('set_data', data);
@@ -1450,17 +1455,31 @@ export default class Game {
                   this.items.splice(i, 1); i--; continue;
               }
               
-              if (this.player && this.player.alive && this.state === 'PLAYING') {
-                  let dist = Math.hypot(this.player.x - item.x, this.player.y - item.y);
-                  if (dist < 40) {
-                      if (item.type === 'red') {
-                          this.player.buffHpTimer = 10000;
-                          this.ui.addLog('❤️ Hp Regen Buff!', 'reward');
-                      } else {
-                          this.player.buffManaTimer = 10000;
-                          this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');
+              if (this.isHost) {
+                  let activePlayersList = [ { id: this.net.me ? this.net.me.info.user : 'host', obj: this.player } ];
+                  for (let key in this.otherPlayers) {
+                      if (this.otherPlayers[key].inGame && this.otherPlayers[key].hp > 0) {
+                          activePlayersList.push({ id: key, obj: this.otherPlayers[key] });
                       }
-                      this.spawnParticles(this.player.x, this.player.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
+                  }
+                  
+                  let pickedUp = false;
+                  for (let p of activePlayersList) {
+                      if (!p.obj || !p.obj.alive || p.obj.hp <= 0) continue;
+                      if (Math.hypot(p.obj.x - item.x, p.obj.y - item.y) < 40) {
+                          pickedUp = true;
+                          if (p.id === (this.net.me ? this.net.me.info.user : 'host')) {
+                              this.player.buffHpTimer = item.type === 'red' ? 10000 : this.player.buffHpTimer;
+                              this.player.buffManaTimer = item.type === 'blue' ? 10000 : this.player.buffManaTimer;
+                              this.spawnParticles(this.player.x, this.player.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
+                              this.ui.addLog(item.type === 'red' ? '❤️ Hp Regen Buff!' : '⚡ Skill Cooldown Buff!', 'reward');
+                          } else {
+                              this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id } });
+                          }
+                          break;
+                      }
+                  }
+                  if (pickedUp) {
                       this.items.splice(i, 1); i--; continue;
                   }
               }
