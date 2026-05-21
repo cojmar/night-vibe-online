@@ -110,6 +110,10 @@ export default class UI {
     document.getElementById('hp-bar').style.width = pct + '%';
     document.getElementById('hp-text').textContent = `HP: ${Math.floor(player.hp)} / ${player.maxHp}`;
     
+    const baseHp = CLASS_DATA[player.classType].hp;
+    document.getElementById('stat-hp-val').textContent = player.maxHp;
+    document.getElementById('stat-hp-boost').textContent = player.maxHp - baseHp;
+    
     document.getElementById('stat-atk-val').textContent = player.atk.toFixed(1);
     document.getElementById('stat-spd-val').textContent = player.spd.toFixed(1);
     
