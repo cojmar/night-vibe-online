@@ -1353,7 +1353,7 @@ export default class Game {
           if (Math.random() < dropChance) {
             const type = Math.random() < 0.55 ? 'red' : 'blue';
             const lifeTime = 15000 + this.wave * 2000;
-            this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: lifeTime });
+            this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true });
           }
         }
 
@@ -1461,6 +1461,18 @@ export default class Game {
           item.life -= dt * 16.67;
           if (item.life <= 0) {
             this.items.splice(i, 1); i--; continue;
+          }
+
+          // Fall to ground if still falling
+          if (item.falling) {
+            item.vy += 0.3 * dt;
+            item.y += item.vy * dt;
+            const groundY = getGroundY(this.selectedEnv);
+            if (item.y >= groundY - 5) {
+              item.y = groundY - 5;
+              item.falling = false;
+              item.vy = 0;
+            }
           }
 
           if (this.isHost) {
