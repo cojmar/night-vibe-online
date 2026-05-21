@@ -137,6 +137,12 @@ export default class UI {
     document.getElementById('stat-cd-val').textContent = (cdMs/1000).toFixed(1) + 's';
     document.getElementById('stat-cd-red').textContent = red.toFixed(1);
     
+    // Armor
+    const armor = Math.floor(player.maxHp / 10);
+    const dmgRed = (armor * 0.5).toFixed(1);
+    document.getElementById('stat-armor-val').textContent = armor;
+    document.getElementById('stat-armor-red').textContent = dmgRed;
+    
     const pts = player.statPoints || 0;
     const row = document.getElementById('stat-pts-row');
     row.style.display = pts > 0 ? 'block' : 'none';

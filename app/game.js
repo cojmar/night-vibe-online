@@ -590,7 +590,8 @@ export default class Game {
     
     switch (this.player.classType) {
       case 'warrior':
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 85 * s1Scale, hitInner: -10 + (s1Scale-1)*50, hitOuter: 150 * s1Scale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+        const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 60 * wScale, hitInner: -10 + (wScale-1)*30, hitOuter: 90 * wScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, cd.s1Color, 5, 3);
         break;
       case 'mage':
@@ -603,8 +604,9 @@ export default class Game {
         this.spawnParticles(this.player.x, weaponY, '#bdc3c7', 4, 3);
         break;
       case 'magicgladiator':
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:20, maxLife:20, color:'#e74c3c', radius: 80, hitInner: -10, hitOuter: 140, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
-        this.spawnParticles(this.player.x + Math.cos(aimAngle)*35, weaponY + Math.sin(aimAngle)*35, cd.s1Color, 8, 4);
+        const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:20, maxLife:20, color:'#e74c3c', radius: 60 * mgScale, hitInner: -10 + (mgScale-1)*30, hitOuter: 80 * mgScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
+        this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, '#e74c3c', 7, 4);
         break;
     }
     this.broadcastState();
@@ -736,16 +738,21 @@ export default class Game {
 
   dealDamageToPlayer(damage) {
       if (!this.player || !this.player.alive) return;
-      this.player.hp -= damage;
+      
+      const armor = Math.floor(this.player.maxHp / 10);
+      const reductionRatio = Math.min(0.9, armor * 0.005);
+      const actualDamage = Math.max(1, Math.round(damage * (1 - reductionRatio)));
+      
+      this.player.hp -= actualDamage;
       this.player.hitFlash = 15;
       this.screenShake = 15;
       this.spawnParticles(this.player.x, this.player.y - 40, '#e74c3c', 20, 12);
       this.spawnParticles(this.player.x, this.player.y - 40, '#c0392b', 15, 16);
       this.ui.updateHUD(this.player);
-      this.ui.addLog(`💔 Took -${damage} damage!`, 'enemy');
+      this.ui.addLog(`💔 Took -${actualDamage} damage!`, 'enemy');
       this.floatingTexts.push({
           x: this.player.x + (Math.random() - 0.5) * 20, y: this.player.y - 60,
-          text: '-' + damage, color: '#e74c3c', life: 35, maxLife: 35
+          text: '-' + actualDamage, color: '#e74c3c', life: 35, maxLife: 35
       });
       if (this.player.hp <= 0) {
           this.player.hp = 0;
