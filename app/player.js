@@ -212,8 +212,12 @@ export default class Player {
         ctx.fillStyle = '#fff'; ctx.fillRect(2, -69, 2, 2); ctx.fillRect(-4, -69, 2, 2);
 
         ctx.save(); ctx.translate(-28, -42);
-        let shieldRaise = (this.animTimer > 0 && animP > 0.2) ?
-          (1 - (animP - 0.2)/0.8) * 15 : 0;
+        let shieldRaise = 0;
+        if (this.isChargingS2) {
+            shieldRaise = 15;
+        } else if (this.animTimer > 0 && animP > 0.2) {
+            shieldRaise = Math.max(0, Math.min(15, (1 - (animP - 0.2)/0.8) * 15));
+        }
         ctx.translate(0, -shieldRaise);
         ctx.rotate(localAim + armAnim);
         ctx.fillStyle = '#d8a070'; ctx.fillRect(-14, -6, 14, 10);
