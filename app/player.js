@@ -32,6 +32,7 @@ export default class Player {
     this.mouseX = x;
     this.mouseY = y;
     this.inGame = isLocal;
+    this.state = isLocal ? 'PLAYING' : 'MENU';
     
     // Multiplayer sync fields
     this.input_data = null;
@@ -82,6 +83,7 @@ export default class Player {
         this.accent = cd.accent;
       }
       if (this.input_data.inGame !== undefined) this.inGame = this.input_data.inGame;
+      if (this.input_data.state !== undefined) this.state = this.input_data.state;
       if (this.input_data.alive !== undefined) this.alive = this.input_data.alive;
       if (this.input_data.animTimer !== undefined) this.animTimer = this.input_data.animTimer;
       if (this.input_data.mouseX !== undefined) this.mouseX = this.input_data.mouseX;

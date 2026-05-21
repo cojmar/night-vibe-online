@@ -64,7 +64,23 @@ export default class Game {
           // Default spawn for other players
           this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W/2, data.data.y || getGroundY('forest')-20);
         }
+        
+        const oldInGame = this.otherPlayers[data.user].inGame;
+        const oldState = this.otherPlayers[data.user].state;
+        
         this.otherPlayers[data.user].set(data.data);
+        
+        // Apply immediately if relevant to checkHost
+        if (data.data.inGame !== undefined) {
+           this.otherPlayers[data.user].inGame = data.data.inGame;
+        }
+        if (data.data.state !== undefined) {
+           this.otherPlayers[data.user].state = data.data.state;
+        }
+        
+        if (this.otherPlayers[data.user].inGame !== oldInGame || this.otherPlayers[data.user].state !== oldState) {
+           this.checkHost();
+        }
         
         // Handle remote hits
         if (data.data.hits) {
@@ -126,8 +142,35 @@ export default class Game {
     if (!this.net.room || !this.net.room.users) return;
     const users = Object.keys(this.net.room.users);
     if (this.net.me && this.net.me.info) users.push(this.net.me.info.user);
-    const sortedUsers = [...new Set(users)].sort();
-    const isHost = sortedUsers[0] === this.net.me.info.user;
+    const uniqueUsers = [...new Set(users)];
+    
+    // Filter users to only those who are actively playing (in status 'PLAYING' and not in menu or game over)
+    const activeUsers = uniqueUsers.filter(user => {
+      if (this.net.me && this.net.me.info && user === this.net.me.info.user) {
+        // Local player: must be playing and not in menu or game over
+        return this.state === 'PLAYING' && this.state !== 'MENU' && this.state !== 'GAME_OVER';
+      } else {
+        // Remote player: check inGame status and state from otherPlayers or from room data
+        const otherPlayer = this.otherPlayers[user];
+        if (otherPlayer) {
+          return otherPlayer.inGame && otherPlayer.state !== 'MENU' && otherPlayer.state !== 'GAME_OVER';
+        }
+        const roomUser = this.net.room.users[user];
+        if (roomUser && roomUser.data) {
+          const inGame = roomUser.data.inGame;
+          const state = roomUser.data.state;
+          return inGame === true && state !== 'MENU' && state !== 'GAME_OVER';
+        }
+        return false;
+      }
+    });
+
+    // If there are players actively playing, select host from them.
+    // Otherwise, fall back to all users in the room.
+    const hostCandidates = activeUsers.length > 0 ? activeUsers : uniqueUsers;
+    const sortedUsers = hostCandidates.sort();
+    
+    const isHost = sortedUsers[0] === (this.net.me && this.net.me.info ? this.net.me.info.user : null);
     if (this.isHost !== isHost) {
       this.isHost = isHost;
       this.ui.addLog(this.isHost ? '👑 You are the Host!' : '👥 You are a Client', 'reward');
@@ -341,6 +384,9 @@ export default class Game {
     this.ui.addLog('⚔️ Fight started! Tap ground to move, tap enemies to attack!', 'player');
     this.updateLayout();
 
+    // Recheck host status since we are now playing
+    this.checkHost();
+
     // Broadcast our spawn
     this.broadcastState();
   }
@@ -365,8 +411,9 @@ export default class Game {
     
     // Broadcast leaving the game
     if (this.net && this.net.me) {
-      this.net.send_cmd('set_data', { inGame: false });
+      this.net.send_cmd('set_data', { inGame: false, state: 'MENU' });
     }
+    this.checkHost();
     this.updateLayout();
   }
 
@@ -541,6 +588,7 @@ export default class Game {
     if(this.state !== 'PLAYING' || !this.player) return;
     const data = {
       inGame: true,
+      state: this.state,
       alive: this.player.alive,
       x: this.player.x,
       y: this.player.y,
@@ -801,7 +849,8 @@ export default class Game {
       
       if (this.isHost && activePlayers.length === 0 && this.state === 'PLAYING') {
           this.state = 'GAME_OVER';
-          this.net.send_cmd('set_data', { gameOver: true });
+          this.checkHost();
+          this.net.send_cmd('set_data', { gameOver: true, state: 'GAME_OVER' });
           document.getElementById('wait-msg').textContent = 'ALL PLAYERS DEAD! GAME OVER.';
           document.getElementById('death-overlay').classList.add('show');
       }
