@@ -604,7 +604,7 @@ export default class Game {
         const waveCount = 1 + charges;
         for (let i = 0; i < waveCount; i++) {
           const a = aimAngle + (i - (waveCount - 1) / 2) * 0.25;
-          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance:250 * areaMulti, radius:40*atkScale*areaMulti, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a }));
+          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance:250 * areaMulti, radius:40*atkScale*areaMulti, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a, charges: charges }));
         }
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12 + charges*5, 4);
         break;

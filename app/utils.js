@@ -7,10 +7,10 @@ export const MOVE_STOP_DIST = 3;
 export const GROUND_TOLERANCE = 30;
 
 export const CLASS_DATA = {
-  warrior: { name:'Warrior', icon:'⚔️', hp:120, atk:22, spd:8, color:'#c0392b', accent:'#e74c3c', s1Name:'Shield Bash', s1Color:'#d4af37', s2Name:'Sword Slash', s2Color:'#ffd700' },
+  warrior: { name:'Warrior', icon:'⚔️', hp:120, atk:22, spd:8, color:'#c0392b', accent:'#e74c3c', s1Name:'Bash', s1Color:'#d4af37', s2Name:'Sword Slash', s2Color:'#ffd700' },
   mage: { name:'Mage', icon:'🔮', hp:80, atk:18, spd:14, color:'#2980b9', accent:'#3498db', s1Name:'Magic Bolt', s1Color:'#3498db', s2Name:'Fireball', s2Color:'#e67e22' },
   archer: { name:'Archer', icon:'🏹', hp:70, atk:24, spd:18, color:'#27ae60', accent:'#2ecc71', s1Name:'Quick Shot', s1Color:'#f1c40f', s2Name:'Arrow Barrage', s2Color:'#e74c3c' },
-  magicgladiator: { name:'Magic Gladiator', icon:'✨', hp:140, atk:26, spd:6, color:'#8e44ad', accent:'#9b59b6', s1Name:'Dual Slash', s1Color:'#e74c3c', s2Name:'Cross Slash', s2Color:'#ffd700' }
+  magicgladiator: { name:'Magic Gladiator', icon:'✨', hp:140, atk:26, spd:6, color:'#8e44ad', accent:'#9b59b6', s1Name:'Psionic Slash', s1Color:'#e74c3c', s2Name:'Cross Slash', s2Color:'#ffd700' }
 };
 
 export const ENEMY_TYPES = [
@@ -37,7 +37,7 @@ export const ENV_CONFIG = {
 
 export const SKILL_DESC = {
   warrior: {
-    s1: { name: 'Shield Bash', desc: 'Wide arc strike. 100% ATK + knockback.', ctrl: 'Left-click enemy' },
+    s1: { name: 'Bash', desc: 'Wide arc strike. 100% ATK + knockback.', ctrl: 'Left-click enemy' },
     s2: { name: 'Sword Slash', desc: 'Shockwave projectile. 250% ATK + knockback.', ctrl: 'Right-click / long-press' }
   },
   mage: {
@@ -49,7 +49,7 @@ export const SKILL_DESC = {
     s2: { name: 'Arrow Barrage', desc: '3 arrows spread. 130% ATK each.', ctrl: 'Right-click / long-press' }
   },
   magicgladiator: {
-    s1: { name: 'Dual Slash', desc: 'Double wide arc. 110% ATK, 12% crit.', ctrl: 'Left-click enemy' },
+    s1: { name: 'Psionic Slash', desc: 'Double wide arc. 110% ATK, 12% crit.', ctrl: 'Left-click enemy' },
     s2: { name: 'Cross Slash', desc: 'Massive AoE explosion. 300% ATK.', ctrl: 'Right-click / long-press' }
   }
 };

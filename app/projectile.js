@@ -133,32 +133,56 @@ export default class Projectile {
     
     if (this.type === 'shockwave') {
       const rot = this.angle;
-      const a1 = Math.PI / 4;
-      const a2 = Math.PI * 1.75;
-      const rx = 90; const ry = 30;
-      const irx = rx * 0.75; const iry = ry * 0.75;
+      const charges = this.charges || 0;
+      const pLife = 1 - (this.life / this.maxLife);
+      const pulse = Math.abs(Math.sin(pLife * Math.PI * 15));
       
-      ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(rot + Math.PI);
-      ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, a1, a2);
-      ctx.strokeStyle = this.color; ctx.lineWidth = 7;
-      ctx.shadowColor = this.color; ctx.shadowBlur = 18; ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, a1, a2);
-      ctx.lineTo(irx * Math.cos(a2), iry * Math.sin(a2));
-      ctx.ellipse(0, 0, irx, iry, 0, a2, a1, true); ctx.closePath();
+      const rx = 30 + pLife * 30 + charges * 15; 
+      const ry = 60 + pLife * 70 + charges * 25; 
+      
+      ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(rot);
+      
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, -Math.PI*0.4, Math.PI*0.4);
+      ctx.strokeStyle = '#fff'; 
+      ctx.lineWidth = 3 + charges * 2;
+      ctx.shadowColor = this.color; 
+      ctx.shadowBlur = 15 + pulse * 10;
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.ellipse(-8, 0, rx*0.8, ry*0.85, 0, -Math.PI*0.35, Math.PI*0.35);
+      ctx.strokeStyle = this.color; 
+      ctx.lineWidth = 6 + charges * 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, -Math.PI*0.4, Math.PI*0.4);
+      ctx.lineTo(-rx*0.6, 0);
       ctx.fillStyle = this.color;
-      ctx.globalAlpha = alpha * 0.35; ctx.fill();
-      ctx.beginPath(); ctx.ellipse(0, 0, irx, iry, 0, a1 + 0.1, a2 - 0.1);
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-      ctx.shadowBlur = 8; ctx.globalAlpha = alpha; ctx.stroke();
-      ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.restore();
+      ctx.globalAlpha = alpha * (0.3 + 0.2 * pulse);
+      ctx.fill();
+      
+      if (charges > 0) {
+        ctx.globalAlpha = alpha * (0.4 + 0.4 * pulse);
+        for(let j=1; j<=charges; j++) {
+            ctx.beginPath();
+            ctx.ellipse(-15 * j, 0, rx*0.9 - j*5, ry + j*15, 0, -Math.PI*0.45, Math.PI*0.45);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+      }
+      ctx.restore();
       
       for (let i = 0; i < this.trailPositions.length; i++) {
         const tp = this.trailPositions[i];
-        const progress = tp.life / tp.maxLife;
-        ctx.globalAlpha = progress * 0.2;
-        ctx.save(); ctx.translate(tp.x, tp.y); ctx.rotate(rot + Math.PI);
-        ctx.beginPath(); ctx.ellipse(0, 0, rx * progress, ry * progress, 0, a1, a2);
-        ctx.strokeStyle = this.color; ctx.lineWidth = 3 * progress; ctx.stroke();
+        const tprog = tp.life / tp.maxLife;
+        ctx.globalAlpha = tprog * 0.4;
+        ctx.save(); ctx.translate(tp.x, tp.y); ctx.rotate(rot);
+        ctx.beginPath(); 
+        ctx.ellipse(0, 0, rx * 0.8, ry * 0.8, 0, -Math.PI*0.3, Math.PI*0.3);
+        ctx.strokeStyle = this.color; ctx.lineWidth = 2 + charges; ctx.stroke();
         ctx.restore();
       }
       ctx.globalAlpha = alpha;
