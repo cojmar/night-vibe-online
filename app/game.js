@@ -257,10 +257,27 @@ export default class Game {
     hostData.enemies.forEach(eData => {
        let e = this.enemies.find(ex => ex.id === eData.id);
        if (!e) {
-           e = new Enemy(this, eData.name === 'BOSS', true);
+           let isBoss = eData.name === 'BOSS';
+           let spawnIndex = 0;
+           if (eData.id && eData.id.startsWith('E_')) {
+               const parts = eData.id.split('_');
+               if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+           }
+           
+           // Generate full visual properties using deterministic PRNG
+           e = new Enemy(this, isBoss, false, spawnIndex);
            e.id = eData.id;
-           e.x = eData.x;
-           e.y = eData.y;
+           
+           // If it's a missile, fix properties
+           if (eData.id && eData.id.startsWith('M_')) {
+               e.name = 'MISSILE';
+               e.icon = '🚀';
+               e.size = 20;
+               e.color = '#e74c3c';
+           }
+           
+           e.x = eData.x || e.x;
+           e.y = eData.y || e.y;
            this.enemies.push(e);
        }
        if (eData.x !== undefined) e.serverX = eData.x;
@@ -585,14 +602,14 @@ export default class Game {
   doSkill1(tx, ty) {
     this.player.stopWalking(this);
     const cd = CLASS_DATA[this.player.classType];
-    const weaponY = this.player.y - 40;
+    const lvlScale = Math.min(1.0, 0.5 + ((this.player.level || 1) - 1) * 0.055);
+    const weaponY = this.player.y - 40 * lvlScale;
     const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
     this.player.animTimer = 15;
     this.player.action = 'attack';
     this.player.lastSkill = 1;
     this.player.facing = tx > this.player.x ? 1 : -1;
     const s1Scale = 1 + (this.player.atk - cd.atk) * 0.02;
-    const lvlScale = Math.min(1.0, 0.5 + ((this.player.level || 1) - 1) * 0.055);
     
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing, damage: this.player.atk, critChance: 0.1 };
     
@@ -657,7 +674,7 @@ export default class Game {
     
     const tx = this.player.mouseX, ty = this.player.mouseY;
     const cd = CLASS_DATA[this.player.classType];
-    const weaponY = this.player.y - 30;
+    const weaponY = this.player.y - 30 * lvlScale;
     const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
     this.player.facing = tx > this.player.x ? 1 : -1;
     this.player.animTimer = 25; // finalize attack animation
