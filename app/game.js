@@ -1,4 +1,4 @@
-import { GAME_W, GAME_H, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG } from './utils.js';
+import { GAME_W, GAME_H, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME } from './utils.js';
 import Player from './player.js';
 import Enemy from './enemy.js';
 import Projectile from './projectile.js';
@@ -179,17 +179,18 @@ export default class Game {
            this.enemies.push(e);
        }
        e.serverX = eData.x;
-       e.serverY = eData.y;
-       e.hp = eData.hp;
-       e.maxHp = eData.maxHp;
-       e.alive = eData.alive;
-       e.name = eData.name;
-       e.size = eData.size;
-       e.color = eData.color;
-       e.icon = eData.icon;
+        e.serverY = eData.y;
+        e.hp = eData.hp;
+        e.maxHp = eData.maxHp;
+        e.alive = eData.alive;
+        e.name = eData.name;
+        e.size = eData.size;
+        e.color = eData.color;
+        e.icon = eData.icon;
+        if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
     });
-    // Remove enemies not in host
-    this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || !e.alive);
+    // Remove enemies not in host, but keep dead ones until their death animation finishes
+    this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
   }
 
   init() {
@@ -567,8 +568,8 @@ export default class Game {
       data.hostData = {
         wave: this.wave, kills: this.kills, seed: this.prng.seed, env: this.selectedEnv, time: this.globalTime,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
-        enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000)).map(e => ({
-            id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, color: e.color, icon: e.icon
+        enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
+            id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, color: e.color, icon: e.icon, deathTime: e.deathTime
         }))
       };
     }
