@@ -40,83 +40,13 @@ export default class UI {
         container.innerHTML = html;
     }
 
-    bindEvents() {
+  bindEvents() {
         document.getElementById('btn-prev-class').addEventListener('click', () => this.prevClass());
         document.getElementById('btn-next-class').addEventListener('click', () => this.nextClass());
         document.getElementById('btn-start').addEventListener('click', () => this.game.startGame(this.selectedClass));
         document.getElementById('btn-fullscreen').addEventListener('click', () => this.toggleFullscreen());
         document.getElementById('btn-quit-game').addEventListener('click', () => this.game.quitToMenu());
         document.getElementById('btn-death-quit').addEventListener('click', () => this.game.quitToMenu());
-
-        const btnSettings = document.getElementById('btn-settings');
-        const settingsModal = document.getElementById('settings-modal');
-        const btnSettingsClose = document.getElementById('btn-settings-close');
-        const partSlider = document.getElementById('particles-slider');
-        const partVal = document.getElementById('particles-val');
-        const bgSlider = document.getElementById('bg-slider');
-        const bgVal = document.getElementById('bg-val');
-        const groundSlider = document.getElementById('ground-slider');
-        const groundVal = document.getElementById('ground-val');
-        const atmosSlider = document.getElementById('atmos-slider');
-        const atmosVal = document.getElementById('atmos-val');
-
-        if (btnSettings) btnSettings.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
-        if (btnSettingsClose) btnSettingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
-
-        if (partSlider) {
-            partSlider.addEventListener('input', (e) => {
-                partVal.textContent = `${e.target.value}%`;
-                if (this.game) this.game.settings.particles = parseInt(e.target.value) / 100;
-            });
-        }
-        if (bgSlider) {
-            bgSlider.addEventListener('input', (e) => {
-                bgVal.textContent = `${e.target.value}%`;
-                if (this.game) {
-                    this.game.settings.bgElements = parseInt(e.target.value) / 100;
-                    this.game.generateScenery(this.game.selectedEnv);
-                }
-            });
-        }
-        if (groundSlider) {
-            groundSlider.addEventListener('input', (e) => {
-                groundVal.textContent = `${e.target.value}%`;
-                if (this.game) {
-                    this.game.settings.groundElements = parseInt(e.target.value) / 100;
-                    this.game.generateScenery(this.game.selectedEnv);
-                }
-            });
-        }
-        if (atmosSlider) {
-            atmosSlider.addEventListener('input', (e) => {
-                atmosVal.textContent = `${e.target.value}%`;
-                if (this.game) this.game.settings.atmos = parseInt(e.target.value) / 100;
-            });
-        }
-
-        const autoGraphicsCheck = document.getElementById('auto-graphics-check');
-        if (autoGraphicsCheck) {
-            autoGraphicsCheck.addEventListener('change', (e) => {
-                const isAuto = e.target.checked;
-                if (this.game) this.game.settings.autoGraphics = isAuto;
-                if (partSlider) partSlider.disabled = isAuto;
-                if (bgSlider) bgSlider.disabled = isAuto;
-                if (groundSlider) groundSlider.disabled = isAuto;
-                if (atmosSlider) atmosSlider.disabled = isAuto;
-            });
-            // initial state
-            if (partSlider) partSlider.disabled = autoGraphicsCheck.checked;
-            if (bgSlider) bgSlider.disabled = autoGraphicsCheck.checked;
-            if (groundSlider) groundSlider.disabled = autoGraphicsCheck.checked;
-            if (atmosSlider) atmosSlider.disabled = autoGraphicsCheck.checked;
-        }
-
-        const autoLimitCheck = document.getElementById('auto-limit-check');
-        if (autoLimitCheck) {
-            autoLimitCheck.addEventListener('change', (e) => {
-                if (this.game) this.game.settings.autoLimit = e.target.checked;
-            });
-        }
 
         document.getElementById('btn-up-atk').addEventListener('click', () => { if (this.game) this.game.upgradeStat('atk'); });
         document.getElementById('btn-up-spd').addEventListener('click', () => { if (this.game) this.game.upgradeStat('spd'); });
@@ -145,10 +75,7 @@ export default class UI {
         compactLog.addEventListener('touchend', () => { clearTimeout(this.logHoldTimer); this.hideTooltip(); });
 
         const toggleStats = (e) => {
-            if (e) {
-                // Prevent the click from propagating to the document listener
-                e.stopPropagation();
-            }
+            if (e) { e.stopPropagation(); }
             const stats = document.getElementById('stats-display');
             const partyList = document.getElementById('party-list');
             stats.style.display = stats.style.display === 'none' ? 'flex' : 'none';
@@ -159,7 +86,6 @@ export default class UI {
                 if (plus) plus.style.display = 'none';
             } else {
                 if (partyList) partyList.classList.remove('info-open');
-                // check if we need to show the plus again
                 if (this.game && this.game.player && this.game.player.statPoints > 0) {
                     const plus = document.getElementById('level-up-plus');
                     if (plus) plus.style.display = 'inline-block';
@@ -171,7 +97,6 @@ export default class UI {
         const scoreCont = document.getElementById('player-score-container');
         if (scoreCont) scoreCont.addEventListener('click', toggleStats);
 
-        // Close extra info when clicking outside
         document.addEventListener('click', (e) => {
             const partyList = document.getElementById('party-list');
             const stats = document.getElementById('stats-display');
@@ -189,7 +114,6 @@ export default class UI {
             }
         });
 
-        // Handle touch outside to clear any stuck hover states on mobile
         document.addEventListener('touchstart', (e) => {
             const partyList = document.getElementById('party-list');
             const stats = document.getElementById('stats-display');
@@ -206,6 +130,88 @@ export default class UI {
                 }
             }
         });
+    }
+
+    initSettings() {
+        if (!this.game || !this.game.settings) return;
+        const s = this.game.settings;
+        const partSlider = document.getElementById('particles-slider');
+        const partVal = document.getElementById('particles-val');
+        const bgSlider = document.getElementById('bg-slider');
+        const bgVal = document.getElementById('bg-val');
+        const groundSlider = document.getElementById('ground-slider');
+        const groundVal = document.getElementById('ground-val');
+        const atmosSlider = document.getElementById('atmos-slider');
+        const atmosVal = document.getElementById('atmos-val');
+        const btnSettings = document.getElementById('btn-settings');
+        const settingsModal = document.getElementById('settings-modal');
+        const btnSettingsClose = document.getElementById('btn-settings-close');
+
+        if (partSlider) { partSlider.value = Math.round(s.particles * 100); partVal.textContent = `${Math.round(s.particles * 100)}%`; }
+        if (bgSlider) { bgSlider.value = Math.round(s.bgElements * 100); bgVal.textContent = `${Math.round(s.bgElements * 100)}%`; }
+        if (groundSlider) { groundSlider.value = Math.round(s.groundElements * 100); groundVal.textContent = `${Math.round(s.groundElements * 100)}%`; }
+        if (atmosSlider) { atmosSlider.value = Math.round(s.atmos * 100); atmosVal.textContent = `${Math.round(s.atmos * 100)}%`; }
+        const autoGraphicsCheck = document.getElementById('auto-graphics-check');
+        const autoLimitCheck = document.getElementById('auto-limit-check');
+        if (autoGraphicsCheck) autoGraphicsCheck.checked = s.autoGraphics;
+        if (autoLimitCheck) autoLimitCheck.checked = s.autoLimit;
+        if (partSlider) partSlider.disabled = s.autoGraphics;
+        if (bgSlider) bgSlider.disabled = s.autoGraphics;
+        if (groundSlider) groundSlider.disabled = s.autoGraphics;
+        if (atmosSlider) atmosSlider.disabled = s.autoGraphics;
+
+        if (btnSettings) btnSettings.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
+        if (btnSettingsClose) btnSettingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
+
+        if (partSlider) {
+            partSlider.addEventListener('input', (e) => {
+                partVal.textContent = `${e.target.value}%`;
+                this.game.settings.particles = parseInt(e.target.value) / 100;
+                localStorage.setItem('nightvibe-settings', JSON.stringify(this.game.settings));
+            });
+        }
+        if (bgSlider) {
+            bgSlider.addEventListener('input', (e) => {
+                bgVal.textContent = `${e.target.value}%`;
+                this.game.settings.bgElements = parseInt(e.target.value) / 100;
+                localStorage.setItem('nightvibe-settings', JSON.stringify(this.game.settings));
+                this.game.generateScenery(this.game.selectedEnv);
+            });
+        }
+        if (groundSlider) {
+            groundSlider.addEventListener('input', (e) => {
+                groundVal.textContent = `${e.target.value}%`;
+                this.game.settings.groundElements = parseInt(e.target.value) / 100;
+                localStorage.setItem('nightvibe-settings', JSON.stringify(this.game.settings));
+                this.game.generateScenery(this.game.selectedEnv);
+            });
+        }
+        if (atmosSlider) {
+            atmosSlider.addEventListener('input', (e) => {
+                atmosVal.textContent = `${e.target.value}%`;
+                this.game.settings.atmos = parseInt(e.target.value) / 100;
+                localStorage.setItem('nightvibe-settings', JSON.stringify(this.game.settings));
+            });
+        }
+
+        if (autoGraphicsCheck) {
+            autoGraphicsCheck.addEventListener('change', (e) => {
+                const isAuto = e.target.checked;
+                this.game.settings.autoGraphics = isAuto;
+                localStorage.setItem('nightvibe-settings', JSON.stringify(this.game.settings));
+                if (partSlider) partSlider.disabled = isAuto;
+                if (bgSlider) bgSlider.disabled = isAuto;
+                if (groundSlider) groundSlider.disabled = isAuto;
+                if (atmosSlider) atmosSlider.disabled = isAuto;
+            });
+        }
+
+        if (autoLimitCheck) {
+            autoLimitCheck.addEventListener('change', (e) => {
+                this.game.settings.autoLimit = e.target.checked;
+                localStorage.setItem('nightvibe-settings', JSON.stringify(this.game.settings));
+            });
+        }
     }
 
     nextClass() {

@@ -48,7 +48,15 @@ export default class Game {
     this.syncTimer = 0;
     this.pendingHits = [];
 
-    this.settings = { particles: 1.0, bgElements: 1.0, groundElements: 1.0, atmos: 1.0, autoGraphics: true, autoLimit: true };
+    const saved = JSON.parse(localStorage.getItem('nightvibe-settings') || '{}');
+    this.settings = {
+      particles: saved.particles !== undefined ? saved.particles : 2.0,
+      bgElements: saved.bgElements !== undefined ? saved.bgElements : 2.0,
+      groundElements: saved.groundElements !== undefined ? saved.groundElements : 2.0,
+      atmos: saved.atmos !== undefined ? saved.atmos : 2.0,
+      autoGraphics: saved.autoGraphics !== undefined ? saved.autoGraphics : false,
+      autoLimit: saved.autoLimit !== undefined ? saved.autoLimit : false
+    };
     this.atmosEffects = [];
 
     this.bindEvents();
@@ -112,6 +120,13 @@ export default class Game {
           data.data.hits.forEach(hit => {
             let e = this.enemies.find(ex => ex.id === hit.id);
             if (e && e.alive) {
+              if (this.player && this.player.buffHpTimer > 0) {
+                const healAmount = Math.floor(hit.damage * 0.25);
+                this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+                if (healAmount > 0) {
+                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 60, text: '+' + healAmount, color: '#2ecc71', life: 40, maxLife: 40, isCrit: false });
+                }
+              }
               e.hp -= hit.damage;
               e.hitFlash = 8;
               this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (hit.isCrit ? '💥 ' : '') + hit.damage, color: hit.isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: hit.isCrit });
@@ -352,6 +367,7 @@ export default class Game {
     this.initBgParticles();
     this.updateLayout();
     this.drawMenuBackground();
+    this.ui.initSettings();
 
     requestAnimationFrame((t) => this.loop(t));
   }
@@ -879,6 +895,7 @@ export default class Game {
       mouseX: this.player.mouseX,
       mouseY: this.player.mouseY,
       chatMsg: this.player.chatMsg,
+      buffHpTimer: this.player.buffHpTimer,
       buffManaTimer: this.player.buffManaTimer,
       projectiles: this.projectiles.map(p => ({
         type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
@@ -943,6 +960,13 @@ export default class Game {
     if (this.isHost) {
       let e = this.enemies.find(ex => ex.id === enemy.id);
       if (e && e.alive) {
+        if (this.player.buffHpTimer > 0 && this.player.hp > 0) {
+          const healAmount = Math.floor(damage * 0.25);
+          this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+          if (healAmount > 0) {
+            this.floatingTexts.push({ x: this.player.x, y: this.player.y - 60, text: '+' + healAmount, color: '#2ecc71', life: 40, maxLife: 40, isCrit: false });
+          }
+        }
         e.hp -= damage;
         e.hitFlash = 8;
         this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (isCrit ? '💥 ' : '') + damage, color: isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: isCrit });
@@ -1198,6 +1222,7 @@ export default class Game {
             document.getElementById('ground-val').textContent = `${Math.round(this.settings.groundElements * 100)}%`;
             document.getElementById('atmos-slider').value = Math.round(this.settings.atmos * 100);
             document.getElementById('atmos-val').textContent = `${Math.round(this.settings.atmos * 100)}%`;
+            localStorage.setItem('nightvibe-settings', JSON.stringify(this.settings));
             this.generateScenery();
           }
         }
@@ -1491,14 +1516,13 @@ export default class Game {
                   pickedUp = true;
                   if (this.isHost) {
                     if (item.type === 'red') {
-                      const healAmount = Math.floor(p.obj.maxHp * 0.25);
-                      p.obj.hp = Math.min(p.obj.maxHp, p.obj.hp + healAmount);
+                      p.obj.buffHpTimer = 10000;
                       this.spawnParticles(p.obj.x, p.obj.y - 20, '#e74c3c', 30, 6);
-                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: '+' + healAmount, color: '#2ecc71', life: 60, maxLife: 60, isCrit: false });
+                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: '❤️ Vampirism 10s!', color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
                     }
                     p.obj.buffManaTimer = item.type === 'blue' ? 10000 : (p.obj.buffManaTimer || 0);
                     this.spawnParticles(p.obj.x, p.obj.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                    this.ui.addLog(item.type === 'red' ? '❤️ Healed 25% HP!' : '⚡ Skill Cooldown Buff!', 'reward');
+                    this.ui.addLog(item.type === 'red' ? '❤️ Vampirism! Heal on hit for 10s' : '⚡ Skill Cooldown Buff!', 'reward');
                   } else {
                     this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
                   }
@@ -1526,11 +1550,10 @@ export default class Game {
                 if (buff.target === (this.net.me ? this.net.me.info.user : null) && buff.id !== this.lastProcessedBuffId) {
                    this.lastProcessedBuffId = buff.id;
                    if (buff.type === 'red') {
-                     const healAmount = Math.floor(this.player.maxHp * 0.25);
-                     this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+                     this.player.buffHpTimer = 10000;
                      this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
-                     this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: '+' + healAmount, color: '#2ecc71', life: 60, maxLife: 60, isCrit: false });
-                     this.ui.addLog('❤️ Healed 25% HP!', 'reward');
+                     this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: '❤️ Vampirism 10s!', color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                     this.ui.addLog('❤️ Vampirism! Heal on hit for 10s', 'reward');
                    } else {
                      this.player.buffManaTimer = 10000;
                      this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');
@@ -1652,15 +1675,19 @@ export default class Game {
       // UI
       this.ui.updatePartyList(this.otherPlayers);
       if (this.player && this.player.alive && this.state === 'PLAYING') {
-         this.ui.updateBuffs(0, this.player.buffManaTimer);
+         this.ui.updateBuffs(this.player.buffHpTimer, this.player.buffManaTimer);
        } else {
          this.ui.updateBuffs(0, 0);
        }
 
-      let cdSpeedMultiplier = 1;
-      if (this.player && this.player.alive && this.state === 'PLAYING') {
-        if (this.player.buffManaTimer > 0) {
-          this.player.buffManaTimer -= 16.67 * dt;
+     let cdSpeedMultiplier = 1;
+       if (this.player && this.player.alive && this.state === 'PLAYING') {
+         if (this.player.buffHpTimer > 0) {
+           this.player.buffHpTimer -= 16.67 * dt;
+           if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#e74c3c', 1, 3);
+         }
+         if (this.player.buffManaTimer > 0) {
+           this.player.buffManaTimer -= 16.67 * dt;
           cdSpeedMultiplier = 5; // 5x cooldown recovery speed
           if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#3498db', 1, 3);
         }
