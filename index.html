@@ -324,9 +324,11 @@
     .death-overlay h2 { color: #e74c3c; font-size: 2.5em; }
     .death-overlay p { color: #aaa; font-size: 1.1em; }
     .death-overlay .wait-msg {
-      padding: 10px 30px; border: 2px dashed #7f8c8d;
-      background: rgba(0,0,0,0.5); color: #bdc3c7; font-size: 0.9em;
-      font-weight: bold; letter-spacing: 1px; text-transform: uppercase;
+      padding: 15px 30px; border: 2px dashed #f1c40f;
+      background: rgba(241,196,15,0.1); color: #f1c40f; font-size: 1.2em;
+      font-weight: bold; letter-spacing: 1px; text-align: center;
+      text-shadow: 0 0 10px rgba(241,196,15,0.5);
+      animation: glowPulse 2s infinite;
     }
     .kill-popup {
       position: absolute; z-index: 8; font-size: 1.4em; font-weight: bold;
@@ -459,11 +461,19 @@
          </div>
          
          <div style="margin: 20px 0; text-align: left;">
-             <label for="foliage-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                 <span>🌿 Foliage Density</span>
-                 <span id="foliage-val">100%</span>
+             <label for="bg-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                 <span>🌄 Background Elements</span>
+                 <span id="bg-val">100%</span>
              </label>
-             <input type="range" id="foliage-slider" min="0" max="200" value="100" style="width:100%;">
+             <input type="range" id="bg-slider" min="0" max="200" value="100" style="width:100%;">
+         </div>
+         
+         <div style="margin: 20px 0; text-align: left;">
+             <label for="ground-slider" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                 <span>🌿 Ground Elements</span>
+                 <span id="ground-val">100%</span>
+             </label>
+             <input type="range" id="ground-slider" min="0" max="200" value="100" style="width:100%;">
          </div>
          
          <div style="margin-top:25px;">
@@ -585,7 +595,7 @@
       <div class="death-overlay" id="death-overlay">
         <h2>💀 YOU DIED</h2>
         <p>Kills: <span id="death-kills">0</span> | Wave: <span id="death-wave">1</span></p>
-        <div class="wait-msg" id="wait-msg">Waiting for next wave...</div>
+        <div class="wait-msg" id="wait-msg">⏳ You will respawn automatically<br>at the start of the next wave!</div>
         <button class="btn-start" id="btn-death-quit" style="width: auto; margin-top: 15px; padding: 10px 30px; font-size: 0.8em; border-color: #e74c3c; color: #e74c3c; background: rgba(231,76,60,0.15);">☰ RETURN TO MENU</button>
       </div>
     </div>

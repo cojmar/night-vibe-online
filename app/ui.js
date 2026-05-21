@@ -27,8 +27,10 @@ export default class UI {
     const btnSettingsClose = document.getElementById('btn-settings-close');
     const partSlider = document.getElementById('particles-slider');
     const partVal = document.getElementById('particles-val');
-    const folSlider = document.getElementById('foliage-slider');
-    const folVal = document.getElementById('foliage-val');
+    const bgSlider = document.getElementById('bg-slider');
+    const bgVal = document.getElementById('bg-val');
+    const groundSlider = document.getElementById('ground-slider');
+    const groundVal = document.getElementById('ground-val');
     
     if (btnSettings) btnSettings.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
     if (btnSettingsClose) btnSettingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
@@ -39,12 +41,21 @@ export default class UI {
             if (this.game) this.game.settings.particles = parseInt(e.target.value) / 100;
         });
     }
-    if (folSlider) {
-        folSlider.addEventListener('input', (e) => {
-            folVal.textContent = `${e.target.value}%`;
+    if (bgSlider) {
+        bgSlider.addEventListener('input', (e) => {
+            bgVal.textContent = `${e.target.value}%`;
             if (this.game) {
-                this.game.settings.foliage = parseInt(e.target.value) / 100;
-                this.game.generateScenery(this.game.selectedEnv); // Regenerate foliage when changed
+                this.game.settings.bgElements = parseInt(e.target.value) / 100;
+                this.game.generateScenery(this.game.selectedEnv);
+            }
+        });
+    }
+    if (groundSlider) {
+        groundSlider.addEventListener('input', (e) => {
+            groundVal.textContent = `${e.target.value}%`;
+            if (this.game) {
+                this.game.settings.groundElements = parseInt(e.target.value) / 100;
+                this.game.generateScenery(this.game.selectedEnv);
             }
         });
     }

@@ -47,7 +47,7 @@ export default class Game {
     this.syncTimer = 0;
     this.pendingHits = [];
     
-    this.settings = { particles: 1.0, foliage: 1.0 };
+    this.settings = { particles: 1.0, bgElements: 1.0, groundElements: 1.0 };
 
     this.bindEvents();
     
@@ -390,8 +390,10 @@ export default class Game {
       }
     });
 
-    this.canvas.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
+    document.addEventListener('contextmenu', (e) => {
+      if (this.state === 'PLAYING') {
+         e.preventDefault();
+      }
     });
 
     let touchActive = false;
@@ -977,7 +979,7 @@ export default class Game {
     const currentDay = Math.floor(this.globalTime / 300);
     let localPrng = new PRNG((currentDay + 1) * 9999);
     
-    const sceneryCount = Math.floor(15 * (this.settings ? this.settings.foliage : 1.0));
+    const sceneryCount = Math.floor(15 * (this.settings ? this.settings.bgElements : 1.0));
     for(let i=0; i<sceneryCount; i++) {
        const w = 40 + localPrng.nextFloat() * 60;
        const h = 50 + localPrng.nextFloat() * 120;
@@ -987,7 +989,7 @@ export default class Game {
        });
     }
 
-    const horizonCount = Math.floor(25 * (this.settings ? this.settings.foliage : 1.0));
+    const horizonCount = Math.floor(25 * (this.settings ? this.settings.bgElements : 1.0));
     for (let i = 0; i < horizonCount; i++) {
        this.horizonFoliage.push({
           x: localPrng.nextFloat() * GAME_W,
@@ -1001,7 +1003,7 @@ export default class Game {
     }
 
     const groundY = GAME_H * env.groundY;
-    const groundCount = Math.floor(60 * (this.settings ? this.settings.foliage : 1.0));
+    const groundCount = Math.floor(60 * (this.settings ? this.settings.groundElements : 1.0));
     for (let i = 0; i < groundCount; i++) {
        this.groundFoliage.push({
           x: localPrng.nextFloat() * GAME_W,
