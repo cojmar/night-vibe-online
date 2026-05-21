@@ -70,7 +70,7 @@ window.app = new class {
             chatBox.scrollTop = chatBox.scrollHeight;
             
             if (this.game && this.game.state === 'PLAYING') {
-                this.game.ui.addLog(`${sender}: ${data.msg}`, 'reward');
+                this.game.ui.addLog(`💬 ${sender}: ${data.msg}`, 'player');
             }
         });
 
@@ -83,7 +83,7 @@ window.app = new class {
             const msg = gameChatInput.value.trim();
             if (msg) {
                 const myUser = (this.net.me && this.net.me.info) ? this.net.me.info.user : '';
-                this.net.send_cmd('msg', { msg: msg, nick: nickInput.value, user: myUser });
+                this.net.send_cmd('msg', { msg: msg, nick: nickInput.value, user: myUser, isGameChat: true });
                 gameChatInput.value = '';
             }
             gameChatModal.style.display = 'none';
@@ -91,6 +91,7 @@ window.app = new class {
 
         gameChatSendBtn.addEventListener('click', sendGameChat);
         
+
         window.addEventListener('keydown', (e) => {
             if (this.game && this.game.state === 'PLAYING' && e.key === 'Enter') {
                 if (gameChatModal.style.display === 'flex') {
