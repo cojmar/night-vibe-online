@@ -187,15 +187,30 @@ export default class Game {
       }
     });
 
-    // If there are players actively playing, select host from them.
-    // Otherwise, fall back to all users in the room.
     const hostCandidates = activeUsers.length > 0 ? activeUsers : uniqueUsers;
-    const sortedUsers = hostCandidates.sort();
     
-    const isHost = sortedUsers[0] === (this.net.me && this.net.me.info ? this.net.me.info.user : null);
+    // Prefer the user who is already broadcasting as host
+    let currentHost = null;
+    for (const u of hostCandidates) {
+        if (u === (this.net.me && this.net.me.info ? this.net.me.info.user : null)) {
+            if (this.isHost) { currentHost = u; break; }
+        } else {
+            const op = this.otherPlayers[u] || (this.net.room && this.net.room.users[u] && this.net.room.users[u].data);
+            if (op && op.isHost) { currentHost = u; break; }
+        }
+    }
+    
+    const bestHost = currentHost || hostCandidates.sort()[0];
+    const isHost = bestHost === (this.net.me && this.net.me.info ? this.net.me.info.user : null);
+    
     if (this.isHost !== isHost) {
       this.isHost = isHost;
       this.ui.addLog(this.isHost ? '👑 You are the Host!' : '👥 You are a Client', 'reward');
+      if (this.isHost) {
+          this.net.send_cmd('set_data', { isHost: true });
+      } else {
+          this.net.send_cmd('set_data', { isHost: false });
+      }
     }
   }
 
@@ -447,6 +462,9 @@ export default class Game {
 
     // Recheck host status since we are now playing
     this.checkHost();
+
+    // Clear any lingering game over state
+    this.net.send_cmd('set_data', { gameOver: 0 });
 
     // Broadcast our spawn
     this.broadcastState();
@@ -928,10 +946,8 @@ export default class Game {
       
       if (this.isHost && activePlayers.length === 0 && this.state === 'PLAYING') {
           this.state = 'GAME_OVER';
-          this.checkHost();
-          this.net.send_cmd('set_data', { gameOver: true, state: 'GAME_OVER' });
-          document.getElementById('wait-msg').textContent = 'ALL PLAYERS DEAD! GAME OVER.';
-          document.getElementById('death-overlay').classList.add('show');
+          this.net.send_cmd('set_data', { gameOver: Date.now(), state: 'MENU', inGame: false });
+          this.quitToMenu();
       }
 
       for (let e of this.enemies) { 
