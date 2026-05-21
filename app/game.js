@@ -1152,15 +1152,15 @@ export default class Game {
           this.frameCount = 0;
           this.lastFpsTime = now;
           
-          if (this.settings && this.settings.autoGraphics) {
+          if (this.settings && this.settings.autoGraphics && !document.hidden && document.hasFocus()) {
               let changed = false;
-              if (this.fps < 50) {
-                  this.settings.particles = Math.max(0, this.settings.particles - 0.15);
-                  this.settings.bgElements = Math.max(0, this.settings.bgElements - 0.15);
-                  this.settings.groundElements = Math.max(0, this.settings.groundElements - 0.15);
-                  this.settings.atmos = Math.max(0, this.settings.atmos - 0.15);
+              if (this.fps < 40) {
+                  this.settings.particles = Math.max(0.2, this.settings.particles - 0.10);
+                  this.settings.bgElements = Math.max(0.2, this.settings.bgElements - 0.10);
+                  this.settings.groundElements = Math.max(0.2, this.settings.groundElements - 0.10);
+                  this.settings.atmos = Math.max(0.2, this.settings.atmos - 0.10);
                   changed = true;
-              } else if (this.fps >= 58 && (this.settings.particles < 2.0 || this.settings.bgElements < 2.0 || this.settings.groundElements < 2.0 || this.settings.atmos < 2.0)) {
+              } else if (this.fps >= 55 && (this.settings.particles < 2.0 || this.settings.bgElements < 2.0 || this.settings.groundElements < 2.0 || this.settings.atmos < 2.0)) {
                   this.settings.particles = Math.min(2.0, this.settings.particles + 0.05);
                   this.settings.bgElements = Math.min(2.0, this.settings.bgElements + 0.05);
                   this.settings.groundElements = Math.min(2.0, this.settings.groundElements + 0.05);
