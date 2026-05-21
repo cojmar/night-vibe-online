@@ -1370,7 +1370,8 @@ export default class Game {
          this.player.updateMovement(dt, this);
          
          if (this.player.isChargingS2) {
-             this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67;
+             const chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? 5 : 1;
+             this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67 * chargeSpeed;
              const maxCharges = 3 + (this.player.resets || 0);
              const newCount = Math.min(maxCharges, Math.floor(this.player.s2ChargeTime / 1000));
              if (newCount > (this.player.s2ChargeCount || 0)) {
