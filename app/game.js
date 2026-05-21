@@ -231,16 +231,15 @@ export default class Game {
         if (this.player && !this.player.alive) {
             this.respawnPlayer();
         }
+        this.wave = hostData.wave;
+        this.waveTotalEnemies = hostData.waveTotal || 10;
+        this.waveEnemiesToSpawn = hostData.waveSpawn || 10;
+        if (!this.prng) this.prng = new PRNG(hostData.seed);
+        else this.prng.seed = hostData.seed;
     }
 
-    this.wave = hostData.wave;
     this.kills = hostData.kills;
-    if (!this.prng) this.prng = new PRNG(hostData.seed);
-    else this.prng.seed = hostData.seed;
-    
-    this.waveTotalEnemies = hostData.waveTotal || 10;
     this.waveEnemiesKilled = hostData.waveKilled || 0;
-    this.waveEnemiesToSpawn = hostData.waveSpawn || 10;
     this.bossActive = hostData.bossActive || false;
     
     if (this.state === 'PLAYING') {
@@ -593,27 +592,28 @@ export default class Game {
     this.player.lastSkill = 1;
     this.player.facing = tx > this.player.x ? 1 : -1;
     const s1Scale = 1 + (this.player.atk - cd.atk) * 0.02;
+    const lvlScale = Math.min(1.0, 0.5 + ((this.player.level || 1) - 1) * 0.055);
     
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing, damage: this.player.atk, critChance: 0.1 };
     
     switch (this.player.classType) {
       case 'warrior':
         const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 60 * wScale, hitInner: -10 + (wScale-1)*30, hitOuter: 90 * wScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 60 * wScale * lvlScale, hitInner: -10 + (wScale-1)*30, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, cd.s1Color, 5, 3);
         break;
       case 'mage':
-        this.projectiles.push(new Projectile({ type:'bolt', x:this.player.x, y:weaponY, tx:tx, ty:ty, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'bolt', x:this.player.x, y:weaponY, tx:tx, ty:ty, speed:8, life:60, maxLife:60, color:'#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#3498db', 3, 2);
         break;
       case 'archer':
         const speed = 10;
-        this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(aimAngle)*speed, vy:Math.sin(aimAngle)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(aimAngle)*speed, vy:Math.sin(aimAngle)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale * lvlScale, ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#bdc3c7', 4, 3);
         break;
       case 'magicgladiator':
         const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:20, maxLife:20, color:'#e74c3c', radius: 60 * mgScale, hitInner: -10 + (mgScale-1)*30, hitOuter: 80 * mgScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:20, maxLife:20, color:'#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: -10 + (mgScale-1)*30, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, '#e74c3c', 7, 4);
         break;
     }
@@ -644,6 +644,7 @@ export default class Game {
     
     // MP controls AOE
     const aoeScale = 1 + (this.player.spd - CLASS_DATA[this.player.classType].spd) * 0.02;
+    const lvlScale = Math.min(1.0, 0.5 + ((this.player.level || 1) - 1) * 0.055);
     
     // Charges scale logic:
     // charge = 0 -> 1x
@@ -674,13 +675,13 @@ export default class Game {
         
         for (let i = 0; i < waveCount; i++) {
           const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
-          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance: waveDistance, radius:15*aoeScale*areaMulti, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a, charges: charges }));
+          this.projectiles.push(new Projectile({ type:'shockwave', originX:this.player.x, originY:weaponY, x:this.player.x, y:weaponY, speed:5.5, life:50, maxLife:50, color:'#ffd700', damage:this.player.atk*2.5*dmgMulti, critChance:0.2, maxDistance: waveDistance, radius:15*aoeScale*areaMulti*lvlScale, traveled:0, trailTimer:0, trailPositions:[], ...projProps, angle: a, charges: charges }));
         }
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*10, weaponY + Math.sin(aimAngle)*10, '#ffd700', 12 + charges*5, 4);
         break;
       case 'mage':
         const fbRadius = 15 + charges * 15;
-        this.projectiles.push(new Projectile({ type:'fireball', x:this.player.x, y:weaponY, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2*dmgMulti, critChance:0.2, radius: fbRadius * aoeScale, traveled:0, trailTimer:0, trailPositions:[], ...projProps }));
+        this.projectiles.push(new Projectile({ type:'fireball', x:this.player.x, y:weaponY, speed:5, life:80, maxLife:80, color:'#e67e22', damage:this.player.atk*2.2*dmgMulti, critChance:0.2, radius: fbRadius * aoeScale * lvlScale, traveled:0, trailTimer:0, trailPositions:[], ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#e67e22', 20*aoeScale + charges*10, 5);
         break;
       case 'archer':
@@ -688,12 +689,12 @@ export default class Game {
         for(let i=0; i<arrowCount; i++) {
           const a = aimAngle + (i - Math.floor(arrowCount/2)) * (0.2 + (aoeScale-1)*0.1);
           const speed = 11;
-          this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage:this.player.atk*1.3*dmgMulti, critChance:0.15, angle:a, radius: 12 * aoeScale }));
+          this.projectiles.push(new Projectile({ type:'arrow', x:this.player.x, y:weaponY, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, speed, life:50, maxLife:50, color:'#e74c3c', damage:this.player.atk*1.3*dmgMulti, critChance:0.15, angle:a, radius: 12 * aoeScale * lvlScale }));
         }
         this.spawnParticles(this.player.x, weaponY, '#e74c3c', 10 + charges*5, 4);
         break;
       case 'magicgladiator':
-        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.x, y:this.player.y-40, radius:130*aoeScale*areaMulti, life:25, maxLife:25, color:'#ffd700', damage:this.player.atk*3.0*dmgMulti, critChance:0.25, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'aoe_explosion', x:this.player.x, y:this.player.y-40, radius:130*aoeScale*areaMulti*lvlScale, life:25, maxLife:25, color:'#ffd700', damage:this.player.atk*3.0*dmgMulti, critChance:0.25, ...projProps }));
         this.spawnParticles(this.player.x, this.player.y, '#ffd700', 30*aoeScale + charges*15, 8);
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
         break;
@@ -988,13 +989,13 @@ export default class Game {
       }
 
       for (let e of this.enemies) { 
-          if (this.isHost) {
-              e.update(dt, activePlayers); 
-          } else {
-              e.hitFlash = Math.max(0, e.hitFlash - dt);
-              if (e.alive && e.serverX) {
-                 e.x += (e.serverX - e.x) * 0.2 * dt;
-                 e.y += (e.serverY - e.y) * 0.2 * dt;
+          e.update(dt, activePlayers);
+          
+          if (!this.isHost) {
+              // Soft sync towards host position if they drift too far
+              if (e.alive && e.serverX !== undefined) {
+                 e.x += (e.serverX - e.x) * 0.1 * dt;
+                 e.y += (e.serverY - e.y) * 0.1 * dt;
               }
           }
       }
@@ -1121,15 +1122,21 @@ export default class Game {
                this.waveEnemiesKilled = 0;
                this.ui.updateScore(this.kills, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
            }
-        } else {
-           this.enemySpawnTimer += 16.67 * dt;
-           const nonBossCount = this.enemies.filter(e => e.alive && e.name !== 'BOSS').length;
-           if (this.enemySpawnTimer >= this.enemySpawnInterval && nonBossCount < (4 + Math.floor(this.wave/2)) && this.waveEnemiesToSpawn > 0) {
-             this.enemySpawnTimer = 0;
-             this.enemies.push(new Enemy(this, this.bossActive));
-             this.waveEnemiesToSpawn--;
-           }
         }
+      }
+      
+      if (this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
+         this.enemySpawnTimer += 16.67 * dt;
+         const nonBossCount = this.enemies.filter(e => e.alive && e.name !== 'BOSS').length;
+         if (this.enemySpawnTimer >= this.enemySpawnInterval && nonBossCount < (4 + Math.floor(this.wave/2))) {
+           this.enemySpawnTimer = 0;
+           const spawnIndex = this.waveTotalEnemies - this.waveEnemiesToSpawn;
+           const newEnemy = new Enemy(this, this.bossActive, false, spawnIndex);
+           if (!this.enemies.find(e => e.id === newEnemy.id)) {
+               this.enemies.push(newEnemy);
+           }
+           this.waveEnemiesToSpawn--;
+         }
       }
       
       this.syncTimer += 16.67 * dt;

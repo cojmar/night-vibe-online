@@ -172,9 +172,15 @@ export default class Player {
     }
 
     ctx.save();
+    
+    // Scale by level (50% at lvl 1 -> 100% at lvl 10)
+    const lvlScale = Math.min(1.0, 0.5 + ((this.level || 1) - 1) * 0.055);
     ctx.translate(px, py + walkBob);
+    ctx.scale(lvlScale, lvlScale);
     if (this.facing < 0) ctx.scale(-1, 1);
     
+    // Adjust py offset in calculations since we scaled
+    const unscaledPy = py;
     // Aim calculations based on synced mouse position
     let rawAim = Math.atan2(this.mouseY - (py - 40), this.mouseX - px);
     let localAim = (this.facing < 0) ? Math.PI - rawAim : rawAim;

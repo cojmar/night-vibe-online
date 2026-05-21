@@ -1,14 +1,17 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG } from './utils.js';
 
 export default class Enemy {
-  constructor(gameInstance, isBoss = false, isClient = false) {
+  constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
     this.game = gameInstance;
     if (isClient) {
        this.id = ''; this.serverX = 0; this.serverY = 0;
        this.alive = true; this.hitFlash = 0;
        return;
     }
-    this.id = this.game.prng.nextFloat().toString(36).substr(2, 9);
+    
+    // Deterministic random generation per enemy
+    const localPrng = new PRNG((gameInstance.prng ? gameInstance.prng.seed : 1) + spawnIndex * 1337);
+    this.id = 'E_' + gameInstance.wave + '_' + spawnIndex;
     const wave = gameInstance.wave;
     
     // Calculate average player level
@@ -33,22 +36,22 @@ export default class Enemy {
       this.speed = 0.2;
       this.size = 48;
       this.color = '#8e44ad';
-      this.x = GAME_W * 0.15 + this.game.prng.nextFloat() * GAME_W * 0.7;
+      this.x = GAME_W * 0.15 + localPrng.nextFloat() * GAME_W * 0.7;
       const groundY = getGroundY(gameInstance.selectedEnv);
       this.y = groundY - 48;
     } else {
       const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
-      const type = available[Math.floor(this.game.prng.nextFloat() * available.length)];
+      const type = available[Math.floor(localPrng.nextFloat() * available.length)];
       this.name = type.name;
       this.icon = type.icon;
       this.hp = Math.round(type.hp * scale);
       this.maxHp = this.hp;
       this.atk = Math.round(type.atk * scale);
-      this.speed = type.speed * (0.8 + this.game.prng.nextFloat() * 0.4);
+      this.speed = type.speed * (0.8 + localPrng.nextFloat() * 0.4);
       this.size = type.size;
       this.color = type.color;
       
-      const pos = this.getSafeSpawnPosition();
+      const pos = this.getSafeSpawnPosition(localPrng);
       this.x = pos.x;
       this.y = pos.y;
     }
@@ -56,10 +59,10 @@ export default class Enemy {
     this.alive = true;
     this.hitFlash = 0;
     this.attackTimer = 0;
-    this.attackCooldown = isBoss ? 120 : 60 + Math.floor(this.game.prng.nextFloat() * 40);
+    this.attackCooldown = isBoss ? 120 : 60 + Math.floor(localPrng.nextFloat() * 40);
   }
 
-  getSafeSpawnPosition() {
+  getSafeSpawnPosition(localPrng) {
     const groundY = getGroundY(this.game.selectedEnv);
     const minDim = Math.min(GAME_W, GAME_H);
     const aspectRatio = GAME_W / GAME_H;
@@ -72,25 +75,25 @@ export default class Enemy {
       attempts++;
       let sx, sy;
       if (aspectRatio < 0.6) {
-        const edge = this.game.prng.nextFloat();
+        const edge = localPrng.nextFloat();
         if (edge < 0.5) {
-          sx = safeMargin + this.game.prng.nextFloat() * (GAME_W - safeMargin * 2);
-          sy = -30 - this.game.prng.nextFloat() * 40;
+          sx = safeMargin + localPrng.nextFloat() * (GAME_W - safeMargin * 2);
+          sy = -30 - localPrng.nextFloat() * 40;
         } else {
-          sx = safeMargin + this.game.prng.nextFloat() * (GAME_W - safeMargin * 2);
-          sy = GAME_H + 30 + this.game.prng.nextFloat() * 40;
+          sx = safeMargin + localPrng.nextFloat() * (GAME_W - safeMargin * 2);
+          sy = GAME_H + 30 + localPrng.nextFloat() * 40;
         }
       } else {
-        const roll = this.game.prng.nextFloat();
+        const roll = localPrng.nextFloat();
         if (roll < 0.45) {
-          sx = safeMargin + this.game.prng.nextFloat() * (GAME_W - safeMargin * 2);
-          sy = -30 - this.game.prng.nextFloat() * 40;
+          sx = safeMargin + localPrng.nextFloat() * (GAME_W - safeMargin * 2);
+          sy = -30 - localPrng.nextFloat() * 40;
         } else if (roll < 0.7) {
-          sx = -40 - this.game.prng.nextFloat() * 50;
-          sy = safeMargin + this.game.prng.nextFloat() * (GAME_H - safeMargin * 2);
+          sx = -40 - localPrng.nextFloat() * 50;
+          sy = safeMargin + localPrng.nextFloat() * (GAME_H - safeMargin * 2);
         } else {
-          sx = GAME_W + 40 + this.game.prng.nextFloat() * 50;
-          sy = safeMargin + this.game.prng.nextFloat() * (GAME_H - safeMargin * 2);
+          sx = GAME_W + 40 + localPrng.nextFloat() * 50;
+          sy = safeMargin + localPrng.nextFloat() * (GAME_H - safeMargin * 2);
         }
       }
       
@@ -106,7 +109,7 @@ export default class Enemy {
     if(!player) return {x: GAME_W/2, y: groundY - 50};
     
     return {
-      x: player.x + (this.game.prng.nextFloat() < 0.5 ? -1 : 1) * (minDist + 50),
+      x: player.x + (localPrng.nextFloat() < 0.5 ? -1 : 1) * (minDist + 50),
       y: Math.min(player.y - minDist * 0.6, groundY - 50)
     };
   }
@@ -132,33 +135,46 @@ export default class Enemy {
     const dx = targetPlayer.x - this.x;
     const dy = targetPlayer.y - this.y;
 
-    if (closestDist > 50) {
-      this.x += (dx / closestDist) * this.speed * dt;
-      this.y += (dy / closestDist) * this.speed * dt;
-    }
-    
-    const depthTop = GAME_H * 0.45;
-    if (this.y < depthTop) this.y = depthTop;
-    if (this.y > GAME_H - 45) this.y = GAME_H - 45;
-
     if (this.name === 'BOSS') {
       this.missileTimer = (this.missileTimer || 0) + dt;
-      if (this.missileTimer > 150) { // spawn every 2.5s roughly
+      if (this.missileTimer > 150) { 
           this.missileTimer = 0;
-          let missile = new Enemy(this.game, false, false);
+          // Increment a custom missile index so IDs are unique
+          this.missileIndex = (this.missileIndex || 0) + 1;
+          let missile = new Enemy(this.game, false, false, this.missileIndex);
           missile.name = 'MISSILE';
           missile.icon = '🚀';
           missile.hp = Math.round(50 * (1 + (this.game.wave - 1) * 0.15));
           missile.maxHp = missile.hp;
           missile.atk = this.atk;
-          missile.speed = this.speed * 1.5;
           missile.size = 20;
           missile.color = '#e74c3c';
           missile.x = this.x;
           missile.y = this.y - 20;
-          missile.attackCooldown = 0; 
+          missile.attackCooldown = 0;
+          missile.id = 'M_' + this.id + '_' + this.missileIndex;
+          
+          if (targetPlayer) {
+              const dx = targetPlayer.x - missile.x;
+              const dy = targetPlayer.y - missile.y;
+              const dist = Math.hypot(dx, dy) || 1;
+              missile.vx = (dx / dist) * this.speed * 2.5; // faster than boss, no homing
+              missile.vy = (dy / dist) * this.speed * 2.5;
+          } else {
+              missile.vx = 0; missile.vy = this.speed * 2.5;
+          }
           this.game.enemies.push(missile);
       }
+    }
+
+    if (this.name === 'MISSILE') {
+        // Missile just goes straight
+        this.x += (this.vx || 0) * dt;
+        this.y += (this.vy || 0) * dt;
+        // Don't home in!
+    } else if (closestDist > 50) {
+      this.x += (dx / closestDist) * this.speed * dt;
+      this.y += (dy / closestDist) * this.speed * dt;
     }
 
     if (closestDist < 55) {
