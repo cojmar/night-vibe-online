@@ -169,7 +169,7 @@ export default class Player {
     const shadowHeight = 6 + depthRatio * 4;
     ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
     ctx.beginPath();
-    ctx.ellipse(px, groundY, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, py, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
     ctx.fill();
 
     if (isDead) {

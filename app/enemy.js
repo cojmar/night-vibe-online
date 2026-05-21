@@ -169,7 +169,7 @@ export default class Enemy {
     const eShadowH = this.size * 0.2 + eDepth * this.size * 0.15;
     ctx.fillStyle = `rgba(0,0,0,${eShadowAlpha})`;
     ctx.beginPath();
-    ctx.ellipse(this.x, groundY, eShadowW, eShadowH, 0, 0, Math.PI * 2);
+    ctx.ellipse(this.x, this.y + this.size * 0.4, eShadowW, eShadowH, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Body
