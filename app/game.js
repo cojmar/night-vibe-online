@@ -30,6 +30,7 @@ export default class Game {
     this.particles = [];
     this.floatingTexts = [];
     this.bgParticles = [];
+    this.items = [];
     
     this.s2Cooldown = 0;
     this.s2MaxCooldown = 1000;
@@ -1334,6 +1335,14 @@ export default class Game {
       for (let e of this.enemies) { 
           e.update(dt, activePlayers);
           
+          if (!e.alive && !e.deadProcessed) {
+              e.deadProcessed = true;
+              if (Math.random() < 0.15) { // 15% drop chance
+                  const type = Math.random() < 0.5 ? 'blue' : 'red';
+                  this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: 15000 });
+              }
+          }
+          
           if (!this.isHost) {
               // Soft sync towards host position if they drift too far
               if (e.alive && e.serverX !== undefined) {
@@ -1425,6 +1434,49 @@ export default class Game {
             }
       }
 
+      if (this.items) {
+          for (let i = 0; i < this.items.length; i++) {
+              let item = this.items[i];
+              item.life -= dt * 16.67;
+              if (item.life <= 0) {
+                  this.items.splice(i, 1); i--; continue;
+              }
+              
+              if (this.player && this.player.alive && this.state === 'PLAYING') {
+                  let dist = Math.hypot(this.player.x - item.x, this.player.y - item.y);
+                  if (dist < 40) {
+                      if (item.type === 'red') {
+                          this.player.buffHpTimer = 10000;
+                          this.ui.addLog('❤️ Hp Regen Buff!', 'reward');
+                      } else {
+                          this.player.buffManaTimer = 10000;
+                          this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');
+                      }
+                      this.spawnParticles(this.player.x, this.player.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
+                      this.items.splice(i, 1); i--; continue;
+                  }
+              }
+              
+              renderables.push({ y: item.y, draw: (ctx) => {
+                  ctx.save();
+                  ctx.translate(item.x, item.y - 10 + Math.sin(this.globalTime/200)*5);
+                  ctx.globalAlpha = Math.min(1, item.life / 1000);
+                  ctx.fillStyle = item.type === 'red' ? '#e74c3c' : '#3498db';
+                  ctx.shadowColor = item.type === 'red' ? '#c0392b' : '#2980b9';
+                  ctx.shadowBlur = 15;
+                  ctx.beginPath();
+                  ctx.arc(0, 0, 8, 0, Math.PI*2);
+                  ctx.fill();
+                  ctx.fillStyle = 'white';
+                  ctx.font = 'bold 12px sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(item.type === 'red' ? '❤️' : '⚡', 0, -15);
+                  ctx.restore();
+              }});
+          }
+      }
+
       if (this.groundFoliage) {
           for (let gf of this.groundFoliage) {
               renderables.push({ y: gf.y, draw: (ctx) => {
@@ -1498,9 +1550,25 @@ export default class Game {
 
       // UI
       this.ui.updatePartyList(this.otherPlayers);
-      if (this.s2Cooldown > 0) { this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt); }
-      this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
       
+      let cdSpeedMultiplier = 1;
+      if (this.player && this.player.alive && this.state === 'PLAYING') {
+          if (this.player.buffManaTimer > 0) {
+              this.player.buffManaTimer -= 16.67 * dt;
+              cdSpeedMultiplier = 5; // 5x cooldown recovery speed
+              if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random()-0.5)*30, this.player.y - Math.random()*50, '#3498db', 1, 3);
+          }
+          if (this.player.buffHpTimer > 0) {
+              this.player.buffHpTimer -= 16.67 * dt;
+              // Regen 10% max HP per second
+              this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.10 * (16.67 * dt / 1000));
+              if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random()-0.5)*30, this.player.y - Math.random()*50, '#e74c3c', 1, 3);
+          }
+      }
+
+      if (this.s2Cooldown > 0) { this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier); }
+      this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
+
       if (this.isHost) {
         this.enemies = this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000));
         

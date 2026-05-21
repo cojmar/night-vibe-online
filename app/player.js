@@ -51,6 +51,9 @@ import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
     
     this.chatMsg = null;
     this.chatTimer = 0;
+    
+    this.buffHpTimer = 0;
+    this.buffManaTimer = 0;
   }
 
   addKill() {
