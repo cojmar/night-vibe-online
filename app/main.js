@@ -34,41 +34,7 @@ window.app = new class {
             }, 300);
         });
 
-        // Chat
-        const chatInput = document.getElementById('chat-input');
-        const btnChat = document.getElementById('btn-chat-send');
-        const sendChat = () => {
-            const msg = chatInput.value.trim();
-            if (msg) {
-                const myUser = (this.net.me && this.net.me.info) ? this.net.me.info.user : '';
-                this.net.send_cmd('msg', { msg: msg, nick: nickInput.value, user: myUser });
-                chatInput.value = '';
-            }
-        };
-        btnChat.addEventListener('click', sendChat);
-        chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
 
-        this.net.on('room.msg', (data) => {
-            const chatBox = document.getElementById('chat-messages');
-            let sender = 'Unknown';
-            
-            if (data.nick) {
-                sender = data.nick;
-            } else if (data.user) {
-                if (this.net.room && this.net.room.users && this.net.room.users[data.user] && this.net.room.users[data.user].data && this.net.room.users[data.user].data.nick) {
-                    sender = this.net.room.users[data.user].data.nick;
-                } else if (this.net.me && this.net.me.info && data.user === this.net.me.info.user) {
-                    sender = nickInput.value;
-                } else {
-                    sender = data.user.substring(0,8);
-                }
-            }
-            
-            const msgEl = document.createElement('div');
-            msgEl.innerHTML = `<span style="color:#f39c12;font-weight:bold;">${sender}:</span> <span style="color:#eee;">${data.msg}</span>`;
-            chatBox.appendChild(msgEl);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
 
         // In-game chat modal logic
         const gameChatModal = document.getElementById('game-chat-modal');
