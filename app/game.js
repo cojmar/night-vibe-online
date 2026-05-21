@@ -632,7 +632,7 @@ export default class Game {
     switch (this.player.classType) {
       case 'warrior':
         const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 60 * wScale * lvlScale, hitInner: -10 + (wScale-1)*30, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:15, maxLife:15, color:cd.s1Color, radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, cd.s1Color, 5, 3);
         break;
       case 'mage':
@@ -646,7 +646,7 @@ export default class Game {
         break;
       case 'magicgladiator':
         const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
-        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:20, maxLife:20, color:'#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: -10 + (mgScale-1)*30, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
+        this.projectiles.push(new Projectile({ type:'slash', originX:this.player.x, originY:weaponY, life:20, maxLife:20, color:'#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
         this.spawnParticles(this.player.x + Math.cos(aimAngle)*40, weaponY + Math.sin(aimAngle)*40, '#e74c3c', 7, 4);
         break;
     }
@@ -1064,8 +1064,34 @@ export default class Game {
       // Z-Sorting (Y-Sorting) for perspective rendering
       let renderables = [];
       
+      // Persistent movement marker on the ground
+      if (this.player && this.player.isMoving && !this.player.autoAttackTarget) {
+          renderables.push({ y: this.player.moveTargetY - 1, draw: (ctx) => {
+              ctx.save();
+              ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 150) * 0.2;
+              ctx.fillStyle = '#2ecc71';
+              ctx.beginPath();
+              ctx.ellipse(this.player.moveTargetX, this.player.moveTargetY, 15, 7.5, 0, 0, Math.PI*2);
+              ctx.fill();
+              ctx.restore();
+          }});
+      }
+      
       for (let e of this.enemies) {
-          renderables.push({ y: e.y, draw: (ctx) => e.draw(ctx, getGroundY(this.selectedEnv)) });
+          renderables.push({ y: e.y, draw: (ctx) => {
+              if (this.player && this.player.autoAttackTarget === e) {
+                  ctx.save();
+                  ctx.shadowColor = '#e74c3c';
+                  ctx.shadowBlur = 15;
+                  ctx.strokeStyle = '#e74c3c';
+                  ctx.lineWidth = 2;
+                  ctx.beginPath();
+                  ctx.ellipse(e.x, e.y, e.size * 1.2, e.size * 0.6, 0, 0, Math.PI * 2);
+                  ctx.stroke();
+                  ctx.restore();
+              }
+              e.draw(ctx, getGroundY(this.selectedEnv));
+          } });
       }
       
       if (this.player) {
