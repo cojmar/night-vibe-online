@@ -79,7 +79,11 @@ export default class UI {
   }
 
   addLog(text, type = 'player') {
-    this.recentLogs.unshift({ text, type, time: Date.now() });
+    const now = new Date();
+    const timeStr = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
+    const fullText = `${timeStr} ${text}`;
+    
+    this.recentLogs.unshift({ text: fullText, type, time: Date.now() });
     if (this.recentLogs.length > this.MAX_LOGS) this.recentLogs.pop();
     this.updateCompactLog();
   }
