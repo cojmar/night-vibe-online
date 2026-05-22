@@ -594,6 +594,7 @@ export default class UI {
                         this.game.saveLocalProgression();
                         this.game.broadcastState();
                         this.renderInventory();
+                        this.updateHUD(p);
                     }
                 });
 
@@ -613,6 +614,7 @@ export default class UI {
                         this.game.saveLocalProgression();
                         this.game.broadcastState();
                         this.renderInventory();
+                        this.updateHUD(p);
                     }
                 });
                 eqContainer.appendChild(slotDiv);
@@ -659,6 +661,7 @@ export default class UI {
                         this.game.saveLocalProgression();
                         this.game.broadcastState();
                         this.renderInventory();
+                        this.updateHUD(p);
                     }
                 });
 
@@ -678,6 +681,7 @@ export default class UI {
                         this.game.saveLocalProgression();
                         this.game.broadcastState();
                         this.renderInventory();
+                        this.updateHUD(p);
                     }
                 });
                 invContainer.appendChild(cell);
