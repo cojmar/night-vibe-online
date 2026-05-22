@@ -37,8 +37,26 @@
 - After docs/architecture edits, run full graphify refresh workflow before trusting doc-related answers.
 
 ### ast-grep scope
+- **Primary use: structural search before edits.** Before touching code, use
+  `ast-grep run --pattern '...'` to find every site matching a pattern — e.g.
+  all callers of a method, all accesses to a property, all `new ClassName(...)`.
+  This is faster and more precise than grep for code patterns.
+- **Secondary use: lint rules.** `ast-grep scan --config .ast-grep.yml` enforces
+  project-specific anti-patterns (see `ast-grep/rules/`).
 - Keep rules focused on gameplay/client source under `app/`.
 - Prefer warning-level checks first; promote to stricter enforcement after cleanup.
+
+#### Quick search examples
+```bash
+# Find all direct net.me.info.user accesses (no null guard)
+ast-grep run -p 'this.net.me.info.user' app/
+
+# Find all send_cmd calls
+ast-grep run -p '$NET.send_cmd($CMD, $DATA)' app/
+
+# Find all new Class(...) instantiations
+ast-grep run -p 'new Player($$$)' app/
+```
 
 ## Deployment
 - GitHub Pages, `main` branch, root path (`/`). Live at: https://cojmar.github.io/night-vibe-online/

@@ -334,7 +334,10 @@ Run these in order during local review:
 # 2) Linting
 npx eslint app
 
-# 3) Pattern checks
+# 3) Structural search before edits (find all call sites, usages, patterns)
+ast-grep run -p '$PATTERN' app/
+
+# 4) Anti-pattern lint rules
 ast-grep scan --config .ast-grep.yml
 
 # 4) Architecture/docs checks (optional when relevant)
