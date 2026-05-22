@@ -95,7 +95,7 @@ export default class Game {
       if (this.net.me && data.user !== this.net.me.info.user) {
         if (!this.otherPlayers[data.user]) {
           // Default spawn for other players
-          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W / 2, data.data.y || GAME_H - 45);
+          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W / 2, data.data.y || (getGroundY(this.selectedEnv) + GAME_H) / 2);
         }
 
         const oldInGame = this.otherPlayers[data.user].inGame;
@@ -631,7 +631,7 @@ export default class Game {
       myData = this.net.room.users[this.net.me.info.user].data;
     }
 
-    this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, GAME_H - 45);
+    this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, (getGroundY(this.selectedEnv) + GAME_H) / 2);
 
     this.checkHost();
 
@@ -888,11 +888,11 @@ export default class Game {
     document.getElementById('death-overlay').classList.remove('show');
     if (this.player) {
       this.player.x = GAME_W / 2;
-      this.player.y = GAME_H - 45;
+      this.player.y = (getGroundY(this.selectedEnv) + GAME_H) / 2;
       this.player.hp = this.player.maxHp;
       this.player.alive = true;
     } else {
-      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, GAME_W / 2, GAME_H - 45);
+      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, GAME_W / 2, (getGroundY(this.selectedEnv) + GAME_H) / 2);
     }
     this.ui.updateHUD(this.player);
     this.ui.addLog('✨ Respawned!', 'reward');
