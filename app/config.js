@@ -1,25 +1,202 @@
-// Night Vibe Online Arena Combat Sandbox - Centralized Game Configurations
+// Night Vibe Online Arena Combat Sandbox - Centralized & Dynamic Game Configurations
 
 // ==========================================
-// 1. VIEWPORT & RENDERING CONFIGURATIONS
+// A. DEFAULT CONFIGURATIONS OBJECT
 // ==========================================
-export const GAME_W = 1440;
-export const GAME_H = 1024;
+export const DEFAULTS = {
+  // 1. Viewport & Rendering
+  GAME_W: 1440,
+  GAME_H: 1024,
+  DEPTH_GROUND_TOP: 0.45,
+  DEPTH_GROUND_BOTTOM: 1.0,
+  GROUND_TOLERANCE: 30,
+  DEAD_BODY_LIFETIME: 2000,
 
-// Perspective and Y-Sorting Boundaries
-export const DEPTH_GROUND_TOP = 0.45;
-export const DEPTH_GROUND_BOTTOM = 1.0;
-export const GROUND_TOLERANCE = 30;
+  // 2. Player Movement
+  MOVE_SPEED: 2.5,
 
-// Entity Lifetimes (in milliseconds)
-export const DEAD_BODY_LIFETIME = 2000;
+  // 3. Player Combat
+  RANGED_MAX_RANGE: 450,
+  WARRIOR_MELEE_RANGE: 90,
+  MAGICGLADIATOR_MELEE_RANGE: 80,
+  MELEE_RANGE_LVL_SCALE_MULT: 0.8,
+
+  // 4. Progression & Rebirth
+  LEVEL_UP_STAT_POINTS: 5,
+  REQ_KILLS_BASE_MULT: 5,
+  REQ_KILLS_EXPONENT: 1.4,
+  REQ_KILLS_SIN_AMP: 2,
+  REBIRTH_BASE_LEVEL: 4,
+  REBIRTH_LEVEL_STEP: 5,
+  REBIRTH_POINTS_PER_LEVEL: 5,
+  LIMIT_LEVEL_TO_REBIRTH_REQ: true,
+
+  // 5. Initial Character Stats
+  PLAYER_INITIAL_LEVEL: 1,
+  PLAYER_INITIAL_KILLS: 0,
+  PLAYER_INITIAL_STAT_POINTS: 0,
+  PLAYER_INITIAL_RESETS: 0,
+
+  // 6. Waves Setup
+  GAME_INITIAL_WAVE: 1,
+  GAME_INITIAL_KILLS: 0,
+  GAME_INITIAL_WAVE_ENEMIES: 10,
+
+  // 7. Enemy Scaling & Timing
+  ENEMY_SPAWN_INTERVAL: 800,
+  ENEMY_SCALE_WAVE_MULT: 0.15,
+  ENEMY_SCALE_LVL_MULT: 0.12,
+  ENEMY_SKY_SPEED_MULTIPLIER: 2.0,
+
+  // 7b. Boss Balance
+  BOSS_BASE_HP: 250,
+  BOSS_BASE_ATK: 18,
+  BOSS_BASE_SPEED: 0.2,
+  BOSS_BASE_SIZE: 48,
+  BOSS_BASE_COLOR: '#8e44ad',
+  BOSS_ATTACK_COOLDOWN: 120,
+  ENEMY_ATTACK_COOLDOWN_BASE: 60,
+  ENEMY_ATTACK_COOLDOWN_RAND: 40,
+
+  // 8. Potion & Buffs
+  POTION_BUFF_DURATION: 10000,
+  POTION_LIFESTEAL_PERCENT: 0.75,
+
+  // 9. Projectile Collision Size
+  PROJ_HIT_RADIUS_ARROW: 12,
+  PROJ_HIT_RADIUS_BOLT: 10,
+  PROJ_HIT_RADIUS_DEFAULT: 15,
+
+  // 10. Chat bubbles
+  CHAT_MESSAGE_DURATION: 5000,
+  CHAT_FADE_OUT_DURATION: 500
+};
 
 // ==========================================
-// 2. PLAYER MOVEMENT SPEED CONFIGURATIONS
+// B. METADATA FOR DYNAMIC SETTINGS UI GENERATION
 // ==========================================
-export const MOVE_SPEED = 2.5; // Global fallback speed
+export const CONFIG_METADATA = {
+  GAME_W: { label: "Game Width", type: "number", min: 800, max: 2560, step: 80, category: "Viewport & Display" },
+  GAME_H: { label: "Game Height", type: "number", min: 600, max: 1600, step: 64, category: "Viewport & Display" },
+  DEPTH_GROUND_TOP: { label: "Ground Top Depth Ratio", type: "number", min: 0.1, max: 0.9, step: 0.05, category: "Viewport & Display" },
+  DEPTH_GROUND_BOTTOM: { label: "Ground Bottom Depth Ratio", type: "number", min: 0.5, max: 1.0, step: 0.05, category: "Viewport & Display" },
+  GROUND_TOLERANCE: { label: "Ground Y-Tolerance (px)", type: "number", min: 5, max: 100, step: 5, category: "Viewport & Display" },
+  DEAD_BODY_LIFETIME: { label: "Dead Body Lifetime (ms)", type: "number", min: 500, max: 10000, step: 500, category: "Viewport & Display" },
+
+  MOVE_SPEED: { label: "Global Move Speed", type: "number", min: 0.5, max: 10, step: 0.1, category: "Player Movement" },
+
+  RANGED_MAX_RANGE: { label: "Ranged Max Attack Range", type: "number", min: 100, max: 1000, step: 50, category: "Combat & Ranges" },
+  WARRIOR_MELEE_RANGE: { label: "Warrior Melee Attack Range", type: "number", min: 30, max: 300, step: 10, category: "Combat & Ranges" },
+  MAGICGLADIATOR_MELEE_RANGE: { label: "Magic Gladiator Melee Range", type: "number", min: 30, max: 300, step: 10, category: "Combat & Ranges" },
+  MELEE_RANGE_LVL_SCALE_MULT: { label: "Melee Level-Scale Factor", type: "number", min: 0.1, max: 2.0, step: 0.05, category: "Combat & Ranges" },
+
+  LEVEL_UP_STAT_POINTS: { label: "Stat Points per Level Up", type: "number", min: 1, max: 20, step: 1, category: "Player Progression" },
+  REQ_KILLS_BASE_MULT: { label: "Req Kills Base Multiplier", type: "number", min: 1, max: 20, step: 1, category: "Player Progression" },
+  REQ_KILLS_EXPONENT: { label: "Req Kills Exponential Curve", type: "number", min: 1.0, max: 3.0, step: 0.1, category: "Player Progression" },
+  REQ_KILLS_SIN_AMP: { label: "Req Kills Sinusoidal Amp", type: "number", min: 0, max: 10, step: 0.5, category: "Player Progression" },
+  REBIRTH_BASE_LEVEL: { label: "Rebirth Starting Min Level", type: "number", min: 2, max: 50, step: 1, category: "Player Progression" },
+  REBIRTH_LEVEL_STEP: { label: "Rebirth Level Step per Reset", type: "number", min: 1, max: 20, step: 1, category: "Player Progression" },
+  REBIRTH_POINTS_PER_LEVEL: { label: "Rebirth Points per Level", type: "number", min: 1, max: 20, step: 1, category: "Player Progression" },
+  LIMIT_LEVEL_TO_REBIRTH_REQ: { label: "Cap Level to Rebirth Reqs", type: "boolean", category: "Player Progression" },
+
+  ENEMY_SPAWN_INTERVAL: { label: "Enemy Spawn Delay (ms)", type: "number", min: 100, max: 5000, step: 100, category: "Enemy Dynamics" },
+  ENEMY_SCALE_WAVE_MULT: { label: "Enemy HP/ATK Wave Multiplier", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Enemy Dynamics" },
+  ENEMY_SCALE_LVL_MULT: { label: "Enemy HP/ATK Level Multiplier", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Enemy Dynamics" },
+  ENEMY_SKY_SPEED_MULTIPLIER: { label: "Sky Spawn Falling Speed Mult", type: "number", min: 1.0, max: 5.0, step: 0.5, category: "Enemy Dynamics" },
+
+  BOSS_BASE_HP: { label: "Boss Base HP", type: "number", min: 50, max: 2000, step: 50, category: "Boss Battles" },
+  BOSS_BASE_ATK: { label: "Boss Base ATK", type: "number", min: 5, max: 100, step: 5, category: "Boss Battles" },
+  BOSS_BASE_SPEED: { label: "Boss Base Speed Factor", type: "number", min: 0.05, max: 2.0, step: 0.05, category: "Boss Battles" },
+  BOSS_BASE_SIZE: { label: "Boss Base Physical Size (px)", type: "number", min: 20, max: 100, step: 4, category: "Boss Battles" },
+  BOSS_BASE_COLOR: { label: "Boss Accent Color", type: "color", category: "Boss Battles" },
+  BOSS_ATTACK_COOLDOWN: { label: "Boss Attack Delay (frames)", type: "number", min: 20, max: 300, step: 10, category: "Boss Battles" },
+  ENEMY_ATTACK_COOLDOWN_BASE: { label: "Enemy Attack Delay Base (frames)", type: "number", min: 20, max: 200, step: 5, category: "Enemy Dynamics" },
+  ENEMY_ATTACK_COOLDOWN_RAND: { label: "Enemy Attack Delay Variance", type: "number", min: 0, max: 100, step: 5, category: "Enemy Dynamics" },
+
+  POTION_BUFF_DURATION: { label: "Vampirism Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
+  POTION_LIFESTEAL_PERCENT: { label: "Vampirism Heal Percentage", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
+
+  PROJ_HIT_RADIUS_ARROW: { label: "Arrow Hitbox Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
+  PROJ_HIT_RADIUS_BOLT: { label: "Bolt Hitbox Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
+  PROJ_HIT_RADIUS_DEFAULT: { label: "Default Projectile Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
+
+  CHAT_MESSAGE_DURATION: { label: "Chat Bubble Duration (ms)", type: "number", min: 500, max: 20000, step: 500, category: "Social & Chat" },
+  CHAT_FADE_OUT_DURATION: { label: "Chat Bubble Fade-out time (ms)", type: "number", min: 100, max: 5000, step: 100, category: "Social & Chat" }
+};
+
+// ==========================================
+// C. CONFIG LOAD & DYNAMIC INITIALIZATION
+// ==========================================
+let savedConfig = {};
+try {
+  savedConfig = JSON.parse(localStorage.getItem('nightvibe-custom-config') || '{}');
+} catch (e) {
+  console.error("Failed parsing custom config", e);
+}
+
+const activeConfig = Object.assign({}, DEFAULTS, savedConfig);
+
+// ==========================================
+// D. LIVE LET BINDINGS EXPORTS
+// ==========================================
+export let GAME_W = activeConfig.GAME_W;
+export let GAME_H = activeConfig.GAME_H;
+export let DEPTH_GROUND_TOP = activeConfig.DEPTH_GROUND_TOP;
+export let DEPTH_GROUND_BOTTOM = activeConfig.DEPTH_GROUND_BOTTOM;
+export let GROUND_TOLERANCE = activeConfig.GROUND_TOLERANCE;
+export let DEAD_BODY_LIFETIME = activeConfig.DEAD_BODY_LIFETIME;
+
+export let MOVE_SPEED = activeConfig.MOVE_SPEED;
+
+export let RANGED_MAX_RANGE = activeConfig.RANGED_MAX_RANGE;
+export let WARRIOR_MELEE_RANGE = activeConfig.WARRIOR_MELEE_RANGE;
+export let MAGICGLADIATOR_MELEE_RANGE = activeConfig.MAGICGLADIATOR_MELEE_RANGE;
+export let MELEE_RANGE_LVL_SCALE_MULT = activeConfig.MELEE_RANGE_LVL_SCALE_MULT;
+
+export let LEVEL_UP_STAT_POINTS = activeConfig.LEVEL_UP_STAT_POINTS;
+export let REQ_KILLS_BASE_MULT = activeConfig.REQ_KILLS_BASE_MULT;
+export let REQ_KILLS_EXPONENT = activeConfig.REQ_KILLS_EXPONENT;
+export let REQ_KILLS_SIN_AMP = activeConfig.REQ_KILLS_SIN_AMP;
+export let REBIRTH_BASE_LEVEL = activeConfig.REBIRTH_BASE_LEVEL;
+export let REBIRTH_LEVEL_STEP = activeConfig.REBIRTH_LEVEL_STEP;
+export let REBIRTH_POINTS_PER_LEVEL = activeConfig.REBIRTH_POINTS_PER_LEVEL;
+export let LIMIT_LEVEL_TO_REBIRTH_REQ = activeConfig.LIMIT_LEVEL_TO_REBIRTH_REQ;
+
+export let PLAYER_INITIAL_LEVEL = activeConfig.PLAYER_INITIAL_LEVEL;
+export let PLAYER_INITIAL_KILLS = activeConfig.PLAYER_INITIAL_KILLS;
+export let PLAYER_INITIAL_STAT_POINTS = activeConfig.PLAYER_INITIAL_STAT_POINTS;
+export let PLAYER_INITIAL_RESETS = activeConfig.PLAYER_INITIAL_RESETS;
+
+export let GAME_INITIAL_WAVE = activeConfig.GAME_INITIAL_WAVE;
+export let GAME_INITIAL_KILLS = activeConfig.GAME_INITIAL_KILLS;
+export let GAME_INITIAL_WAVE_ENEMIES = activeConfig.GAME_INITIAL_WAVE_ENEMIES;
+
+export let ENEMY_SPAWN_INTERVAL = activeConfig.ENEMY_SPAWN_INTERVAL;
+export let ENEMY_SCALE_WAVE_MULT = activeConfig.ENEMY_SCALE_WAVE_MULT;
+export let ENEMY_SCALE_LVL_MULT = activeConfig.ENEMY_SCALE_LVL_MULT;
+export let ENEMY_SKY_SPEED_MULTIPLIER = activeConfig.ENEMY_SKY_SPEED_MULTIPLIER;
+
+export let BOSS_BASE_HP = activeConfig.BOSS_BASE_HP;
+export let BOSS_BASE_ATK = activeConfig.BOSS_BASE_ATK;
+export let BOSS_BASE_SPEED = activeConfig.BOSS_BASE_SPEED;
+export let BOSS_BASE_SIZE = activeConfig.BOSS_BASE_SIZE;
+export let BOSS_BASE_COLOR = activeConfig.BOSS_BASE_COLOR;
+export let BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
+export let ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
+export let ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
+
+export let POTION_BUFF_DURATION = activeConfig.POTION_BUFF_DURATION;
+export let POTION_LIFESTEAL_PERCENT = activeConfig.POTION_LIFESTEAL_PERCENT;
+
+export let PROJ_HIT_RADIUS_ARROW = activeConfig.PROJ_HIT_RADIUS_ARROW;
+export let PROJ_HIT_RADIUS_BOLT = activeConfig.PROJ_HIT_RADIUS_BOLT;
+export let PROJ_HIT_RADIUS_DEFAULT = activeConfig.PROJ_HIT_RADIUS_DEFAULT;
+
+export let CHAT_MESSAGE_DURATION = activeConfig.CHAT_MESSAGE_DURATION;
+export let CHAT_FADE_OUT_DURATION = activeConfig.CHAT_FADE_OUT_DURATION;
+
+// Static-structure configurations
 export const MOVE_STOP_DIST = 3;
-
 export const PLAYER_MOVE_SPEEDS = {
   warrior: 2.5,
   magicgladiator: 2.3,
@@ -28,88 +205,6 @@ export const PLAYER_MOVE_SPEEDS = {
   default: 2.5
 };
 
-// ==========================================
-// 3. PLAYER ATTACK & RANGE CONFIGURATIONS
-// ==========================================
-export const RANGED_MAX_RANGE = 450;
-export const WARRIOR_MELEE_RANGE = 90;
-export const MAGICGLADIATOR_MELEE_RANGE = 80;
-export const MELEE_RANGE_LVL_SCALE_MULT = 0.8;
-
-// ==========================================
-// 4. PLAYER PROGRESSION & REBIRTH SETTINGS
-// ==========================================
-export const LEVEL_UP_STAT_POINTS = 5;
-export const REQ_KILLS_BASE_MULT = 5;
-export const REQ_KILLS_EXPONENT = 1.4;
-export const REQ_KILLS_SIN_AMP = 2;
-
-export const REBIRTH_BASE_LEVEL = 4;
-export const REBIRTH_LEVEL_STEP = 5;
-export const REBIRTH_POINTS_PER_LEVEL = 5;
-export const LIMIT_LEVEL_TO_REBIRTH_REQ = true; // If true, player level is capped at the level required for rebirth
-
-// ==========================================
-// 5. PLAYER INITIAL STATE CONFIGURATION
-// ==========================================
-export const PLAYER_INITIAL_LEVEL = 1;
-export const PLAYER_INITIAL_KILLS = 0;
-export const PLAYER_INITIAL_STAT_POINTS = 0;
-export const PLAYER_INITIAL_RESETS = 0;
-
-// ==========================================
-// 6. INITIAL GAME STATE CONFIGURATION
-// ==========================================
-export const GAME_INITIAL_WAVE = 1;
-export const GAME_INITIAL_KILLS = 0;
-export const GAME_INITIAL_WAVE_ENEMIES = 10;
-
-// ==========================================
-// 7. ENEMY & BOSS SPAWNING & DIFFICULTY SCALING
-// ==========================================
-export const ENEMY_SPAWN_INTERVAL = 800;
-
-// Scaling factors per wave and average player level
-export const ENEMY_SCALE_WAVE_MULT = 0.15;
-export const ENEMY_SCALE_LVL_MULT = 0.12;
-
-// Sky Spawn descent speed multiplier
-export const ENEMY_SKY_SPEED_MULTIPLIER = 2.0;
-
-// Boss Default Specifications
-export const BOSS_BASE_HP = 250;
-export const BOSS_BASE_ATK = 18;
-export const BOSS_BASE_SPEED = 0.2;
-export const BOSS_BASE_SIZE = 48;
-export const BOSS_BASE_COLOR = '#8e44ad';
-
-// Attack Cooldowns (in frames/ticks, where 60 ticks ~= 1 second)
-export const BOSS_ATTACK_COOLDOWN = 120;
-export const ENEMY_ATTACK_COOLDOWN_BASE = 60;
-export const ENEMY_ATTACK_COOLDOWN_RAND = 40;
-
-// ==========================================
-// 8. POTION & BUFF CONFIGURATIONS
-// ==========================================
-export const POTION_BUFF_DURATION = 10000; // in milliseconds (10 seconds)
-export const POTION_LIFESTEAL_PERCENT = 0.75; // Vampirism heals 75% of dealt damage
-
-// ==========================================
-// 9. PROJECTILE COLLISION CONFIGURATIONS
-// ==========================================
-export const PROJ_HIT_RADIUS_ARROW = 12;
-export const PROJ_HIT_RADIUS_BOLT = 10;
-export const PROJ_HIT_RADIUS_DEFAULT = 15;
-
-// ==========================================
-// 10. CHAT & STATUS CONFIGURATIONS
-// ==========================================
-export const CHAT_MESSAGE_DURATION = 5000; // Duration in ms for status/chat messages
-export const CHAT_FADE_OUT_DURATION = 500;  // Fade out time in ms at the end
-
-// ==========================================
-// 11. CLASS DATA & SKILLS DEFINITIONS
-// ==========================================
 export const CLASS_DATA = {
   warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700' },
   mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22' },
@@ -117,7 +212,6 @@ export const CLASS_DATA = {
   magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700' }
 };
 
-// Enemy Species Specifications
 export const ENEMY_TYPES = [
   { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
   { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
@@ -129,7 +223,6 @@ export const ENEMY_TYPES = [
   { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
 ];
 
-// Arena Environments
 export const ENV_LIST = ['forest', 'castle', 'volcano', 'beach', 'tundra', 'swamp'];
 export const ENV_DISPLAY = { forest: 'Forest', castle: 'Castle', volcano: 'Volcano', beach: 'Beach', tundra: 'Tundra', swamp: 'Swamp' };
 export const ENV_CONFIG = {
@@ -141,7 +234,6 @@ export const ENV_CONFIG = {
   swamp: { skyTop: '#0a1a0a', skyMid: '#1a2a1a', skyBot: '#0a150a', ground: '#1a2a1a', groundY: 0.48, horizonType: 'deadtrees', horizonColor: '#081108', groundType: 'mud', groundColor: '#3e4a34' }
 };
 
-// Skill Description Overlays
 export const SKILL_DESC = {
   warrior: {
     s1: { name: 'Bash', desc: 'Wide arc strike. 100% ATK + knockback.', ctrl: 'Left-click enemy' },
@@ -160,3 +252,79 @@ export const SKILL_DESC = {
     s2: { name: 'Cross Slash', desc: 'Massive AoE explosion. 300% ATK.', ctrl: 'Right-click / long-press' }
   }
 };
+
+// ==========================================
+// E. DYNAMIC SETTINGS CONTROLS FUNCTIONS
+// ==========================================
+export function updateConfig(newValues) {
+  for (const key in newValues) {
+    if (DEFAULTS[key] !== undefined) {
+      activeConfig[key] = newValues[key];
+    }
+  }
+
+  // Save customized config object back to localStorage
+  localStorage.setItem('nightvibe-custom-config', JSON.stringify(activeConfig));
+
+  // Dynamically update the live bindings so that all other game source modules receive the fresh settings immediately!
+  GAME_W = activeConfig.GAME_W;
+  GAME_H = activeConfig.GAME_H;
+  DEPTH_GROUND_TOP = activeConfig.DEPTH_GROUND_TOP;
+  DEPTH_GROUND_BOTTOM = activeConfig.DEPTH_GROUND_BOTTOM;
+  GROUND_TOLERANCE = activeConfig.GROUND_TOLERANCE;
+  DEAD_BODY_LIFETIME = activeConfig.DEAD_BODY_LIFETIME;
+
+  MOVE_SPEED = activeConfig.MOVE_SPEED;
+
+  RANGED_MAX_RANGE = activeConfig.RANGED_MAX_RANGE;
+  WARRIOR_MELEE_RANGE = activeConfig.WARRIOR_MELEE_RANGE;
+  MAGICGLADIATOR_MELEE_RANGE = activeConfig.MAGICGLADIATOR_MELEE_RANGE;
+  MELEE_RANGE_LVL_SCALE_MULT = activeConfig.MELEE_RANGE_LVL_SCALE_MULT;
+
+  LEVEL_UP_STAT_POINTS = activeConfig.LEVEL_UP_STAT_POINTS;
+  REQ_KILLS_BASE_MULT = activeConfig.REQ_KILLS_BASE_MULT;
+  REQ_KILLS_EXPONENT = activeConfig.REQ_KILLS_EXPONENT;
+  REQ_KILLS_SIN_AMP = activeConfig.REQ_KILLS_SIN_AMP;
+  REBIRTH_BASE_LEVEL = activeConfig.REBIRTH_BASE_LEVEL;
+  REBIRTH_LEVEL_STEP = activeConfig.REBIRTH_LEVEL_STEP;
+  REBIRTH_POINTS_PER_LEVEL = activeConfig.REBIRTH_POINTS_PER_LEVEL;
+  LIMIT_LEVEL_TO_REBIRTH_REQ = activeConfig.LIMIT_LEVEL_TO_REBIRTH_REQ;
+
+  PLAYER_INITIAL_LEVEL = activeConfig.PLAYER_INITIAL_LEVEL;
+  PLAYER_INITIAL_KILLS = activeConfig.PLAYER_INITIAL_KILLS;
+  PLAYER_INITIAL_STAT_POINTS = activeConfig.PLAYER_INITIAL_STAT_POINTS;
+  PLAYER_INITIAL_RESETS = activeConfig.PLAYER_INITIAL_RESETS;
+
+  GAME_INITIAL_WAVE = activeConfig.GAME_INITIAL_WAVE;
+  GAME_INITIAL_KILLS = activeConfig.GAME_INITIAL_KILLS;
+  GAME_INITIAL_WAVE_ENEMIES = activeConfig.GAME_INITIAL_WAVE_ENEMIES;
+
+  ENEMY_SPAWN_INTERVAL = activeConfig.ENEMY_SPAWN_INTERVAL;
+  ENEMY_SCALE_WAVE_MULT = activeConfig.ENEMY_SCALE_WAVE_MULT;
+  ENEMY_SCALE_LVL_MULT = activeConfig.ENEMY_SCALE_LVL_MULT;
+  ENEMY_SKY_SPEED_MULTIPLIER = activeConfig.ENEMY_SKY_SPEED_MULTIPLIER;
+
+  BOSS_BASE_HP = activeConfig.BOSS_BASE_HP;
+  BOSS_BASE_ATK = activeConfig.BOSS_BASE_ATK;
+  BOSS_BASE_SPEED = activeConfig.BOSS_BASE_SPEED;
+  BOSS_BASE_SIZE = activeConfig.BOSS_BASE_SIZE;
+  BOSS_BASE_COLOR = activeConfig.BOSS_BASE_COLOR;
+  BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
+  ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
+  ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
+
+  POTION_BUFF_DURATION = activeConfig.POTION_BUFF_DURATION;
+  POTION_LIFESTEAL_PERCENT = activeConfig.POTION_LIFESTEAL_PERCENT;
+
+  PROJ_HIT_RADIUS_ARROW = activeConfig.PROJ_HIT_RADIUS_ARROW;
+  PROJ_HIT_RADIUS_BOLT = activeConfig.PROJ_HIT_RADIUS_BOLT;
+  PROJ_HIT_RADIUS_DEFAULT = activeConfig.PROJ_HIT_RADIUS_DEFAULT;
+
+  CHAT_MESSAGE_DURATION = activeConfig.CHAT_MESSAGE_DURATION;
+  CHAT_FADE_OUT_DURATION = activeConfig.CHAT_FADE_OUT_DURATION;
+}
+
+export function resetConfig() {
+  localStorage.removeItem('nightvibe-custom-config');
+  updateConfig(DEFAULTS);
+}

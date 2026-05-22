@@ -1,4 +1,5 @@
-import { CLASS_DATA, SKILL_DESC, ENV_DISPLAY, GAME_W, GAME_H } from './utils.js';
+import { CLASS_DATA, SKILL_DESC, ENV_DISPLAY, GAME_W, GAME_H, CONFIG_METADATA, updateConfig, resetConfig } from './utils.js';
+import * as ConfigModule from './config.js';
 
 export default class UI {
     constructor(gameInstance) {
@@ -210,6 +211,202 @@ export default class UI {
             autoLimitCheck.addEventListener('change', (e) => {
                 this.game.settings.autoLimit = e.target.checked;
                 localStorage.setItem('nightvibe-settings', JSON.stringify(this.game.settings));
+            });
+        }
+
+        // ==========================================
+        // DYNAMIC GAMEPLAY CONFIG BALANCE EDITOR UI
+        // ==========================================
+        const btnOpenConfigEditor = document.getElementById('btn-open-config-editor');
+        const configEditorModal = document.getElementById('config-editor-modal');
+        const btnConfigEditorCloseIcon = document.getElementById('btn-config-editor-close-icon');
+        const btnConfigSave = document.getElementById('btn-config-save');
+        const btnConfigReset = document.getElementById('btn-config-reset');
+        const btnConfigExport = document.getElementById('btn-config-export');
+        const btnConfigImport = document.getElementById('btn-config-import');
+        const importFileInput = document.getElementById('config-import-file');
+
+        const buildConfigFields = () => {
+            const container = document.getElementById('config-fields-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            // Group metadata by category dynamically
+            const categories = {};
+            for (const key in CONFIG_METADATA) {
+                const meta = CONFIG_METADATA[key];
+                const cat = meta.category || 'General';
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push({ key, ...meta });
+            }
+
+            // Create input controls for each category
+            for (const cat in categories) {
+                const catEl = document.createElement('div');
+                catEl.style.marginBottom = '20px';
+                catEl.style.background = 'rgba(0,0,0,0.3)';
+                catEl.style.padding = '15px';
+                catEl.style.borderRadius = '8px';
+                catEl.style.borderLeft = '4px solid #2ecc71';
+
+                const catHeader = document.createElement('h3');
+                catHeader.style.margin = '0 0 12px 0';
+                catHeader.style.color = '#2ecc71';
+                catHeader.style.fontSize = '1.15em';
+                catHeader.textContent = cat;
+                catEl.appendChild(catHeader);
+
+                categories[cat].forEach(meta => {
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.style.marginBottom = '12px';
+                    const currentValue = ConfigModule[meta.key];
+
+                    if (meta.type === 'boolean') {
+                        fieldDiv.innerHTML = `
+                            <label style="display:flex; align-items:center; cursor:pointer;">
+                                <input type="checkbox" id="cfg-${meta.key}" ${currentValue ? 'checked' : ''} style="margin-right:10px; transform:scale(1.2);">
+                                <span style="font-size:0.95em;">${meta.label}</span>
+                            </label>
+                        `;
+                    } else if (meta.type === 'color') {
+                        fieldDiv.innerHTML = `
+                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px;">${meta.label}</label>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <input type="color" id="cfg-${meta.key}" value="${currentValue}" style="border:none; background:none; cursor:pointer; width:50px; height:30px; padding:0; outline:none;">
+                                <span style="font-family:monospace; color:#2ecc71; font-size:0.9em;">${currentValue}</span>
+                            </div>
+                        `;
+                    } else {
+                        fieldDiv.innerHTML = `
+                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px;">${meta.label}</label>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <input type="number" id="cfg-${meta.key}" value="${currentValue}" min="${meta.min}" max="${meta.max}" step="${meta.step}" style="flex:1; padding:8px 12px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:15px;">
+                                <span style="font-size:0.85em; color:#7f8c8d; font-family:monospace; white-space:nowrap;">[${meta.min}-${meta.max}]</span>
+                            </div>
+                        `;
+                    }
+                    catEl.appendChild(fieldDiv);
+                });
+
+                container.appendChild(catEl);
+            }
+        };
+
+        const saveConfigFromUI = () => {
+            const newValues = {};
+            for (const key in CONFIG_METADATA) {
+                const input = document.getElementById(`cfg-${key}`);
+                if (!input) continue;
+
+                const meta = CONFIG_METADATA[key];
+                if (meta.type === 'boolean') {
+                    newValues[key] = input.checked;
+                } else if (meta.type === 'color') {
+                    newValues[key] = input.value;
+                } else {
+                    newValues[key] = parseFloat(input.value);
+                }
+            }
+
+            // Save to localStorage & dynamic live-binding exports
+            updateConfig(newValues);
+
+            // Re-apply configurations onto active game components
+            if (this.game) {
+                if (this.game.canvas) {
+                    this.game.canvas.width = ConfigModule.GAME_W;
+                    this.game.canvas.height = ConfigModule.GAME_H;
+                    this.game.resizeCanvas();
+                }
+                
+                if (this.game.player) {
+                    this.game.player.moveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.game.player.classType] || ConfigModule.PLAYER_MOVE_SPEEDS.default;
+                    if (this.game.player.classType === 'warrior') {
+                        this.game.player.atkRange = ConfigModule.WARRIOR_MELEE_RANGE;
+                    } else if (this.game.player.classType === 'magicgladiator') {
+                        this.game.player.atkRange = ConfigModule.MAGICGLADIATOR_MELEE_RANGE;
+                    } else {
+                        this.game.player.atkRange = ConfigModule.RANGED_MAX_RANGE;
+                    }
+                    this.updateHUD(this.game.player);
+                }
+
+                // Scenery depth ratio refresh
+                this.game.generateScenery(this.game.selectedEnv);
+                this.game.broadcastState();
+            }
+
+            this.addLog("🛠️ Configuration saved & applied successfully!");
+        };
+
+        if (btnOpenConfigEditor) {
+            btnOpenConfigEditor.addEventListener('click', () => {
+                settingsModal.style.display = 'none';
+                configEditorModal.style.display = 'flex';
+                buildConfigFields();
+            });
+        }
+
+        if (btnConfigEditorCloseIcon) {
+            btnConfigEditorCloseIcon.addEventListener('click', () => {
+                configEditorModal.style.display = 'none';
+            });
+        }
+
+        if (btnConfigSave) {
+            btnConfigSave.addEventListener('click', () => {
+                saveConfigFromUI();
+                configEditorModal.style.display = 'none';
+            });
+        }
+
+        if (btnConfigReset) {
+            btnConfigReset.addEventListener('click', () => {
+                if (confirm("Reset all game balance settings to original defaults?")) {
+                    resetConfig();
+                    buildConfigFields();
+                    this.addLog("🛠️ Custom configurations reset to defaults.");
+                }
+            });
+        }
+
+        if (btnConfigExport) {
+            btnConfigExport.addEventListener('click', () => {
+                const activeConfig = {};
+                for (const key in CONFIG_METADATA) {
+                    activeConfig[key] = ConfigModule[key];
+                }
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeConfig, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", "nightvibe-gameplay-config.json");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                this.addLog("📥 Gameplay balance config exported.");
+            });
+        }
+
+        if (btnConfigImport && importFileInput) {
+            btnConfigImport.addEventListener('click', () => {
+                importFileInput.click();
+            });
+            importFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        updateConfig(imported);
+                        buildConfigFields();
+                        this.addLog("📤 Gameplay balance config imported successfully!");
+                    } catch (err) {
+                        alert("Failed to parse configuration JSON: " + err.message);
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
             });
         }
     }
