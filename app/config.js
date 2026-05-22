@@ -82,12 +82,15 @@ const FALLBACK_DEFAULTS = {
   EQUIPMENT_SLOTS: 'Weapon,Armor,Ring 1,Ring 2,Amulet',
 
   // 12. Gear Drops & Stats
-  GEAR_DROP_RATE: 0.15,
-  GEAR_RARITY_NORMAL: 0.60,
-  GEAR_RARITY_MAGIC: 0.30,
-  GEAR_RARITY_RARE: 0.10,
-  GEAR_STAT_MULTIPLIER: 1.5,
-  GEAR_STAT_VARIANCE: 0.2
+ GEAR_DROP_RATE: 0.15,
+   GEAR_RARITY_NORMAL: 0.60,
+   GEAR_RARITY_MAGIC: 0.30,
+   GEAR_RARITY_RARE: 0.10,
+   GEAR_STAT_MULTIPLIER: 1.5,
+   GEAR_STAT_VARIANCE: 0.2,
+   GEAR_DROP_ONLY_BOSS: false,
+   POTION_RED_DROP_CHANCE: 0.25,
+   POTION_BLUE_DROP_CHANCE: 0.10
 };
 
 export let DEFAULTS = { ...FALLBACK_DEFAULTS };
@@ -185,7 +188,10 @@ export const CONFIG_METADATA = {
   GEAR_RARITY_MAGIC: { label: "Magic Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
   GEAR_RARITY_RARE: { label: "Rare Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
   GEAR_STAT_MULTIPLIER: { label: "Gear Base Stat Multiplier", type: "number", min: 0.5, max: 5.0, step: 0.1, category: "Gear Drops & Stats" },
-  GEAR_STAT_VARIANCE: { label: "Gear Stat Variance (+/- %)", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" }
+  GEAR_STAT_VARIANCE: { label: "Gear Stat Variance (+/- %)", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+   GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" },
+   POTION_RED_DROP_CHANCE: { label: "Red Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+   POTION_BLUE_DROP_CHANCE: { label: "Blue Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" }
 };
 
 // ==========================================
@@ -270,11 +276,14 @@ export let NETWORK_ROOM_NAME = activeConfig.NETWORK_ROOM_NAME;
 export let EQUIPMENT_SLOTS = activeConfig.EQUIPMENT_SLOTS;
 
 export let GEAR_DROP_RATE = activeConfig.GEAR_DROP_RATE;
-export let GEAR_RARITY_NORMAL = activeConfig.GEAR_RARITY_NORMAL;
-export let GEAR_RARITY_MAGIC = activeConfig.GEAR_RARITY_MAGIC;
-export let GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
-export let GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
-export let GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
+ export let GEAR_RARITY_NORMAL = activeConfig.GEAR_RARITY_NORMAL;
+ export let GEAR_RARITY_MAGIC = activeConfig.GEAR_RARITY_MAGIC;
+ export let GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
+ export let GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
+ export let GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
+ export let GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
+ export let POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
+ export let POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
 
 // Static-structure configurations
 export const MOVE_STOP_DIST = 3;
@@ -419,8 +428,11 @@ export function updateConfig(newValues) {
   GEAR_RARITY_MAGIC = activeConfig.GEAR_RARITY_MAGIC;
   GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
   GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
-  GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
-}
+ GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
+   GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
+   POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
+   POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
+ }
 
 export function resetConfig() {
   localStorage.removeItem('nightvibe-custom-config');

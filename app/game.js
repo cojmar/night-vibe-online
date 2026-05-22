@@ -1657,18 +1657,24 @@ export default class Game {
         e.update(dt, activePlayers);
 
         if (this.isHost && !e.alive && !e.deadProcessed) {
-          e.deadProcessed = true;
-          const dropChance = Math.max(0.04, 0.35 - (this.wave * 0.025));
-          const groundY = getGroundY(this.selectedEnv);
-          
-          if (Math.random() < dropChance) {
-             const type = Math.random() < 0.55 ? 'red' : 'blue';
-             const lifeTime = 15000 + this.wave * 2000;
-             const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
-             this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
-          }
+           e.deadProcessed = true;
+           const groundY = getGroundY(this.selectedEnv);
+           
+           if (Math.random() < ConfigModule.POTION_RED_DROP_CHANCE) {
+              const lifeTime = 15000 + this.wave * 2000;
+              const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+              this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+           }
 
-          if (Math.random() < ConfigModule.GEAR_DROP_RATE) {
+           if (Math.random() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
+              const lifeTime = 15000 + this.wave * 2000;
+              const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+              this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+           }
+
+           if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
+               // do nothing
+           } else if (Math.random() < ConfigModule.GEAR_DROP_RATE) {
              let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
              let randRarity = Math.random();
              const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
