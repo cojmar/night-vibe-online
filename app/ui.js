@@ -1168,11 +1168,12 @@ export default class UI {
         } else {
             c.style.strokeDasharray = circ;
             c.style.strokeDashoffset = 0;
-            c.style.stroke = '#2ecc71';
-            t.textContent = 'RDY';
-            t.style.color = '#2ecc71';
-            t.style.fontSize = '14px';
-            t.style.fontWeight = 'bold';
+            c.style.stroke = '#f1c40f';
+            const icon = (CLASS_DATA && CLASS_DATA[this.selectedClass]) ? CLASS_DATA[this.selectedClass].icon : '💥';
+            t.textContent = icon;
+            t.style.color = '#fff';
+            t.style.fontSize = '24px';
+            t.style.fontWeight = 'normal';
         }
     }
 
