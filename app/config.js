@@ -4,24 +4,21 @@
 // A. DEFAULT CONFIGURATIONS OBJECT
 // ==========================================
 export const DEFAULTS = {
-  // 1. Viewport & Rendering
-  GAME_W: 1440,
-  GAME_H: 1024,
-  DEPTH_GROUND_TOP: 0.45,
-  DEPTH_GROUND_BOTTOM: 1.0,
-  GROUND_TOLERANCE: 30,
-  DEAD_BODY_LIFETIME: 2000,
-
-  // 2. Player Movement
+  // 1. Player Movement (Simple)
   MOVE_SPEED: 2.5,
 
-  // 3. Player Combat
+  // 2. Player Combat & Ranges
   RANGED_MAX_RANGE: 450,
   WARRIOR_MELEE_RANGE: 90,
   MAGICGLADIATOR_MELEE_RANGE: 80,
   MELEE_RANGE_LVL_SCALE_MULT: 0.8,
+  E1_RANGE_ATK_EXPONENT: 1.2,
 
-  // 4. Progression & Rebirth
+  // 3. Player Progression & Rebirth
+  PLAYER_INITIAL_LEVEL: 1,
+  PLAYER_INITIAL_KILLS: 0,
+  PLAYER_INITIAL_STAT_POINTS: 0,
+  PLAYER_INITIAL_RESETS: 0,
   LEVEL_UP_STAT_POINTS: 5,
   REQ_KILLS_BASE_MULT: 5,
   REQ_KILLS_EXPONENT: 1.4,
@@ -31,47 +28,49 @@ export const DEFAULTS = {
   REBIRTH_POINTS_PER_LEVEL: 5,
   LIMIT_LEVEL_TO_REBIRTH_REQ: true,
 
-  // 5. Initial Character Stats
-  PLAYER_INITIAL_LEVEL: 1,
-  PLAYER_INITIAL_KILLS: 0,
-  PLAYER_INITIAL_STAT_POINTS: 0,
-  PLAYER_INITIAL_RESETS: 0,
+  // 4. Potions & Elixirs (Advanced Buffs)
+  POTION_BUFF_DURATION: 10000,
+  POTION_LIFESTEAL_PERCENT: 0.75,
+  POTION_BLUE_BUFF_DURATION: 10000,
+  POTION_BLUE_CD_MULTIPLIER: 5.0,
+
+  // 5. Viewport & Display (Environmental)
+  GAME_W: 1440,
+  GAME_H: 1024,
+  DEPTH_GROUND_TOP: 0.45,
+  DEPTH_GROUND_BOTTOM: 1.0,
+  GROUND_TOLERANCE: 30,
+  DEAD_BODY_LIFETIME: 2000,
 
   // 6. Waves Setup
   GAME_INITIAL_WAVE: 1,
   GAME_INITIAL_KILLS: 0,
   GAME_INITIAL_WAVE_ENEMIES: 10,
 
-  // 7. Enemy Scaling & Timing
+  // 7. Enemy Dynamics & Timing
   ENEMY_SPAWN_INTERVAL: 800,
   ENEMY_SCALE_WAVE_MULT: 0.15,
   ENEMY_SCALE_LVL_MULT: 0.12,
   ENEMY_SKY_SPEED_MULTIPLIER: 2.0,
+  ENEMY_ATTACK_COOLDOWN_BASE: 60,
+  ENEMY_ATTACK_COOLDOWN_RAND: 40,
 
-  // 7b. Boss Balance
+  // 8. Boss Balance
   BOSS_BASE_HP: 250,
   BOSS_BASE_ATK: 18,
   BOSS_BASE_SPEED: 0.2,
   BOSS_BASE_SIZE: 48,
   BOSS_BASE_COLOR: '#8e44ad',
   BOSS_ATTACK_COOLDOWN: 120,
-  ENEMY_ATTACK_COOLDOWN_BASE: 60,
-  ENEMY_ATTACK_COOLDOWN_RAND: 40,
-
-  // 8. Potion & Buffs
-  POTION_BUFF_DURATION: 10000,
-  POTION_LIFESTEAL_PERCENT: 0.75,
 
   // 9. Projectile Collision Size
   PROJ_HIT_RADIUS_ARROW: 12,
   PROJ_HIT_RADIUS_BOLT: 10,
   PROJ_HIT_RADIUS_DEFAULT: 15,
 
-  // 10. Chat bubbles
+  // 10. Social, Chat & Network
   CHAT_MESSAGE_DURATION: 5000,
   CHAT_FADE_OUT_DURATION: 500,
-
-  // 11. Network settings
   NETWORK_ROOM_NAME: 'Night-Vibe-Online-Arena'
 };
 
@@ -79,20 +78,17 @@ export const DEFAULTS = {
 // B. METADATA FOR DYNAMIC SETTINGS UI GENERATION
 // ==========================================
 export const CONFIG_METADATA = {
-  GAME_W: { label: "Game Width", type: "number", min: 800, max: 2560, step: 80, category: "Viewport & Display" },
-  GAME_H: { label: "Game Height", type: "number", min: 600, max: 1600, step: 64, category: "Viewport & Display" },
-  DEPTH_GROUND_TOP: { label: "Ground Top Depth Ratio", type: "number", min: 0.1, max: 0.9, step: 0.05, category: "Viewport & Display" },
-  DEPTH_GROUND_BOTTOM: { label: "Ground Bottom Depth Ratio", type: "number", min: 0.5, max: 1.0, step: 0.05, category: "Viewport & Display" },
-  GROUND_TOLERANCE: { label: "Ground Y-Tolerance (px)", type: "number", min: 5, max: 100, step: 5, category: "Viewport & Display" },
-  DEAD_BODY_LIFETIME: { label: "Dead Body Lifetime (ms)", type: "number", min: 500, max: 10000, step: 500, category: "Viewport & Display" },
-
+  // 1. Player Movement (Simple)
   MOVE_SPEED: { label: "Global Move Speed", type: "number", min: 0.5, max: 10, step: 0.1, category: "Player Movement" },
 
+  // 2. Player Combat & Ranges
   RANGED_MAX_RANGE: { label: "Ranged Max Attack Range", type: "number", min: 100, max: 1000, step: 50, category: "Combat & Ranges" },
   WARRIOR_MELEE_RANGE: { label: "Warrior Melee Attack Range", type: "number", min: 30, max: 300, step: 10, category: "Combat & Ranges" },
   MAGICGLADIATOR_MELEE_RANGE: { label: "Magic Gladiator Melee Range", type: "number", min: 30, max: 300, step: 10, category: "Combat & Ranges" },
   MELEE_RANGE_LVL_SCALE_MULT: { label: "Melee Level-Scale Factor", type: "number", min: 0.1, max: 2.0, step: 0.05, category: "Combat & Ranges" },
+  E1_RANGE_ATK_EXPONENT: { label: "E1 Projectile Range ATK Exponent", type: "number", min: 0.0, max: 3.0, step: 0.1, category: "Combat & Ranges" },
 
+  // 3. Player Progression & Rebirth
   LEVEL_UP_STAT_POINTS: { label: "Stat Points per Level Up", type: "number", min: 1, max: 20, step: 1, category: "Player Progression" },
   REQ_KILLS_BASE_MULT: { label: "Req Kills Base Multiplier", type: "number", min: 1, max: 20, step: 1, category: "Player Progression" },
   REQ_KILLS_EXPONENT: { label: "Req Kills Exponential Curve", type: "number", min: 1.0, max: 3.0, step: 0.1, category: "Player Progression" },
@@ -102,27 +98,42 @@ export const CONFIG_METADATA = {
   REBIRTH_POINTS_PER_LEVEL: { label: "Rebirth Points per Level", type: "number", min: 1, max: 20, step: 1, category: "Player Progression" },
   LIMIT_LEVEL_TO_REBIRTH_REQ: { label: "Cap Level to Rebirth Reqs", type: "boolean", category: "Player Progression" },
 
+  // 4. Potions & Elixirs (Advanced Buffs)
+  POTION_BUFF_DURATION: { label: "Vampirism Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
+  POTION_LIFESTEAL_PERCENT: { label: "Vampirism Heal Percentage", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
+  POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
+  POTION_BLUE_CD_MULTIPLIER: { label: "Mana Potion CD Recovery Mult", type: "number", min: 1.0, max: 20.0, step: 0.5, category: "Potions & Elixirs" },
+
+  // 5. Viewport & Display (Environmental / Display settings)
+  GAME_W: { label: "Game Width", type: "number", min: 800, max: 2560, step: 80, category: "Viewport & Display" },
+  GAME_H: { label: "Game Height", type: "number", min: 600, max: 1600, step: 64, category: "Viewport & Display" },
+  DEPTH_GROUND_TOP: { label: "Ground Top Depth Ratio", type: "number", min: 0.1, max: 0.9, step: 0.05, category: "Viewport & Display" },
+  DEPTH_GROUND_BOTTOM: { label: "Ground Bottom Depth Ratio", type: "number", min: 0.5, max: 1.0, step: 0.05, category: "Viewport & Display" },
+  GROUND_TOLERANCE: { label: "Ground Y-Tolerance (px)", type: "number", min: 5, max: 100, step: 5, category: "Viewport & Display" },
+  DEAD_BODY_LIFETIME: { label: "Dead Body Lifetime (ms)", type: "number", min: 500, max: 10000, step: 500, category: "Viewport & Display" },
+
+  // 6. Enemy Dynamics & Timing
   ENEMY_SPAWN_INTERVAL: { label: "Enemy Spawn Delay (ms)", type: "number", min: 100, max: 5000, step: 100, category: "Enemy Dynamics" },
   ENEMY_SCALE_WAVE_MULT: { label: "Enemy HP/ATK Wave Multiplier", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Enemy Dynamics" },
   ENEMY_SCALE_LVL_MULT: { label: "Enemy HP/ATK Level Multiplier", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Enemy Dynamics" },
   ENEMY_SKY_SPEED_MULTIPLIER: { label: "Sky Spawn Falling Speed Mult", type: "number", min: 1.0, max: 5.0, step: 0.5, category: "Enemy Dynamics" },
+  ENEMY_ATTACK_COOLDOWN_BASE: { label: "Enemy Attack Delay Base (frames)", type: "number", min: 20, max: 200, step: 5, category: "Enemy Dynamics" },
+  ENEMY_ATTACK_COOLDOWN_RAND: { label: "Enemy Attack Delay Variance", type: "number", min: 0, max: 100, step: 5, category: "Enemy Dynamics" },
 
+  // 7. Boss Battles
   BOSS_BASE_HP: { label: "Boss Base HP", type: "number", min: 50, max: 2000, step: 50, category: "Boss Battles" },
   BOSS_BASE_ATK: { label: "Boss Base ATK", type: "number", min: 5, max: 100, step: 5, category: "Boss Battles" },
   BOSS_BASE_SPEED: { label: "Boss Base Speed Factor", type: "number", min: 0.05, max: 2.0, step: 0.05, category: "Boss Battles" },
   BOSS_BASE_SIZE: { label: "Boss Base Physical Size (px)", type: "number", min: 20, max: 100, step: 4, category: "Boss Battles" },
   BOSS_BASE_COLOR: { label: "Boss Accent Color", type: "color", category: "Boss Battles" },
   BOSS_ATTACK_COOLDOWN: { label: "Boss Attack Delay (frames)", type: "number", min: 20, max: 300, step: 10, category: "Boss Battles" },
-  ENEMY_ATTACK_COOLDOWN_BASE: { label: "Enemy Attack Delay Base (frames)", type: "number", min: 20, max: 200, step: 5, category: "Enemy Dynamics" },
-  ENEMY_ATTACK_COOLDOWN_RAND: { label: "Enemy Attack Delay Variance", type: "number", min: 0, max: 100, step: 5, category: "Enemy Dynamics" },
 
-  POTION_BUFF_DURATION: { label: "Vampirism Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
-  POTION_LIFESTEAL_PERCENT: { label: "Vampirism Heal Percentage", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
-
+  // 8. Projectiles & Hitboxes
   PROJ_HIT_RADIUS_ARROW: { label: "Arrow Hitbox Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
   PROJ_HIT_RADIUS_BOLT: { label: "Bolt Hitbox Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
   PROJ_HIT_RADIUS_DEFAULT: { label: "Default Projectile Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
 
+  // 9. Social & Chat
   CHAT_MESSAGE_DURATION: { label: "Chat Bubble Duration (ms)", type: "number", min: 500, max: 20000, step: 500, category: "Social & Chat" },
   CHAT_FADE_OUT_DURATION: { label: "Chat Bubble Fade-out time (ms)", type: "number", min: 100, max: 5000, step: 100, category: "Social & Chat" },
   NETWORK_ROOM_NAME: { label: "Multiplayer Room Name", type: "string", category: "Social & Chat" }
@@ -156,6 +167,7 @@ export let RANGED_MAX_RANGE = activeConfig.RANGED_MAX_RANGE;
 export let WARRIOR_MELEE_RANGE = activeConfig.WARRIOR_MELEE_RANGE;
 export let MAGICGLADIATOR_MELEE_RANGE = activeConfig.MAGICGLADIATOR_MELEE_RANGE;
 export let MELEE_RANGE_LVL_SCALE_MULT = activeConfig.MELEE_RANGE_LVL_SCALE_MULT;
+export let E1_RANGE_ATK_EXPONENT = activeConfig.E1_RANGE_ATK_EXPONENT;
 
 export let LEVEL_UP_STAT_POINTS = activeConfig.LEVEL_UP_STAT_POINTS;
 export let REQ_KILLS_BASE_MULT = activeConfig.REQ_KILLS_BASE_MULT;
@@ -191,6 +203,8 @@ export let ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
 
 export let POTION_BUFF_DURATION = activeConfig.POTION_BUFF_DURATION;
 export let POTION_LIFESTEAL_PERCENT = activeConfig.POTION_LIFESTEAL_PERCENT;
+export let POTION_BLUE_BUFF_DURATION = activeConfig.POTION_BLUE_BUFF_DURATION;
+export let POTION_BLUE_CD_MULTIPLIER = activeConfig.POTION_BLUE_CD_MULTIPLIER;
 
 export let PROJ_HIT_RADIUS_ARROW = activeConfig.PROJ_HIT_RADIUS_ARROW;
 export let PROJ_HIT_RADIUS_BOLT = activeConfig.PROJ_HIT_RADIUS_BOLT;
@@ -285,6 +299,7 @@ export function updateConfig(newValues) {
   WARRIOR_MELEE_RANGE = activeConfig.WARRIOR_MELEE_RANGE;
   MAGICGLADIATOR_MELEE_RANGE = activeConfig.MAGICGLADIATOR_MELEE_RANGE;
   MELEE_RANGE_LVL_SCALE_MULT = activeConfig.MELEE_RANGE_LVL_SCALE_MULT;
+  E1_RANGE_ATK_EXPONENT = activeConfig.E1_RANGE_ATK_EXPONENT;
 
   LEVEL_UP_STAT_POINTS = activeConfig.LEVEL_UP_STAT_POINTS;
   REQ_KILLS_BASE_MULT = activeConfig.REQ_KILLS_BASE_MULT;
@@ -320,6 +335,8 @@ export function updateConfig(newValues) {
 
   POTION_BUFF_DURATION = activeConfig.POTION_BUFF_DURATION;
   POTION_LIFESTEAL_PERCENT = activeConfig.POTION_LIFESTEAL_PERCENT;
+  POTION_BLUE_BUFF_DURATION = activeConfig.POTION_BLUE_BUFF_DURATION;
+  POTION_BLUE_CD_MULTIPLIER = activeConfig.POTION_BLUE_CD_MULTIPLIER;
 
   PROJ_HIT_RADIUS_ARROW = activeConfig.PROJ_HIT_RADIUS_ARROW;
   PROJ_HIT_RADIUS_BOLT = activeConfig.PROJ_HIT_RADIUS_BOLT;

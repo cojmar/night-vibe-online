@@ -908,15 +908,23 @@ export default class Game {
         this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color, radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
         this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color, 5, 3);
         break;
-      case 'mage':
-        this.projectiles.push(new Projectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: 60, maxLife: 60, color: '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
+      case 'mage': {
+        const mageBaseAtk = cd.atk;
+        const mageRangeMult = Math.pow(this.player.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
+        const mageLife = Math.round(60 * mageRangeMult);
+        this.projectiles.push(new Projectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#3498db', 3, 2);
         break;
-      case 'archer':
+      }
+      case 'archer': {
+        const archerBaseAtk = cd.atk;
+        const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
+        const archerLife = Math.round(50 * archerRangeMult);
         const speed = 10;
-        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: 50, maxLife: 50, color: '#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale * lvlScale, ...projProps }));
+        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: '#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale * lvlScale, ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#bdc3c7', 4, 3);
         break;
+      }
       case 'magicgladiator':
         const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
         this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 20, maxLife: 20, color: '#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
@@ -1552,7 +1560,7 @@ export default class Game {
         this.player.updateMovement(dt, this);
 
         if (this.player.isChargingS2) {
-          const chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? 5 : 1;
+          const chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? ConfigModule.POTION_BLUE_CD_MULTIPLIER : 1;
           this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67 * chargeSpeed;
           const maxCharges = 3 + (this.player.resets || 0);
           const newCount = Math.min(maxCharges, Math.floor(this.player.s2ChargeTime / 1000));
@@ -1674,10 +1682,12 @@ export default class Game {
                       p.obj.buffHpTimer = POTION_BUFF_DURATION;
                       this.spawnParticles(p.obj.x, p.obj.y - 20, '#e74c3c', 30, 6);
                       this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                    } else if (item.type === 'blue') {
+                      p.obj.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
+                      this.spawnParticles(p.obj.x, p.obj.y - 20, '#3498db', 30, 6);
+                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
                     }
-                    p.obj.buffManaTimer = item.type === 'blue' ? POTION_BUFF_DURATION : (p.obj.buffManaTimer || 0);
-                    this.spawnParticles(p.obj.x, p.obj.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                    this.ui.addLog(item.type === 'red' ? `🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s` : '⚡ Skill Cooldown Buff!', 'reward');
+                    this.ui.addLog(item.type === 'red' ? `🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s` : `⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
                   } else {
                     this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
                   }
@@ -1709,10 +1719,11 @@ export default class Game {
                      this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
                      this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
                      this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
-                   } else {
-                     this.player.buffManaTimer = POTION_BUFF_DURATION;
-                     this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');
-                   }
+                    } else {
+                      this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
+                      this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
+                      this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
+                    }
                    this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
                  }
               }
@@ -1843,7 +1854,7 @@ export default class Game {
          }
          if (this.player.buffManaTimer > 0) {
            this.player.buffManaTimer -= 16.67 * dt;
-          cdSpeedMultiplier = 5; // 5x cooldown recovery speed
+          cdSpeedMultiplier = ConfigModule.POTION_BLUE_CD_MULTIPLIER; // Configurable cooldown recovery speed
           if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#3498db', 1, 3);
         }
       }

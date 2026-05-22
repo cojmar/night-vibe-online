@@ -271,17 +271,22 @@ export default class UI {
                 container.appendChild(warnBanner);
             }
 
-            // Group metadata by category dynamically
-            const categories = {};
+            // Group metadata by category dynamically, preserving config.js order
+            const categoriesList = [];
+            const categoriesMap = new Map();
             for (const key in CONFIG_METADATA) {
                 const meta = CONFIG_METADATA[key];
                 const cat = meta.category || 'General';
-                if (!categories[cat]) categories[cat] = [];
-                categories[cat].push({ key, ...meta });
+                if (!categoriesMap.has(cat)) {
+                    const catObj = { name: cat, fields: [] };
+                    categoriesMap.set(cat, catObj);
+                    categoriesList.push(catObj);
+                }
+                categoriesMap.get(cat).fields.push({ key, ...meta });
             }
 
             // Create input controls for each category
-            for (const cat in categories) {
+            categoriesList.forEach(catObj => {
                 const catEl = document.createElement('div');
                 catEl.style.marginBottom = '20px';
                 catEl.style.background = 'rgba(0,0,0,0.3)';
@@ -293,10 +298,10 @@ export default class UI {
                 catHeader.style.margin = '0 0 12px 0';
                 catHeader.style.color = '#2ecc71';
                 catHeader.style.fontSize = '1.15em';
-                catHeader.textContent = cat;
+                catHeader.textContent = catObj.name;
                 catEl.appendChild(catHeader);
 
-                categories[cat].forEach(meta => {
+                catObj.fields.forEach(meta => {
                     const fieldDiv = document.createElement('div');
                     fieldDiv.style.marginBottom = '12px';
                     const currentValue = ConfigModule[meta.key];
@@ -334,7 +339,7 @@ export default class UI {
                 });
 
                 container.appendChild(catEl);
-            }
+            });
 
             // Bind bidirectional synchronization for range sliders and input boxes
             for (const key in CONFIG_METADATA) {
