@@ -1,4 +1,4 @@
-import { GAME_W, GAME_H, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME } from './utils.js';
+import { GAME_W, GAME_H, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, POTION_BUFF_DURATION } from './utils.js';
 import Player from './player.js';
 import Enemy from './enemy.js';
 import Projectile from './projectile.js';
@@ -526,7 +526,7 @@ export default class Game {
     this.bossActive = false;
     this.waveTransitionTimer = 0;
     this.emptyWaveTimer = 0;
-    this.enemySpawnInterval = 800;
+    this.enemySpawnInterval = ENEMY_SPAWN_INTERVAL;
     this.enemySpawnTimer = 0;
     this.enemies = [];
     this.projectiles = [];
@@ -627,20 +627,20 @@ export default class Game {
 
   requestRebirth() {
     if (!this.player) return;
-    const reqLevel = 4 + (this.player.resets || 0) * 5;
+    const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
     if (this.player.level < reqLevel) return;
 
     const modal = document.getElementById('rebirth-modal');
     const text = document.getElementById('rebirth-modal-text');
     if (modal && text) {
-      text.innerText = `Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * 5} unallocated bonus stats on your next play!`;
+      text.innerText = `Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * REBIRTH_POINTS_PER_LEVEL} unallocated bonus stats on your next play!`;
       modal.style.display = 'flex';
     }
   }
 
   performRebirth() {
     if (!this.player) return;
-    const reqLevel = 4 + (this.player.resets || 0) * 5;
+    const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
     if (this.player.level < reqLevel) return;
 
     const newResets = (this.player.resets || 0) + 1;
@@ -648,7 +648,7 @@ export default class Game {
     // The old bonus stats are the actual current unallocated stat points of the player
     const oldBonusStats = this.player.statPoints || 0;
 
-    const extraPoints = this.player.level * 5;
+    const extraPoints = this.player.level * REBIRTH_POINTS_PER_LEVEL;
     const newBonusStats = oldBonusStats + extraPoints;
 
     localStorage.setItem('nightvibe-resets', newResets);
@@ -1583,13 +1583,13 @@ export default class Game {
                   pickedUp = true;
                   if (this.isHost) {
                     if (item.type === 'red') {
-                      p.obj.buffHpTimer = 10000;
+                      p.obj.buffHpTimer = POTION_BUFF_DURATION;
                       this.spawnParticles(p.obj.x, p.obj.y - 20, '#e74c3c', 30, 6);
-                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: '🩸 Vampirism 10s!', color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
                     }
-                    p.obj.buffManaTimer = item.type === 'blue' ? 10000 : (p.obj.buffManaTimer || 0);
+                    p.obj.buffManaTimer = item.type === 'blue' ? POTION_BUFF_DURATION : (p.obj.buffManaTimer || 0);
                     this.spawnParticles(p.obj.x, p.obj.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                    this.ui.addLog(item.type === 'red' ? '🩸 Vampirism! Heal on hit for 10s' : '⚡ Skill Cooldown Buff!', 'reward');
+                    this.ui.addLog(item.type === 'red' ? `🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s` : '⚡ Skill Cooldown Buff!', 'reward');
                   } else {
                     this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
                   }
@@ -1617,12 +1617,12 @@ export default class Game {
                 if (buff.target === (this.net.me ? this.net.me.info.user : null) && buff.id !== this.lastProcessedBuffId) {
                    this.lastProcessedBuffId = buff.id;
                    if (buff.type === 'red') {
-                     this.player.buffHpTimer = 10000;
+                     this.player.buffHpTimer = POTION_BUFF_DURATION;
                      this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
-                     this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: '🩸 Vampirism 10s!', color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
-                     this.ui.addLog('🩸 Vampirism! Heal on hit for 10s', 'reward');
+                     this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                     this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
                    } else {
-                     this.player.buffManaTimer = 10000;
+                     this.player.buffManaTimer = POTION_BUFF_DURATION;
                      this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');
                    }
                    this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
