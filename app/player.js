@@ -181,6 +181,7 @@ export default class Player {
       if (this.input_data.reqKills !== undefined) this.reqKills = this.input_data.reqKills;
       if (this.input_data.maxHp !== undefined) this.maxHp = this.input_data.maxHp;
       if (this.input_data.atk !== undefined) this.atk = this.input_data.atk;
+      if (this.input_data.spd !== undefined) this.spd = this.input_data.spd;
       if (this.input_data.moveSpeed !== undefined) this.moveSpeed = this.input_data.moveSpeed;
       if (this.input_data.chatMsg !== undefined && this.input_data.chatMsg !== this.chatMsg) {
         this.chatMsg = this.input_data.chatMsg;
