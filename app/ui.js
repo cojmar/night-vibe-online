@@ -578,6 +578,42 @@ export default class UI {
                     slotDiv.style.border = `2px solid ${itemData.color || '#2ecc71'}`;
                     slotDiv.style.background = 'rgba(46, 204, 113, 0.15)';
                     slotDiv.style.boxShadow = `0 0 10px ${itemData.color || '#2ecc71'}66`;
+                    
+                    slotDiv.style.position = 'relative';
+                    const dropBtn = document.createElement('div');
+                    dropBtn.innerHTML = '✖';
+                    dropBtn.style.position = 'absolute';
+                    dropBtn.style.top = '-5px';
+                    dropBtn.style.right = '-5px';
+                    dropBtn.style.background = '#e74c3c';
+                    dropBtn.style.color = '#fff';
+                    dropBtn.style.borderRadius = '50%';
+                    dropBtn.style.width = '20px';
+                    dropBtn.style.height = '20px';
+                    dropBtn.style.display = 'flex';
+                    dropBtn.style.alignItems = 'center';
+                    dropBtn.style.justifyContent = 'center';
+                    dropBtn.style.fontSize = '12px';
+                    dropBtn.style.cursor = 'pointer';
+                    dropBtn.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
+                    dropBtn.title = "Drop item";
+                    dropBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        delete p.equipment[slotName];
+                        itemData.x = p.x + (Math.random() * 60 - 30);
+                        itemData.y = p.y + (Math.random() * 60 - 30) + 20;
+                        itemData.life = 60000;
+                        if (this.game.isHost) {
+                            this.game.items.push(itemData);
+                        } else {
+                            this.game.net.send_cmd('set_data', { spawnItem: itemData });
+                        }
+                        this.game.saveLocalProgression();
+                        this.game.broadcastState();
+                        this.renderInventory();
+                        this.updateHUD(p);
+                    };
+                    slotDiv.appendChild(dropBtn);
                 } else {
                     const emptyVisual = document.createElement('div');
                     emptyVisual.innerText = '🔒';
@@ -645,6 +681,42 @@ export default class UI {
                 cell.style.transition = '0.2s';
                 cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; cell.style.borderColor = '#f1c40f'; cell.style.boxShadow = `0 0 10px ${item.color || '#f1c40f'}99`; };
                 cell.onmouseout = () => { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; };
+                
+                cell.style.position = 'relative';
+                const dropBtn = document.createElement('div');
+                dropBtn.innerHTML = '✖';
+                dropBtn.style.position = 'absolute';
+                dropBtn.style.top = '-5px';
+                dropBtn.style.right = '-5px';
+                dropBtn.style.background = '#e74c3c';
+                dropBtn.style.color = '#fff';
+                dropBtn.style.borderRadius = '50%';
+                dropBtn.style.width = '20px';
+                dropBtn.style.height = '20px';
+                dropBtn.style.display = 'flex';
+                dropBtn.style.alignItems = 'center';
+                dropBtn.style.justifyContent = 'center';
+                dropBtn.style.fontSize = '12px';
+                dropBtn.style.cursor = 'pointer';
+                dropBtn.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
+                dropBtn.title = "Drop item";
+                dropBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    p.inventory.splice(index, 1);
+                    item.x = p.x + (Math.random() * 60 - 30);
+                    item.y = p.y + (Math.random() * 60 - 30) + 20;
+                    item.life = 60000;
+                    if (this.game.isHost) {
+                        this.game.items.push(item);
+                    } else {
+                        this.game.net.send_cmd('set_data', { spawnItem: item });
+                    }
+                    this.game.saveLocalProgression();
+                    this.game.broadcastState();
+                    this.renderInventory();
+                    this.updateHUD(p);
+                };
+                cell.appendChild(dropBtn);
                 
                 // Click to equip
                 cell.addEventListener('click', () => {
