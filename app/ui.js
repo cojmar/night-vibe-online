@@ -162,6 +162,8 @@ export default class UI {
         if (atmosSlider) atmosSlider.disabled = s.autoGraphics;
 
         if (btnSettings) btnSettings.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
+        const btnMenuSettings = document.getElementById('btn-menu-settings');
+        if (btnMenuSettings) btnMenuSettings.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
         if (btnSettingsClose) btnSettingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
 
         if (partSlider) {
@@ -317,6 +319,25 @@ export default class UI {
                     }
                 }
             }
+
+            // Bind instant saving upon any interaction with the inputs
+            for (const key in CONFIG_METADATA) {
+                const meta = CONFIG_METADATA[key];
+                const inputEl = document.getElementById(`cfg-${key}`);
+                const rangeEl = document.getElementById(`cfg-range-${key}`);
+                
+                if (inputEl) {
+                    const eventType = (meta.type === 'boolean' || meta.type === 'color') ? 'change' : 'input';
+                    inputEl.addEventListener(eventType, () => {
+                        saveConfigFromUI();
+                    });
+                }
+                if (rangeEl) {
+                    rangeEl.addEventListener('input', () => {
+                        saveConfigFromUI();
+                    });
+                }
+            }
         };
 
         const saveConfigFromUI = () => {
@@ -367,7 +388,6 @@ export default class UI {
                 }
             }
 
-            this.addLog("🛠️ Configuration saved & applied successfully!");
         };
 
         if (btnOpenConfigEditor) {
@@ -384,9 +404,9 @@ export default class UI {
             });
         }
 
-        if (btnConfigSave) {
-            btnConfigSave.addEventListener('click', () => {
-                saveConfigFromUI();
+        const btnConfigEditorCloseBtn = document.getElementById('btn-config-editor-close-btn');
+        if (btnConfigEditorCloseBtn) {
+            btnConfigEditorCloseBtn.addEventListener('click', () => {
                 configEditorModal.style.display = 'none';
             });
         }
