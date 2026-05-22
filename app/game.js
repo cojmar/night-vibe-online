@@ -473,14 +473,14 @@ export default class Game {
     this.canvas.addEventListener('touchend', () => {
       touchActive = false;
       clearTimeout(touchLongPressTimer);
-      if (this.player && this.player.isChargingS2 && !this.chargingViaButton) {
+      if (this.player && this.player.isChargingS2) {
         this.releaseSkill2();
       }
     });
     this.canvas.addEventListener('touchcancel', () => {
       touchActive = false;
       clearTimeout(touchLongPressTimer);
-      if (this.player && this.player.isChargingS2 && !this.chargingViaButton) {
+      if (this.player && this.player.isChargingS2) {
         this.releaseSkill2();
       }
     });
@@ -489,15 +489,12 @@ export default class Game {
     const startUltBtn = (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
       e.preventDefault(); e.stopPropagation();
-      this.chargingViaButton = true;
       this.startChargingSkill2();
     };
     const endUltBtn = (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
       e.preventDefault(); e.stopPropagation();
-      const wasChargingViaButton = this.chargingViaButton;
-      this.chargingViaButton = false;
-      if (this.player.isChargingS2 && wasChargingViaButton) {
+      if (this.player.isChargingS2) {
         this.releaseSkill2();
       }
     };
