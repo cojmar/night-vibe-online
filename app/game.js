@@ -1,4 +1,5 @@
-import { GAME_W, GAME_H, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, POTION_BUFF_DURATION, POTION_LIFESTEAL_PERCENT, GAME_INITIAL_WAVE, GAME_INITIAL_KILLS, GAME_INITIAL_WAVE_ENEMIES, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP } from './utils.js';
+import * as ConfigModule from './config.js';
+import { CONFIG_METADATA, GAME_W, GAME_H, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, POTION_BUFF_DURATION, POTION_LIFESTEAL_PERCENT, GAME_INITIAL_WAVE, GAME_INITIAL_KILLS, GAME_INITIAL_WAVE_ENEMIES, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP } from './utils.js';
 import Player from './player.js';
 import Enemy from './enemy.js';
 import Projectile from './projectile.js';
@@ -177,6 +178,16 @@ export default class Game {
         // Handle Host Sync
         if (data.data.hostData && !this.isHost) {
           this.syncHostData(data.data.hostData);
+        }
+
+        // Sync Gameplay balance config from the Host
+        if (data.data.gameplayConfig && !this.isHost) {
+          const op = this.otherPlayers[data.user];
+          const isSenderHost = data.data.isHost || (op && op.isHost);
+          if (isSenderHost) {
+            ConfigModule.updateConfig(data.data.gameplayConfig);
+            if (this.updateLayout) this.updateLayout();
+          }
         }
       }
     });
@@ -751,10 +762,19 @@ export default class Game {
 
     this.ui.addLog('🎮 Returned to character selection!', 'player');
 
-    // Broadcast leaving the game
+     // Broadcast leaving the game
     if (this.net && this.net.me) {
       this.net.send_cmd('set_data', { inGame: false, state: 'MENU' });
     }
+    
+    // Restore personal configuration from localStorage
+    try {
+      const localCustom = JSON.parse(localStorage.getItem('nightvibe-custom-config') || '{}');
+      ConfigModule.updateConfig(localCustom);
+    } catch (e) {
+      console.error("Failed to restore personal configuration", e);
+    }
+
     this.checkHost();
     this.updateLayout();
   }
@@ -953,6 +973,12 @@ export default class Game {
 
   broadcastState() {
     if (!this.player) return;
+
+    const activeConfig = {};
+    for (const key in CONFIG_METADATA) {
+      activeConfig[key] = ConfigModule[key];
+    }
+
     const data = {
       inGame: true,
       nick: this.player.nick,
@@ -980,6 +1006,7 @@ export default class Game {
       chatMsg: this.player.chatMsg,
       buffHpTimer: this.player.buffHpTimer,
       buffManaTimer: this.player.buffManaTimer,
+      gameplayConfig: activeConfig,
       projectiles: this.projectiles.map(p => ({
         type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
         radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions

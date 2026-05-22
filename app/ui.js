@@ -276,6 +276,11 @@ export default class UI {
                                 <span style="font-family:monospace; color:#2ecc71; font-size:0.9em;">${currentValue}</span>
                             </div>
                         `;
+                    } else if (meta.type === 'string') {
+                        fieldDiv.innerHTML = `
+                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px;">${meta.label}</label>
+                            <input type="text" id="cfg-${meta.key}" value="${currentValue}" style="width:100%; box-sizing:border-box; padding:8px 12px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14.5px;">
+                        `;
                     } else {
                         fieldDiv.innerHTML = `
                             <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px;">${meta.label}</label>
@@ -324,6 +329,8 @@ export default class UI {
                 if (meta.type === 'boolean') {
                     newValues[key] = input.checked;
                 } else if (meta.type === 'color') {
+                    newValues[key] = input.value;
+                } else if (meta.type === 'string') {
                     newValues[key] = input.value;
                 } else {
                     newValues[key] = parseFloat(input.value);
@@ -589,7 +596,17 @@ export default class UI {
         const resetsVal = document.getElementById('stat-resets-val');
         if (resetsVal) resetsVal.textContent = player.resets || 0;
 
-        const reqLevel = 4 + (player.resets || 0) * 5;
+        const reqLevel = ConfigModule.REBIRTH_BASE_LEVEL + (player.resets || 0) * ConfigModule.REBIRTH_LEVEL_STEP;
+        
+        const capWarning = document.getElementById('stat-level-cap-warning');
+        if (capWarning) {
+            if (ConfigModule.LIMIT_LEVEL_TO_REBIRTH_REQ && player.level >= reqLevel) {
+                capWarning.style.display = 'block';
+            } else {
+                capWarning.style.display = 'none';
+            }
+        }
+
         const btnRebirth = document.getElementById('btn-rebirth');
         if (btnRebirth) {
             if (player.level >= reqLevel) {

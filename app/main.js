@@ -1,7 +1,7 @@
 import Network from './network.js';
 import Game from './game.js';
 import UI from './ui.js';
-import { CHAT_MESSAGE_DURATION } from './utils.js';
+import { CHAT_MESSAGE_DURATION, NETWORK_ROOM_NAME } from './utils.js';
 
 window.app = new class {
     constructor() {
@@ -141,7 +141,7 @@ window.app = new class {
         
         // Wait for connection to BSON WebSockets
         this.net.on('connect', () => {
-            this.net.send_cmd('auth', { 'user': '', 'room': 'Night-Vibe-Online-Arena' });
+            this.net.send_cmd('auth', { 'user': '', 'room': NETWORK_ROOM_NAME });
         });
         
         this.net.on('auth.info', (data) => {

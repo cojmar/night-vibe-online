@@ -69,7 +69,10 @@ export const DEFAULTS = {
 
   // 10. Chat bubbles
   CHAT_MESSAGE_DURATION: 5000,
-  CHAT_FADE_OUT_DURATION: 500
+  CHAT_FADE_OUT_DURATION: 500,
+
+  // 11. Network settings
+  NETWORK_ROOM_NAME: 'Night-Vibe-Online-Arena'
 };
 
 // ==========================================
@@ -121,7 +124,8 @@ export const CONFIG_METADATA = {
   PROJ_HIT_RADIUS_DEFAULT: { label: "Default Projectile Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
 
   CHAT_MESSAGE_DURATION: { label: "Chat Bubble Duration (ms)", type: "number", min: 500, max: 20000, step: 500, category: "Social & Chat" },
-  CHAT_FADE_OUT_DURATION: { label: "Chat Bubble Fade-out time (ms)", type: "number", min: 100, max: 5000, step: 100, category: "Social & Chat" }
+  CHAT_FADE_OUT_DURATION: { label: "Chat Bubble Fade-out time (ms)", type: "number", min: 100, max: 5000, step: 100, category: "Social & Chat" },
+  NETWORK_ROOM_NAME: { label: "Multiplayer Room Name", type: "string", category: "Social & Chat" }
 };
 
 // ==========================================
@@ -194,6 +198,7 @@ export let PROJ_HIT_RADIUS_DEFAULT = activeConfig.PROJ_HIT_RADIUS_DEFAULT;
 
 export let CHAT_MESSAGE_DURATION = activeConfig.CHAT_MESSAGE_DURATION;
 export let CHAT_FADE_OUT_DURATION = activeConfig.CHAT_FADE_OUT_DURATION;
+export let NETWORK_ROOM_NAME = activeConfig.NETWORK_ROOM_NAME;
 
 // Static-structure configurations
 export const MOVE_STOP_DIST = 3;
@@ -322,6 +327,7 @@ export function updateConfig(newValues) {
 
   CHAT_MESSAGE_DURATION = activeConfig.CHAT_MESSAGE_DURATION;
   CHAT_FADE_OUT_DURATION = activeConfig.CHAT_FADE_OUT_DURATION;
+  NETWORK_ROOM_NAME = activeConfig.NETWORK_ROOM_NAME;
 }
 
 export function resetConfig() {
