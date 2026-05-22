@@ -939,7 +939,7 @@ export default class Game {
       document.getElementById('walk-indicator').classList.add('visible');
     }
 
-    this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30, color: 'cyan' };
+    this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30, color: 'yellow' };
     this.broadcastState();
   }
 
@@ -1590,9 +1590,9 @@ export default class Game {
           this.ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
           this.ctx.stroke();
         } else {
-          // Standard walk click splash: cyan expanding dashed ring
-          this.ctx.strokeStyle = '#3498db';
-          this.ctx.shadowColor = '#3498db';
+          // Standard walk click splash: glowing transparent yellow expanding dashed ring
+          this.ctx.strokeStyle = 'rgba(241, 196, 15, 0.8)';
+          this.ctx.shadowColor = '#f1c40f';
           this.ctx.shadowBlur = 10;
           this.ctx.lineWidth = 2.5;
           this.ctx.setLineDash([4, 4]);
@@ -1707,9 +1707,9 @@ export default class Game {
               ctx.closePath();
               ctx.fill();
             } else {
-              // Draw standard walk cyan ellipse
-              ctx.fillStyle = '#3498db';
-              ctx.shadowColor = '#3498db';
+              // Draw standard walk transparent yellow ellipse
+              ctx.fillStyle = 'rgba(241, 196, 15, 0.6)';
+              ctx.shadowColor = '#f1c40f';
               ctx.shadowBlur = 10;
               ctx.beginPath();
               ctx.ellipse(this.player.moveTargetX, this.player.moveTargetY, 15, 7.5, 0, 0, Math.PI * 2);
