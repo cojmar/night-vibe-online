@@ -235,6 +235,42 @@ export default class UI {
             if (!container) return;
             container.innerHTML = '';
 
+            const isPlaying = this.game && this.game.state === 'PLAYING';
+
+            const btnReset = document.getElementById('btn-config-reset');
+            const btnImport = document.getElementById('btn-config-import');
+            const btnExport = document.getElementById('btn-config-export');
+            if (btnReset) {
+                btnReset.disabled = isPlaying;
+                btnReset.style.opacity = isPlaying ? '0.4' : '1';
+                btnReset.style.pointerEvents = isPlaying ? 'none' : 'auto';
+            }
+            if (btnImport) {
+                btnImport.disabled = isPlaying;
+                btnImport.style.opacity = isPlaying ? '0.4' : '1';
+                btnImport.style.pointerEvents = isPlaying ? 'none' : 'auto';
+            }
+            if (btnExport) {
+                btnExport.disabled = isPlaying;
+                btnExport.style.opacity = isPlaying ? '0.4' : '1';
+                btnExport.style.pointerEvents = isPlaying ? 'none' : 'auto';
+            }
+
+            if (isPlaying) {
+                const warnBanner = document.createElement('div');
+                warnBanner.style.background = 'rgba(231, 76, 60, 0.15)';
+                warnBanner.style.border = '1px solid #e74c3c';
+                warnBanner.style.padding = '10px 15px';
+                warnBanner.style.borderRadius = '6px';
+                warnBanner.style.marginBottom = '15px';
+                warnBanner.style.color = '#ff6b6b';
+                warnBanner.style.fontWeight = 'bold';
+                warnBanner.style.textAlign = 'center';
+                warnBanner.style.fontSize = '0.9em';
+                warnBanner.innerHTML = '⚠️ Active Session: Settings are read-only and locked to the Host\'s gameplay configuration.';
+                container.appendChild(warnBanner);
+            }
+
             // Group metadata by category dynamically
             const categories = {};
             for (const key in CONFIG_METADATA) {
@@ -267,30 +303,30 @@ export default class UI {
 
                     if (meta.type === 'boolean') {
                         fieldDiv.innerHTML = `
-                            <label style="display:flex; align-items:center; cursor:pointer;">
-                                <input type="checkbox" id="cfg-${meta.key}" ${currentValue ? 'checked' : ''} style="margin-right:10px; transform:scale(1.2);">
-                                <span style="font-size:0.95em;">${meta.label}</span>
+                            <label style="display:flex; align-items:center; cursor:${isPlaying ? 'not-allowed' : 'pointer'};">
+                                <input type="checkbox" id="cfg-${meta.key}" ${currentValue ? 'checked' : ''} ${isPlaying ? 'disabled' : ''} style="margin-right:10px; transform:scale(1.2);">
+                                <span style="font-size:0.95em; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</span>
                             </label>
                         `;
                     } else if (meta.type === 'color') {
                         fieldDiv.innerHTML = `
-                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px;">${meta.label}</label>
+                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
                             <div style="display:flex; gap:10px; align-items:center;">
-                                <input type="color" id="cfg-${meta.key}" value="${currentValue}" style="border:none; background:none; cursor:pointer; width:50px; height:30px; padding:0; outline:none;">
-                                <span style="font-family:monospace; color:#2ecc71; font-size:0.9em;">${currentValue}</span>
+                                <input type="color" id="cfg-${meta.key}" value="${currentValue}" ${isPlaying ? 'disabled' : ''} style="border:none; background:none; cursor:${isPlaying ? 'not-allowed' : 'pointer'}; width:50px; height:30px; padding:0; outline:none; opacity:${isPlaying ? '0.5' : '1'};">
+                                <span style="font-family:monospace; color:#2ecc71; font-size:0.9em; opacity:${isPlaying ? '0.7' : '1'};">${currentValue}</span>
                             </div>
                         `;
                     } else if (meta.type === 'string') {
                         fieldDiv.innerHTML = `
-                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px;">${meta.label}</label>
-                            <input type="text" id="cfg-${meta.key}" value="${currentValue}" style="width:100%; box-sizing:border-box; padding:8px 12px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14.5px;">
+                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
+                            <input type="text" id="cfg-${meta.key}" value="${currentValue}" ${isPlaying ? 'disabled' : ''} style="width:100%; box-sizing:border-box; padding:8px 12px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14.5px; opacity:${isPlaying ? '0.6' : '1'}; cursor:${isPlaying ? 'not-allowed' : 'text'};">
                         `;
                     } else {
                         fieldDiv.innerHTML = `
-                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px;">${meta.label}</label>
+                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
                             <div style="display:flex; gap:15px; align-items:center;">
-                                <input type="range" id="cfg-range-${meta.key}" value="${currentValue}" min="${meta.min}" max="${meta.max}" step="${meta.step}" style="flex:1; cursor:pointer; accent-color:#2ecc71;">
-                                <input type="number" id="cfg-${meta.key}" value="${currentValue}" min="${meta.min}" max="${meta.max}" step="${meta.step}" style="width:90px; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14px; text-align:center; font-family:monospace;">
+                                <input type="range" id="cfg-range-${meta.key}" value="${currentValue}" min="${meta.min}" max="${meta.max}" step="${meta.step}" ${isPlaying ? 'disabled' : ''} style="flex:1; cursor:${isPlaying ? 'not-allowed' : 'pointer'}; accent-color:#2ecc71; opacity:${isPlaying ? '0.5' : '1'};">
+                                <input type="number" id="cfg-${meta.key}" value="${currentValue}" min="${meta.min}" max="${meta.max}" step="${meta.step}" ${isPlaying ? 'disabled' : ''} style="width:90px; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14px; text-align:center; font-family:monospace; opacity:${isPlaying ? '0.6' : '1'}; cursor:${isPlaying ? 'not-allowed' : 'text'};">
                             </div>
                         `;
                     }
@@ -322,22 +358,24 @@ export default class UI {
                 }
             }
 
-            // Bind instant saving upon any interaction with the inputs
-            for (const key in CONFIG_METADATA) {
-                const meta = CONFIG_METADATA[key];
-                const inputEl = document.getElementById(`cfg-${key}`);
-                const rangeEl = document.getElementById(`cfg-range-${key}`);
-                
-                if (inputEl) {
-                    const eventType = (meta.type === 'boolean' || meta.type === 'color') ? 'change' : 'input';
-                    inputEl.addEventListener(eventType, () => {
-                        saveConfigFromUI();
-                    });
-                }
-                if (rangeEl) {
-                    rangeEl.addEventListener('input', () => {
-                        saveConfigFromUI();
-                    });
+            // Bind instant saving upon any interaction with the inputs (only if not playing)
+            if (!isPlaying) {
+                for (const key in CONFIG_METADATA) {
+                    const meta = CONFIG_METADATA[key];
+                    const inputEl = document.getElementById(`cfg-${key}`);
+                    const rangeEl = document.getElementById(`cfg-range-${key}`);
+                    
+                    if (inputEl) {
+                        const eventType = (meta.type === 'boolean' || meta.type === 'color') ? 'change' : 'input';
+                        inputEl.addEventListener(eventType, () => {
+                            saveConfigFromUI();
+                        });
+                    }
+                    if (rangeEl) {
+                        rangeEl.addEventListener('input', () => {
+                            saveConfigFromUI();
+                        });
+                    }
                 }
             }
         };

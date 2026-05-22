@@ -281,7 +281,7 @@ export default class Game {
       this.isHost = isHost;
       this.ui.addLog(this.isHost ? '👑 You are the Host!' : '👥 You are a Client', 'reward');
       if (this.isHost) {
-        this.net.send_cmd('set_data', { isHost: true });
+        this.net.send_cmd('set_data', { isHost: true, gameplayConfig: ConfigModule.activeConfig });
         // If we just became host, make sure we sync the global time to avoid jump
         if (this.globalTime) {
           // Time is already matched
@@ -547,20 +547,38 @@ export default class Game {
     this.ui.recentLogs = [];
     this.prng = new PRNG(this.wave * 12345);
 
-    // Attempt to inherit current room state if a host exists
+    // Attempt to inherit current room state and gameplay configuration if a host exists
+    let hostFound = false;
     if (this.net && this.net.room && this.net.room.users) {
       for (const u in this.net.room.users) {
+        if (this.net.me && this.net.me.info && u === this.net.me.info.user) continue;
         const userData = this.net.room.users[u].data;
-        if (userData && userData.isHost && userData.hostData) {
-          this.wave = userData.hostData.wave || GAME_INITIAL_WAVE;
-          this.waveTotalEnemies = userData.hostData.waveTotal || GAME_INITIAL_WAVE_ENEMIES;
-          this.waveEnemiesKilled = userData.hostData.waveKilled || 0;
-          this.waveEnemiesToSpawn = userData.hostData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
-          this.bossActive = userData.hostData.bossActive || false;
-          this.selectedEnv = userData.hostData.env || ENV_LIST[0];
-          this.prng = new PRNG(userData.hostData.seed || (this.wave * 12345));
+        if (userData && userData.isHost) {
+          hostFound = true;
+          this.isHost = false;
+          if (userData.gameplayConfig) {
+            ConfigModule.updateConfig(userData.gameplayConfig);
+            this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
+          }
+          if (userData.hostData) {
+            this.wave = userData.hostData.wave || GAME_INITIAL_WAVE;
+            this.waveTotalEnemies = userData.hostData.waveTotal || GAME_INITIAL_WAVE_ENEMIES;
+            this.waveEnemiesKilled = userData.hostData.waveKilled || 0;
+            this.waveEnemiesToSpawn = userData.hostData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
+            this.bossActive = userData.hostData.bossActive || false;
+            this.selectedEnv = userData.hostData.env || ENV_LIST[0];
+            this.prng = new PRNG(userData.hostData.seed || (this.wave * 12345));
+          }
           break;
         }
+      }
+    }
+
+    if (!hostFound) {
+      this.isHost = true;
+      this.ui.addLog('👑 You are the Host!', 'reward');
+      if (this.net && this.net.me) {
+        this.net.send_cmd('set_data', { isHost: true, gameplayConfig: ConfigModule.activeConfig });
       }
     }
 
@@ -1007,7 +1025,6 @@ export default class Game {
       chatMsg: this.player.chatMsg,
       buffHpTimer: this.player.buffHpTimer,
       buffManaTimer: this.player.buffManaTimer,
-      gameplayConfig: activeConfig,
       projectiles: this.projectiles.map(p => ({
         type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
         radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions
