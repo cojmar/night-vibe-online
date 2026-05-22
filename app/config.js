@@ -137,8 +137,10 @@ export const CONFIG_METADATA = {
   // 4. Potions & Elixirs (Advanced Buffs)
   POTION_BUFF_DURATION: { label: "Vampirism Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
   POTION_LIFESTEAL_PERCENT: { label: "Vampirism Heal Percentage", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
-  POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
-  POTION_BLUE_CD_MULTIPLIER: { label: "Mana Potion CD Recovery Mult", type: "number", min: 1.0, max: 20.0, step: 0.5, category: "Potions & Elixirs" },
+POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
+   POTION_BLUE_CD_MULTIPLIER: { label: "Mana Potion CD Recovery Mult", type: "number", min: 1.0, max: 20.0, step: 0.5, category: "Potions & Elixirs" },
+   POTION_RED_DROP_CHANCE: { label: "Red Buff Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
+   POTION_BLUE_DROP_CHANCE: { label: "Blue Buff Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
 
   // 5. Viewport & Display (Environmental / Display settings)
   GAME_W: { label: "Game Width", type: "number", min: 800, max: 2560, step: 80, category: "Viewport & Display" },
@@ -189,9 +191,7 @@ export const CONFIG_METADATA = {
   GEAR_RARITY_RARE: { label: "Rare Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
   GEAR_STAT_MULTIPLIER: { label: "Gear Base Stat Multiplier", type: "number", min: 0.5, max: 5.0, step: 0.1, category: "Gear Drops & Stats" },
   GEAR_STAT_VARIANCE: { label: "Gear Stat Variance (+/- %)", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
-   GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" },
-   POTION_RED_DROP_CHANCE: { label: "Red Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
-   POTION_BLUE_DROP_CHANCE: { label: "Blue Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" }
+   GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" }
 };
 
 // ==========================================
