@@ -22,7 +22,7 @@ export default class Player {
     this.resets = PLAYER_INITIAL_RESETS;
     this.bonusStatPoints = PLAYER_INITIAL_STAT_POINTS;
     this.levelUpStatPoints = 0;
-    this.sessionStatPoints = 0;
+    this.sessionStatPoints = PLAYER_INITIAL_STAT_POINTS;
 
     this.animTimer = 0;
     this.hitFlash = 0;
@@ -71,7 +71,6 @@ export default class Player {
     } else {
       this.bonusStatPoints = val;
       this.levelUpStatPoints = 0;
-      this.sessionStatPoints = val;
     }
   }
 

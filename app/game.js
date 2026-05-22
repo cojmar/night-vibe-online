@@ -648,7 +648,7 @@ export default class Game {
     if (this.net && this.net.me && this.net.me.info) {
       this.net.send_cmd('set_data', {
         statPoints: this.player.statPoints,
-        bonusStatPoints: this.player.bonusStatPoints
+        sessionStatPoints: this.player.sessionStatPoints
       });
     }
     this.saveLocalProgression();
