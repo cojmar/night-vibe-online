@@ -39,11 +39,9 @@ export default class Game {
     this.enemySpawnTimer = 0;
     this.enemySpawnInterval = 1000;
 
-    this.viewScaleX = 1;
-    this.viewScaleY = 1;
+    this.viewScale = 1;
     this.viewOX = 0;
     this.viewOY = 0;
-    this.cameraClampX = 0;
     this.globalTime = 0;
     this.moveMarker = null;
 
@@ -97,7 +95,7 @@ export default class Game {
       if (this.net.me && data.user !== this.net.me.info.user) {
         if (!this.otherPlayers[data.user]) {
           // Default spawn for other players
-          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W / 2, data.data.y || GAME_H - 45);
+          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W / 2, data.data.y || (getGroundY(this.selectedEnv) + GAME_H) / 2);
         }
 
         const oldInGame = this.otherPlayers[data.user].inGame;
@@ -486,6 +484,26 @@ export default class Game {
         this.releaseSkill2();
       }
     });
+
+    const cdRingBtn = document.getElementById('cd-ring');
+    const startUltBtn = (e) => {
+      if (this.state !== 'PLAYING' || !this.player) return;
+      e.preventDefault(); e.stopPropagation();
+      this.startChargingSkill2();
+    };
+    const endUltBtn = (e) => {
+      if (this.state !== 'PLAYING' || !this.player) return;
+      e.preventDefault(); e.stopPropagation();
+      if (this.player.isChargingS2) {
+        this.releaseSkill2();
+      }
+    };
+    cdRingBtn.addEventListener('mousedown', startUltBtn);
+    cdRingBtn.addEventListener('touchstart', startUltBtn, { passive: false });
+    cdRingBtn.addEventListener('mouseup', endUltBtn);
+    cdRingBtn.addEventListener('mouseleave', endUltBtn);
+    cdRingBtn.addEventListener('touchend', endUltBtn);
+    cdRingBtn.addEventListener('touchcancel', endUltBtn);
   }
 
   updateLayout() {
@@ -499,15 +517,18 @@ export default class Game {
     this.canvas.height = ch * dpr;
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Non-uniform scaling: stretch game world to fill entire canvas in both orientations
-    this.viewScaleX = cw / GAME_W;
-    this.viewScaleY = ch / GAME_H;
-    this.viewOX = 0;
-    this.viewOY = 0;
+    // Lock scaling to the screen height to provide native side-scrolling experience
+    this.viewScale = ch / GAME_H;
+    const scaledW = GAME_W * this.viewScale;
 
-    // Compute horizontal camera clamp based on scaleY (vertical viewport)
-    const viewportH = GAME_H * this.viewScaleY;
-    this.cameraClampX = Math.max(0, GAME_W - viewportH * (GAME_W / GAME_H));
+    // If the game width is wider than the screen, left-align and let side-scrolling handle offsets.
+    // Otherwise, center the game world horizontally on screen.
+    if (cw < scaledW) {
+      this.viewOX = 0;
+    } else {
+      this.viewOX = (cw - scaledW) / 2;
+    }
+    this.viewOY = 0;
 
     this.cachedCanvasRect = this.canvas.getBoundingClientRect();
 
@@ -518,8 +539,8 @@ export default class Game {
     const rect = this.cachedCanvasRect || this.canvas.getBoundingClientRect();
     const canvasX = clientX - rect.left;
     const canvasY = clientY - rect.top;
-    const gameX = (canvasX - this.viewOX) / this.viewScaleX + (this.cameraX || 0);
-    const gameY = (canvasY - this.viewOY) / this.viewScaleY;
+    const gameX = (canvasX - this.viewOX) / this.viewScale + (this.cameraX || 0);
+    const gameY = (canvasY - this.viewOY) / this.viewScale;
     return { x: gameX, y: gameY };
   }
 
@@ -532,20 +553,25 @@ export default class Game {
       if (this.screenShake < 0) this.screenShake = 0;
     }
 
-    // Side-scrolling camera to follow local player (clamped by vertical viewport)
+    // Side-scrolling camera to follow local player
     if (this.player && this.canvas) {
-      const viewportH = GAME_H * this.viewScaleY;
-      const viewportW = viewportH * (GAME_W / GAME_H);
-      this.cameraX = Math.max(0, Math.min(this.cameraClampX, this.player.x - viewportW / 2));
+      const cw = this.canvas.width / (window.devicePixelRatio || 1);
+      const viewportWidth = cw / this.viewScale;
+      const scaledW = GAME_W * this.viewScale;
+      if (cw < scaledW) {
+        this.cameraX = Math.max(0, Math.min(GAME_W - viewportWidth, this.player.x - viewportWidth / 2));
+      } else {
+        this.cameraX = 0;
+      }
     } else {
       this.cameraX = 0;
     }
 
-    const tx = this.viewOX + shakeX - (this.cameraX || 0) * this.viewScaleX;
+    const tx = this.viewOX + shakeX - (this.cameraX || 0) * this.viewScale;
     const ty = this.viewOY + shakeY;
 
     this.ctx.translate(tx, ty);
-    this.ctx.scale(this.viewScaleX, this.viewScaleY);
+    this.ctx.scale(this.viewScale, this.viewScale);
   }
 
   startGame(selectedClass) {
@@ -557,10 +583,10 @@ export default class Game {
       this.bossActive = true;
       let numBosses = 1;
       if (ConfigModule.BOSS_WAVE_INTERVAL > 0) {
-          const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
-          if (bossWaveNum > 1) {
-              numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
-          }
+        const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
+        if (bossWaveNum > 1) {
+          numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
+        }
       }
       this.waveTotalEnemies = numBosses;
       this.waveEnemiesToSpawn = numBosses;
@@ -625,7 +651,7 @@ export default class Game {
       myData = this.net.room.users[this.net.me.info.user].data;
     }
 
-    this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, GAME_H - 45);
+    this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, (getGroundY(this.selectedEnv) + GAME_H) / 2);
 
     this.checkHost();
 
@@ -771,7 +797,7 @@ export default class Game {
     target.resets = savedResets;
     target.sessionStatPoints = savedStatPoints;
     target.levelUpStatPoints = 0;
-    
+
     try {
       const savedInv = localStorage.getItem('nightvibe-inventory');
       if (savedInv) target.inventory = JSON.parse(savedInv);
@@ -792,7 +818,7 @@ export default class Game {
       if (myData.resets !== undefined && myData.resets > 0) {
         target.resets = myData.resets;
       }
-      
+
       const socketBonusStats = myData.bonusStatPoints !== undefined ? myData.bonusStatPoints : (myData.statPoints !== undefined ? myData.statPoints : undefined);
       if (socketBonusStats !== undefined) {
         target.sessionStatPoints = socketBonusStats;
@@ -845,7 +871,7 @@ export default class Game {
       this._resetSessionData();
       this.net.send_cmd('set_data', { inGame: false, state: 'MENU' });
     }
-    
+
     // Restore personal configuration from localStorage
     try {
       const localCustom = JSON.parse(localStorage.getItem('nightvibe-custom-config') || '{}');
@@ -882,11 +908,11 @@ export default class Game {
     document.getElementById('death-overlay').classList.remove('show');
     if (this.player) {
       this.player.x = GAME_W / 2;
-      this.player.y = GAME_H - 45;
+      this.player.y = (getGroundY(this.selectedEnv) + GAME_H) / 2;
       this.player.hp = this.player.maxHp;
       this.player.alive = true;
     } else {
-      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, GAME_W / 2, GAME_H - 45);
+      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, GAME_W / 2, (getGroundY(this.selectedEnv) + GAME_H) / 2);
     }
     this.ui.updateHUD(this.player);
     this.ui.addLog('✨ Respawned!', 'reward');
@@ -1357,7 +1383,7 @@ export default class Game {
     skyGrad.addColorStop(0.5, env.skyMid);
     skyGrad.addColorStop(1, env.skyBot);
     this.ctx.fillStyle = skyGrad;
-    this.ctx.fillRect(0, 0, GAME_W, gY);
+    this.ctx.fillRect(-2000, 0, GAME_W + 4000, gY);
 
     const nightAlpha = this.nightAlpha || 0;
     const dayAlpha = this.dayAlpha || 0;
@@ -1387,7 +1413,7 @@ export default class Game {
 
     if (nightAlpha > 0) {
       this.ctx.fillStyle = `rgba(5, 5, 20, ${nightAlpha * 0.4})`;
-      this.ctx.fillRect(0, 0, GAME_W, gY);
+      this.ctx.fillRect(-2000, 0, GAME_W + 4000, gY);
     }
 
     this.ctx.save();
@@ -1429,7 +1455,7 @@ export default class Game {
     this.ctx.restore();
 
     this.ctx.fillStyle = env.ground;
-    this.ctx.fillRect(0, gY, GAME_W, GAME_H - gY);
+    this.ctx.fillRect(-2000, gY, GAME_W + 4000, GAME_H - gY);
   }
 
   loop(time) {
@@ -1578,8 +1604,9 @@ export default class Game {
         if (dead) this.atmosEffects.splice(i, 1);
       }
 
-      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
       this.ctx.save();
       this.applyViewport(dt);
@@ -1604,7 +1631,7 @@ export default class Game {
       if (this.moveMarker && this.moveMarker.life > 0) {
         const progress = this.moveMarker.life / this.moveMarker.maxLife;
         this.ctx.globalAlpha = progress * 0.8;
-        
+
         const isGreen = this.moveMarker.color === 'green';
         if (isGreen) {
           // Green expanding star/crosshair splash for item collection!
@@ -1615,13 +1642,13 @@ export default class Game {
           const cx = this.moveMarker.x;
           const cy = this.moveMarker.y;
           const r = 15 * progress;
-          
+
           this.ctx.beginPath();
           // Star cross lines
           this.ctx.moveTo(cx - r, cy); this.ctx.lineTo(cx + r, cy);
           this.ctx.moveTo(cx, cy - r); this.ctx.lineTo(cx, cy + r);
           this.ctx.stroke();
-          
+
           // Outer pulsing ring
           this.ctx.beginPath();
           this.ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
@@ -1638,7 +1665,7 @@ export default class Game {
           this.ctx.stroke();
           this.ctx.setLineDash([]);
         }
-        
+
         this.ctx.shadowBlur = 0;
         this.moveMarker.life -= dt;
       }
@@ -1662,73 +1689,89 @@ export default class Game {
         e.update(dt, activePlayers);
 
         if (this.isHost && !e.alive && !e.deadProcessed) {
-           e.deadProcessed = true;
-           const groundY = getGroundY(this.selectedEnv);
-           
-           if (e.name !== 'MISSILE' && e.name !== 'BOMB') {
-               if (Math.random() < ConfigModule.POTION_RED_DROP_CHANCE) {
-                  const lifeTime = 15000 + this.wave * 2000;
-                  const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
-                  this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
-               }
+          e.deadProcessed = true;
+          const groundY = getGroundY(this.selectedEnv);
 
-               if (Math.random() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
-                  const lifeTime = 15000 + this.wave * 2000;
-                  const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
-                  this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
-               }
-           }
+          if (e.name !== 'MISSILE' && e.name !== 'BOMB') {
+            if (Math.random() < ConfigModule.POTION_RED_DROP_CHANCE) {
+              const lifeTime = 15000 + this.wave * 2000;
+              const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+              this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+            }
 
-           if (e.name === 'MISSILE' || e.name === 'BOMB') {
-               // boss projectiles don't drop gear
-           } else if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
-               // do nothing
-           } else if (Math.random() < ConfigModule.GEAR_DROP_RATE) {
-             let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
-             let randRarity = Math.random();
-             const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
-             const rareThreshold = ConfigModule.GEAR_RARITY_RARE / totalWeight;
-             const magicThreshold = rareThreshold + (ConfigModule.GEAR_RARITY_MAGIC / totalWeight);
+            if (Math.random() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
+              const lifeTime = 15000 + this.wave * 2000;
+              const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+              this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+            }
+          }
 
-             if (randRarity < rareThreshold) { rarity = 'rare'; color = '#f1c40f'; numAffixes = 3; }
-             else if (randRarity < magicThreshold) { rarity = 'magic'; color = '#3498db'; numAffixes = 2; }
-             
-             const categories = ['Weapon', 'Armor', 'Ring']; 
-             const category = categories[Math.floor(Math.random() * categories.length)];
-             
-             const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
-             const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
-             const variance = ConfigModule.GEAR_STAT_VARIANCE;
-             const finalStat = Math.floor(baseStat * (1 - variance + Math.random() * variance * 2));
-             
-             let stats = {}; let icon = '💎';
-             if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
-             else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
-             else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
-             
-             const possibleAffixes = ['atk', 'maxHp', 'spd'];
-             let affixesAdded = 1; let sanity = 0;
-             while (affixesAdded < numAffixes && sanity < 10) {
-                 sanity++;
-                 let randAffix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
-                 if (!stats[randAffix]) {
-                     if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
-                     if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
-                     if (randAffix === 'spd') stats.spd = Math.max(0.05, finalStat * 0.05);
-                     affixesAdded++;
-                 }
-             }
-             
-             const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
-             const itemName = `${prefixes[Math.floor(Math.random()*prefixes.length)]} ${category}`;
+          if (e.name === 'MISSILE' || e.name === 'BOMB') {
+            // boss projectiles don't drop gear
+          } else if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
+            // do nothing
+          } else if (Math.random() < ConfigModule.GEAR_DROP_RATE) {
+            let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
+            let randRarity = Math.random();
+            const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
+            const rareThreshold = ConfigModule.GEAR_RARITY_RARE / totalWeight;
+            const magicThreshold = rareThreshold + (ConfigModule.GEAR_RARITY_MAGIC / totalWeight);
 
-             const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
-             this.items.push({ 
-                 id: Math.random().toString(36).substr(2, 9), 
-                 type: 'gear', gearType: category, rarity: rarity, color: color, 
-                 name: itemName, stats: stats, icon: icon,
-                 x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY 
-             });
+            if (randRarity < rareThreshold) { rarity = 'rare'; color = '#f1c40f'; numAffixes = 3; }
+            else if (randRarity < magicThreshold) { rarity = 'magic'; color = '#3498db'; numAffixes = 2; }
+
+
+            const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
+            const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
+            const variance = ConfigModule.GEAR_STAT_VARIANCE;
+            const finalStat = Math.floor(baseStat * (1 - variance + Math.random() * variance * 2));
+
+            let stats = {}; let icon = '💎';
+            let category = 'Ring'; let itemName = 'Unknown Item';
+
+            if (ConfigModule.ITEMS_DB && ConfigModule.ITEMS_DB.length > 0) {
+              const template = ConfigModule.ITEMS_DB[Math.floor(Math.random() * ConfigModule.ITEMS_DB.length)];
+              category = template.gearType;
+              itemName = template.name;
+              icon = template.icon;
+              rarity = template.rarity || rarity;
+              color = template.color || color;
+              // Scale custom base stats by finalStat/10 (so an atk:10 item scales up linearly)
+              let scale = finalStat / 10;
+              if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
+              if (template.stats.maxHp) stats.maxHp = Math.max(1, Math.floor(template.stats.maxHp * scale));
+              if (template.stats.spd) stats.spd = Math.max(0.01, template.stats.spd * scale);
+            } else {
+              const categories = ['Weapon', 'Armor', 'Ring'];
+              category = categories[Math.floor(Math.random() * categories.length)];
+              if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
+              else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
+              else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
+
+              const possibleAffixes = ['atk', 'maxHp', 'spd'];
+              let affixesAdded = 1; let sanity = 0;
+              while (affixesAdded < numAffixes && sanity < 10) {
+                sanity++;
+                let randAffix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
+                if (!stats[randAffix]) {
+                  if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
+                  if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
+                  if (randAffix === 'spd') stats.spd = Math.max(0.05, finalStat * 0.05);
+                  affixesAdded++;
+                }
+              }
+              const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
+              itemName = `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${category}`;
+            }
+
+
+            const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+            this.items.push({
+              id: Math.random().toString(36).substr(2, 9),
+              type: 'gear', gearType: category, rarity: rarity, color: color,
+              name: itemName, stats: stats, icon: icon,
+              x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
+            });
           }
         }
 
@@ -1782,18 +1825,18 @@ export default class Game {
           y: this.player.moveTargetY - 1, draw: (ctx) => {
             ctx.save();
             ctx.globalAlpha = 0.6 + Math.sin(Date.now() / 150) * 0.2;
-            
+
             const isCollecting = !!this.player.targetedItemId;
             if (isCollecting) {
               // Draw a beautiful rotating star/diamond for item collection!
               ctx.fillStyle = '#2ecc71';
               ctx.shadowColor = '#2ecc71';
               ctx.shadowBlur = 10;
-              
+
               const size = 10;
               ctx.translate(this.player.moveTargetX, this.player.moveTargetY);
               ctx.rotate(Date.now() / 200);
-              
+
               ctx.beginPath();
               for (let j = 0; j < 4; j++) {
                 ctx.rotate(Math.PI / 2);
@@ -1811,7 +1854,7 @@ export default class Game {
               ctx.ellipse(this.player.moveTargetX, this.player.moveTargetY, 15, 7.5, 0, 0, Math.PI * 2);
               ctx.fill();
             }
-            
+
             ctx.restore();
           }
         });
@@ -1874,16 +1917,16 @@ export default class Game {
             this.items.splice(i, 1); i--; continue;
           }
 
-// Fall to target position if still falling
-           if (item.falling) {
-             item.vy += 1.0 * dt;
-             item.y += item.vy * dt;
-             if (item.y >= item.targetY) {
-               item.y = item.targetY;
-               item.falling = false;
-               item.vy = 0;
-             }
-           }
+          // Fall to target position if still falling
+          if (item.falling) {
+            item.vy += 1.0 * dt;
+            item.y += item.vy * dt;
+            if (item.y >= item.targetY) {
+              item.y = item.targetY;
+              item.falling = false;
+              item.vy = 0;
+            }
+          }
 
           if (this.isHost) {
             let activePlayersList = [{ id: this.net.me ? this.net.me.info.user : 'host', obj: this.player }];
@@ -1894,41 +1937,41 @@ export default class Game {
             }
 
             let pickedUp = false;
-             for (let p of activePlayersList) {
-               if (!p.obj || !p.obj.alive || p.obj.hp <= 0) continue;
-               if (Math.hypot(p.obj.x - item.x, p.obj.y - item.y) < 40) {
-                  pickedUp = true;
-                  if (this.isHost) {
-                    if (item.type === 'gear') {
-                      if (p.id === 'host' || p.id === (this.net.me ? this.net.me.info.user : null)) {
-                        p.obj.inventory.push(item);
-                        this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🎒 Looted: ${item.name}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
-                        this.ui.addLog(`🎒 You picked up a ${item.name}!`, 'reward');
-                        if (this.ui) this.ui.renderInventory();
-                        this.saveLocalProgression();
-                        this.broadcastState();
-                      } else {
-                        this.net.send_cmd('set_data', { giveItem: { item: item, target: p.id, id: Math.random() } });
-                      }
-                    } else if (item.type === 'red') {
-                      p.obj.buffHpTimer = POTION_BUFF_DURATION;
-                      this.spawnParticles(p.obj.x, p.obj.y - 20, '#e74c3c', 30, 6);
-                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
-                      this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
-                    } else if (item.type === 'blue') {
-                      p.obj.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
-                      this.spawnParticles(p.obj.x, p.obj.y - 20, '#3498db', 30, 6);
-                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
-                      this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
+            for (let p of activePlayersList) {
+              if (!p.obj || !p.obj.alive || p.obj.hp <= 0) continue;
+              if (Math.hypot(p.obj.x - item.x, p.obj.y - item.y) < 40) {
+                pickedUp = true;
+                if (this.isHost) {
+                  if (item.type === 'gear') {
+                    if (p.id === 'host' || p.id === (this.net.me ? this.net.me.info.user : null)) {
+                      p.obj.inventory.push(item);
+                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🎒 Looted: ${item.name}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
+                      this.ui.addLog(`🎒 You picked up a ${item.name}!`, 'reward');
+                      if (this.ui) this.ui.renderInventory();
+                      this.saveLocalProgression();
+                      this.broadcastState();
+                    } else {
+                      this.net.send_cmd('set_data', { giveItem: { item: item, target: p.id, id: Math.random() } });
                     }
-                  } else {
-                    if (item.type !== 'gear') {
-                      this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
-                    }
+                  } else if (item.type === 'red') {
+                    p.obj.buffHpTimer = POTION_BUFF_DURATION;
+                    this.spawnParticles(p.obj.x, p.obj.y - 20, '#e74c3c', 30, 6);
+                    this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                    this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
+                  } else if (item.type === 'blue') {
+                    p.obj.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
+                    this.spawnParticles(p.obj.x, p.obj.y - 20, '#3498db', 30, 6);
+                    this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
+                    this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
                   }
-                  break;
+                } else {
+                  if (item.type !== 'gear') {
+                    this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
+                  }
                 }
-             }
+                break;
+              }
+            }
             if (pickedUp) {
               if (this.player && this.player.targetedItemId === item.id) {
                 this.player.targetedItemId = null;
@@ -1951,30 +1994,30 @@ export default class Game {
               if (hData && hData.giveBuff) {
                 const buff = hData.giveBuff;
                 if (buff.target === (this.net.me ? this.net.me.info.user : null) && buff.id !== this.lastProcessedBuffId) {
-                   this.lastProcessedBuffId = buff.id;
-                   if (buff.type === 'red') {
-                     this.player.buffHpTimer = POTION_BUFF_DURATION;
-                     this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
-                     this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
-                     this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
-                    } else {
-                      this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
-                      this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
-                      this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
-                    }
-                   this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                 }
+                  this.lastProcessedBuffId = buff.id;
+                  if (buff.type === 'red') {
+                    this.player.buffHpTimer = POTION_BUFF_DURATION;
+                    this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
+                    this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                    this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
+                  } else {
+                    this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
+                    this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
+                    this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
+                  }
+                  this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
+                }
               }
               if (hData && hData.giveItem) {
                 const gi = hData.giveItem;
                 if (gi.target === (this.net.me ? this.net.me.info.user : null) && gi.id !== this.lastProcessedItemId) {
-                   this.lastProcessedItemId = gi.id;
-                   this.player.inventory.push(gi.item);
-                   this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${gi.item.name}!`, color: gi.item.color, life: 60, maxLife: 60, isCrit: false });
-                   this.ui.addLog(`🎒 You picked up a ${gi.item.name}!`, 'reward');
-                   if (this.ui) this.ui.renderInventory();
-                   this.saveLocalProgression();
-                   this.broadcastState();
+                  this.lastProcessedItemId = gi.id;
+                  this.player.inventory.push(gi.item);
+                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${gi.item.name}!`, color: gi.item.color, life: 60, maxLife: 60, isCrit: false });
+                  this.ui.addLog(`🎒 You picked up a ${gi.item.name}!`, 'reward');
+                  if (this.ui) this.ui.renderInventory();
+                  this.saveLocalProgression();
+                  this.broadcastState();
                 }
               }
             }
@@ -2034,10 +2077,10 @@ export default class Game {
                 ctx.font = 'bold 10px sans-serif';
                 ctx.fillStyle = item.color || '#ecf0f1';
                 ctx.fillText(item.name || 'Gear', 0, -28 - pulse * 2);
-                
+
                 ctx.fillStyle = '#ffffff';
                 ctx.font = '9px sans-serif';
-                let statStr = item.stats ? Object.entries(item.stats).map(([k,v])=>`+${Math.floor(v)} ${k.toUpperCase()}`).join('  ') : '';
+                let statStr = item.stats ? Object.entries(item.stats).map(([k, v]) => `+${Math.floor(v)} ${k.toUpperCase()}`).join('  ') : '';
                 ctx.fillText(statStr, 0, -16 - pulse * 2);
               } else {
                 // Pulsating Aura for Potions
@@ -2161,30 +2204,30 @@ export default class Game {
       // UI
       this.ui.updatePartyList(this.otherPlayers);
       if (this.player && this.player.alive && this.state === 'PLAYING') {
-         this.ui.updateBuffs(this.player.buffHpTimer, this.player.buffManaTimer);
-       } else {
-         this.ui.updateBuffs(0, 0);
-       }
+        this.ui.updateBuffs(this.player.buffHpTimer, this.player.buffManaTimer);
+      } else {
+        this.ui.updateBuffs(0, 0);
+      }
 
-     let cdSpeedMultiplier = 1;
-       if (this.player && this.player.alive && this.state === 'PLAYING') {
-         if (this.player.buffHpTimer > 0) {
-           this.player.buffHpTimer -= 16.67 * dt;
-           if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#e74c3c', 1, 3);
-         }
-         if (this.player.buffManaTimer > 0) {
-           this.player.buffManaTimer -= 16.67 * dt;
+      let cdSpeedMultiplier = 1;
+      if (this.player && this.player.alive && this.state === 'PLAYING') {
+        if (this.player.buffHpTimer > 0) {
+          this.player.buffHpTimer -= 16.67 * dt;
+          if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#e74c3c', 1, 3);
+        }
+        if (this.player.buffManaTimer > 0) {
+          this.player.buffManaTimer -= 16.67 * dt;
           cdSpeedMultiplier = ConfigModule.POTION_BLUE_CD_MULTIPLIER; // Configurable cooldown recovery speed
           if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#3498db', 1, 3);
         }
       }
 
       if (this.s2Cooldown > 0) { this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier); }
-       this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
+      this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
 
 
 
-       if (this.isHost) {
+      if (this.isHost) {
         this.enemies = this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000));
 
         const aliveCount = this.enemies.filter(e => e.alive).length;
@@ -2214,10 +2257,10 @@ export default class Game {
               this.bossActive = true;
               let numBosses = 1;
               if (ConfigModule.BOSS_WAVE_INTERVAL > 0) {
-                  const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
-                  if (bossWaveNum > 1) {
-                      numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
-                  }
+                const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
+                if (bossWaveNum > 1) {
+                  numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
+                }
               }
               this.waveTotalEnemies = numBosses;
               this.waveEnemiesToSpawn = numBosses;
