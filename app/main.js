@@ -1,6 +1,7 @@
 import Network from './network.js';
 import Game from './game.js';
 import UI from './ui.js';
+import { CHAT_MESSAGE_DURATION } from './utils.js';
 
 window.app = new class {
     constructor() {
@@ -45,7 +46,7 @@ window.app = new class {
             const msg = gameChatInput.value.trim();
             if (msg && this.game && this.game.player) {
                 this.game.player.chatMsg = msg;
-                this.game.player.chatTimer = 5000;
+                this.game.player.chatTimer = CHAT_MESSAGE_DURATION;
                 this.game.broadcastState();
                 gameChatInput.value = '';
             }

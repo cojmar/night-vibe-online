@@ -101,7 +101,13 @@ export const PROJ_HIT_RADIUS_BOLT = 10;
 export const PROJ_HIT_RADIUS_DEFAULT = 15;
 
 // ==========================================
-// 10. CLASS DATA & SKILLS DEFINITIONS
+// 10. CHAT & STATUS CONFIGURATIONS
+// ==========================================
+export const CHAT_MESSAGE_DURATION = 5000; // Duration in ms for status/chat messages
+export const CHAT_FADE_OUT_DURATION = 500;  // Fade out time in ms at the end
+
+// ==========================================
+// 11. CLASS DATA & SKILLS DEFINITIONS
 // ==========================================
 export const CLASS_DATA = {
   warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700' },

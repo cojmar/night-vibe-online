@@ -619,7 +619,7 @@ export default class Game {
     if (this.net && this.net.me && this.net.me.info) {
       this.net.send_cmd('set_data', {
         statPoints: this.player.statPoints,
-        bonusStatPoints: this.player.statPoints
+        bonusStatPoints: this.player.bonusStatPoints
       });
     }
     this.saveLocalProgression();
@@ -646,7 +646,7 @@ export default class Game {
     const newResets = (this.player.resets || 0) + 1;
 
     // The old bonus stats are the actual current unallocated stat points of the player
-    const oldBonusStats = this.player.statPoints || 0;
+    const oldBonusStats = this.player.bonusStatPoints || 0;
 
     const extraPoints = this.player.level * REBIRTH_POINTS_PER_LEVEL;
     const newBonusStats = oldBonusStats + extraPoints;
@@ -660,7 +660,8 @@ export default class Game {
     this.player.level = 1;
     this.player.kills = 0;
     this.player.resets = newResets;
-    this.player.statPoints = newBonusStats;
+    this.player.bonusStatPoints = newBonusStats;
+    this.player.levelUpStatPoints = 0;
     this.player.atk = base.atk;
     this.player.spd = base.spd;
     this.player.maxHp = base.hp;
@@ -684,17 +685,32 @@ export default class Game {
 
   restoreWebsocketStats(target, myData, selectedClass) {
     // Read resets and statPoints from localStorage as default fallbacks
-    const savedResets = parseInt(localStorage.getItem('nightvibe-resets') || '0', 10);
-    const savedStatPoints = parseInt(localStorage.getItem('nightvibe-statpoints') || '0', 10);
+    const hasSavedResets = localStorage.getItem('nightvibe-resets') !== null;
+    const hasSavedStatPoints = localStorage.getItem('nightvibe-statpoints') !== null;
+
+    const savedResets = hasSavedResets ? parseInt(localStorage.getItem('nightvibe-resets'), 10) : PLAYER_INITIAL_RESETS;
+    const savedStatPoints = hasSavedStatPoints ? parseInt(localStorage.getItem('nightvibe-statpoints'), 10) : PLAYER_INITIAL_STAT_POINTS;
 
     target.resets = savedResets;
-    target.statPoints = savedStatPoints;
+    target.bonusStatPoints = savedStatPoints;
+    target.levelUpStatPoints = 0;
 
     if (!myData) return;
 
-    // Override with network data if it has valid values
-    if (myData.resets !== undefined && myData.resets > 0) {
-      target.resets = myData.resets;
+    // If they explicitly cleared localStorage, we ignore stale websocket progression data
+    // to allow a true fresh start with 0 resets and 0 stats.
+    const isLocalStorageCleared = !hasSavedResets && !hasSavedStatPoints;
+
+    if (!isLocalStorageCleared) {
+      // Socket takes priority, fallback to localStorage
+      if (myData.resets !== undefined && myData.resets > 0) {
+        target.resets = myData.resets;
+      }
+      
+      const socketBonusStats = myData.bonusStatPoints !== undefined ? myData.bonusStatPoints : (myData.statPoints !== undefined ? myData.statPoints : undefined);
+      if (socketBonusStats !== undefined) {
+        target.bonusStatPoints = socketBonusStats;
+      }
     }
 
     if (myData.classType === selectedClass) {
@@ -706,24 +722,14 @@ export default class Game {
         target.hp = myData.maxHp;
       }
       if (myData.kills !== undefined) target.kills = myData.kills;
-      target.reqKills = Math.floor(5 * Math.pow(target.level, 1.4) + Math.sin(target.level) * 2);
-      
-      if (myData.statPoints !== undefined && myData.statPoints > 0) {
-        target.statPoints = myData.statPoints;
-      }
-    } else {
-      // Class changed or new class, stats are base class values, but resets and bonus points are carried over
-      const bonusStats = myData.bonusStatPoints || myData.statPoints || 0;
-      if (bonusStats > 0) {
-        target.statPoints = bonusStats;
-      }
+      target.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(target.level, REQ_KILLS_EXPONENT) + Math.sin(target.level) * REQ_KILLS_SIN_AMP);
     }
   }
 
   saveLocalProgression() {
     if (!this.player) return;
     localStorage.setItem('nightvibe-resets', this.player.resets || 0);
-    localStorage.setItem('nightvibe-statpoints', this.player.statPoints || 0);
+    localStorage.setItem('nightvibe-statpoints', this.player.bonusStatPoints || 0);
   }
 
   quitToMenu() {

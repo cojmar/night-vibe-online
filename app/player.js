@@ -1,4 +1,4 @@
-import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA, PLAYER_MOVE_SPEEDS, LEVEL_UP_STAT_POINTS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, RANGED_MAX_RANGE, WARRIOR_MELEE_RANGE, MAGICGLADIATOR_MELEE_RANGE, MELEE_RANGE_LVL_SCALE_MULT, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS } from './utils.js';
+import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA, PLAYER_MOVE_SPEEDS, LEVEL_UP_STAT_POINTS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, RANGED_MAX_RANGE, WARRIOR_MELEE_RANGE, MAGICGLADIATOR_MELEE_RANGE, MELEE_RANGE_LVL_SCALE_MULT, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, CHAT_MESSAGE_DURATION, CHAT_FADE_OUT_DURATION } from './utils.js';
 
 export default class Player {
   constructor(id, isLocal, classType, x, y) {
@@ -20,7 +20,8 @@ export default class Player {
     this.kills = PLAYER_INITIAL_KILLS;
     this.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(PLAYER_INITIAL_LEVEL, REQ_KILLS_EXPONENT) + Math.sin(PLAYER_INITIAL_LEVEL) * REQ_KILLS_SIN_AMP);
     this.resets = PLAYER_INITIAL_RESETS;
-    this.statPoints = PLAYER_INITIAL_STAT_POINTS;
+    this.bonusStatPoints = PLAYER_INITIAL_STAT_POINTS;
+    this.levelUpStatPoints = 0;
 
     this.animTimer = 0;
     this.hitFlash = 0;
@@ -52,6 +53,24 @@ export default class Player {
     this.buffManaTimer = 0;
   }
 
+  get statPoints() {
+    return (this.bonusStatPoints || 0) + (this.levelUpStatPoints || 0);
+  }
+
+  set statPoints(val) {
+    const current = (this.bonusStatPoints || 0) + (this.levelUpStatPoints || 0);
+    if (val === current - 1) {
+      if ((this.levelUpStatPoints || 0) > 0) {
+        this.levelUpStatPoints--;
+      } else if ((this.bonusStatPoints || 0) > 0) {
+        this.bonusStatPoints--;
+      }
+    } else {
+      this.bonusStatPoints = val;
+      this.levelUpStatPoints = 0;
+    }
+  }
+
   addKill() {
     this.kills++;
     this.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(this.level, REQ_KILLS_EXPONENT) + Math.sin(this.level) * REQ_KILLS_SIN_AMP);
@@ -70,7 +89,7 @@ export default class Player {
   }
 
   levelUp() {
-    this.statPoints = (this.statPoints || 0) + LEVEL_UP_STAT_POINTS;
+    this.levelUpStatPoints = (this.levelUpStatPoints || 0) + LEVEL_UP_STAT_POINTS;
     this.hp = this.maxHp;
   }
 
@@ -109,7 +128,7 @@ export default class Player {
       if (this.input_data.maxHp !== undefined) this.maxHp = this.input_data.maxHp;
       if (this.input_data.chatMsg !== undefined && this.input_data.chatMsg !== this.chatMsg) {
         this.chatMsg = this.input_data.chatMsg;
-        if (this.chatMsg) this.chatTimer = 5000;
+        if (this.chatMsg) this.chatTimer = CHAT_MESSAGE_DURATION;
       }
       if (this.input_data.mouseX !== undefined) this.mouseX = this.input_data.mouseX;
       if (this.input_data.mouseY !== undefined) this.mouseY = this.input_data.mouseY;
@@ -641,7 +660,7 @@ export default class Player {
       const msgHeight = 28;
       const bubbleY = tagBaseY - 25; // above the name
 
-      const alpha = Math.min(1, this.chatTimer / 500); // fade out at end
+      const alpha = Math.min(1, this.chatTimer / CHAT_FADE_OUT_DURATION); // fade out at end
       ctx.globalAlpha = alpha;
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
