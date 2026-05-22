@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_PROJECTILE_LIFETIME } from './utils.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -188,46 +188,62 @@ export default class Enemy {
                 this.bossState = 'IDLE';
             }
             return; // Don't move while firing
-        }
+       }
 
-      this.missileTimer = (this.missileTimer || 0) + dt;
-      if (this.missileTimer > 150) { 
-          this.missileTimer = 0;
-          
-          if (this.game.wave >= 2 && Math.random() < 0.4) {
-              this.bossState = 'CHANNELING_LASER';
-              this.bossChannelTimer = BOSS_LASER_CHANNEL_TIME;
-              this.targetLaserPos = { x: targetPlayer.x, y: targetPlayer.y };
-          } else {
-              this.missileIndex = (this.missileIndex || 0) + 1;
-              let missile = new Enemy(this.game, false, false, this.missileIndex);
-              missile.name = 'BOMB';
-              missile.icon = '💣';
-              missile.hp = Math.round(50 * (1 + (this.game.wave - 1) * 0.15));
-              missile.maxHp = missile.hp;
-              missile.atk = this.atk;
-              missile.size = 20;
-              missile.color = '#e74c3c';
-              missile.x = this.x;
-              missile.y = this.y - 20;
-              missile.attackCooldown = 0;
-              missile.id = 'M_' + this.id + '_' + this.missileIndex;
-              
-              if (targetPlayer) {
-                  const dx = targetPlayer.x - missile.x;
-                  const dy = targetPlayer.y - missile.y;
-                  const dist = Math.hypot(dx, dy) || 1;
-                  missile.vx = (dx / dist) * BOSS_PROJECTILE_SPEED;
-                  missile.vy = (dy / dist) * BOSS_PROJECTILE_SPEED;
-              } else {
-                  missile.vx = 0; missile.vy = BOSS_PROJECTILE_SPEED;
-              }
-              this.game.enemies.push(missile);
-          }
-      }
-    }
+       this.missileTimer = (this.missileTimer || 0) + dt;
+       if (this.missileTimer > 150) { 
+           this.missileTimer = 0;
+           
+           if (this.game.wave >= 2 && Math.random() < 0.4) {
+               this.bossState = 'CHANNELING_LASER';
+               this.bossChannelTimer = BOSS_LASER_CHANNEL_TIME;
+               this.targetLaserPos = { x: targetPlayer.x, y: targetPlayer.y };
+           } else {
+               this.missileIndex = (this.missileIndex || 0) + 1;
+               let missile = new Enemy(this.game, false, false, this.missileIndex);
+               missile.name = 'BOMB';
+               missile.icon = '💣';
+               missile.hp = Math.round(50 * (1 + (this.game.wave - 1) * 0.15));
+               missile.maxHp = missile.hp;
+               missile.atk = this.atk;
+               missile.size = 20;
+               missile.color = '#e74c3c';
+               missile.x = this.x;
+               missile.y = this.y - 20;
+               missile.attackCooldown = 0;
+                missile.id = 'M_' + this.id + '_' + this.missileIndex;
+                missile.spawnTime = Date.now();
+                missile.selfDmgTimer = 0;
+               
+               if (targetPlayer) {
+                   const dx = targetPlayer.x - missile.x;
+                   const dy = targetPlayer.y - missile.y;
+                   const dist = Math.hypot(dx, dy) || 1;
+                   missile.vx = (dx / dist) * BOSS_PROJECTILE_SPEED;
+                   missile.vy = (dy / dist) * BOSS_PROJECTILE_SPEED;
+               } else {
+                   missile.vx = 0; missile.vy = BOSS_PROJECTILE_SPEED;
+               }
+               this.game.enemies.push(missile);
+           }
+       }
+     }
 
-    const groundY = getGroundY(this.game.selectedEnv);
+     // Missile/BOMB self-detonation timer
+     if ((this.name === 'MISSILE' || this.name === 'BOMB') && BOSS_PROJECTILE_LIFETIME > 0) {
+         this.selfDmgTimer = (this.selfDmgTimer || 0) + dt * 16.67;
+         if (this.selfDmgTimer >= BOSS_PROJECTILE_LIFETIME) {
+             this.hp = 0;
+             this.alive = false;
+             this.deathTime = Date.now();
+             this.dealtHit = true;
+             this.game.spawnParticles(this.x, this.y, '#e74c3c', 15, 8);
+             this.game.spawnParticles(this.x, this.y, '#f39c12', 10, 6);
+             return;
+         }
+     }
+
+     const groundY = getGroundY(this.game.selectedEnv);
     const speedMultiplier = (this.y < groundY) ? ENEMY_SKY_SPEED_MULTIPLIER : 1.0;
 
     if (this.name === 'MISSILE' || this.name === 'BOMB') {
