@@ -916,6 +916,7 @@ export default class Game {
         this.projectiles.push(new Projectile({ type: 'aoe_explosion', x: this.player.x, y: weaponY, radius: 130 * aoeScale * areaMulti * lvlScale, life: 25, maxLife: 25, color: '#ffd700', damage: this.player.atk * 3.0 * dmgMulti, critChance: 0.25, ...projProps }));
         this.spawnParticles(this.player.x, weaponY, '#ffd700', 30 * aoeScale + charges * 15, 8);
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
+        this.ui.updateHUD(this.player);
         break;
     }
     this.broadcastState();
@@ -1017,6 +1018,7 @@ export default class Game {
       if (healAmount > 0) {
         this.floatingTexts.push({ x: this.player.x, y: this.player.y - 60, text: '+' + healAmount, color: '#2ecc71', life: 40, maxLife: 40, isCrit: false });
       }
+      this.ui.updateHUD(this.player);
     }
 
     if (this.isHost) {
