@@ -1966,27 +1966,55 @@ export default class Game {
               ctx.translate(item.x, item.y - 10 + floatOffset);
               ctx.globalAlpha = Math.min(1, item.life / 1000);
 
-              // Pulsating Aura
-              ctx.beginPath();
-              ctx.arc(0, 0, 10 + pulse * 6, 0, Math.PI * 2);
-              ctx.fillStyle = item.type === 'red' ? `rgba(231, 76, 60, ${0.3 + pulse * 0.3})` : `rgba(52, 152, 219, ${0.3 + pulse * 0.3})`;
-              ctx.fill();
+              if (item.type === 'gear') {
+                // Gear Aura
+                ctx.beginPath();
+                ctx.arc(0, 0, 14 + pulse * 6, 0, Math.PI * 2);
+                ctx.fillStyle = item.color || '#ecf0f1';
+                ctx.globalAlpha = (0.2 + pulse * 0.3) * Math.min(1, item.life / 1000);
+                ctx.fill();
 
-              // Core Orb
-              ctx.fillStyle = item.type === 'red' ? '#e74c3c' : '#3498db';
-              ctx.shadowColor = item.type === 'red' ? '#ff7979' : '#7ed6df';
-              ctx.shadowBlur = 10 + pulse * 15;
-              ctx.beginPath();
-              ctx.arc(0, 0, 7 + pulse * 2, 0, Math.PI * 2);
-              ctx.fill();
+                ctx.globalAlpha = Math.min(1, item.life / 1000);
+                ctx.shadowColor = item.color || '#ecf0f1';
+                ctx.shadowBlur = 10 + pulse * 10;
+                ctx.font = '22px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(item.icon || '💎', 0, 0);
 
-              // Icon
-              ctx.fillStyle = 'white';
-              ctx.shadowBlur = 0;
-              ctx.font = 'bold 12px sans-serif';
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              ctx.fillText(item.type === 'red' ? '❤️' : '⚡', 0, -18 - pulse * 2);
+                // Gear Stats Hover
+                ctx.shadowBlur = 4;
+                ctx.font = 'bold 10px sans-serif';
+                ctx.fillStyle = item.color || '#ecf0f1';
+                ctx.fillText(item.name || 'Gear', 0, -28 - pulse * 2);
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '9px sans-serif';
+                let statStr = item.stats ? Object.entries(item.stats).map(([k,v])=>`+${Math.floor(v)} ${k.toUpperCase()}`).join('  ') : '';
+                ctx.fillText(statStr, 0, -16 - pulse * 2);
+              } else {
+                // Pulsating Aura for Potions
+                ctx.beginPath();
+                ctx.arc(0, 0, 10 + pulse * 6, 0, Math.PI * 2);
+                ctx.fillStyle = item.type === 'red' ? `rgba(231, 76, 60, ${0.3 + pulse * 0.3})` : `rgba(52, 152, 219, ${0.3 + pulse * 0.3})`;
+                ctx.fill();
+
+                // Core Orb
+                ctx.fillStyle = item.type === 'red' ? '#e74c3c' : '#3498db';
+                ctx.shadowColor = item.type === 'red' ? '#ff7979' : '#7ed6df';
+                ctx.shadowBlur = 10 + pulse * 15;
+                ctx.beginPath();
+                ctx.arc(0, 0, 7 + pulse * 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Icon
+                ctx.fillStyle = 'white';
+                ctx.shadowBlur = 0;
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(item.type === 'red' ? '❤️' : '⚡', 0, -18 - pulse * 2);
+              }
 
               // Bobbing green downward arrow indicator above the targeted item
               if (this.player && this.player.targetedItemId === item.id) {

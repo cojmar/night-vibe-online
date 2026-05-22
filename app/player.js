@@ -92,7 +92,7 @@ export default class Player {
   }
   set maxHp(val) { this._maxHp = val; }
 
-  get moveSpeed() {
+  get spd() {
     let bonus = 0;
     if (this.equipment) {
       for (let slot in this.equipment) {
@@ -101,9 +101,9 @@ export default class Player {
         }
       }
     }
-    return (this._moveSpeed || 0) + bonus;
+    return (this._spd || 0) + bonus;
   }
-  set moveSpeed(val) { this._moveSpeed = val; }
+  set spd(val) { this._spd = val; }
 
   get statPoints() {
     return (this.bonusStatPoints || 0) + (this.levelUpStatPoints || 0) + (this.sessionStatPoints || 0);

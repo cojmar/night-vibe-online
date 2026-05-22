@@ -985,7 +985,8 @@ export default class UI {
             const fillEl = el.querySelector('.remote-hp-fill');
 
             const dispName = (p.nick && p.nick.trim() !== '') ? p.nick : key.substring(0, 8);
-            const newName = `${dispName}${aliveText}`;
+            const classIcon = (p.classType && CLASS_DATA[p.classType]) ? CLASS_DATA[p.classType].icon : '';
+            const newName = `${classIcon} ${dispName}${aliveText}`.trim();
             if (nameEl.textContent !== newName) nameEl.textContent = newName;
 
             const newInfoText = `Lv.${p.level || 1} | Kills: ${p.kills || 0}/${p.reqKills || 5}`;
