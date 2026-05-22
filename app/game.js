@@ -1112,6 +1112,8 @@ export default class Game {
       chatMsg: this.player.chatMsg,
       buffHpTimer: this.player.buffHpTimer,
       buffManaTimer: this.player.buffManaTimer,
+      inventory: this.player.inventory,
+      equipment: this.player.equipment,
       projectiles: this.projectiles.map(p => ({
         type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
         radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions

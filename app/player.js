@@ -43,6 +43,17 @@ export default class Player {
     // Multiplayer sync fields
     this.input_data = null;
 
+    // Inventory & Gear
+    this.inventory = []; // Unlimited grid items
+    this.equipment = {}; // Key-value for equipped gear (key = slot name)
+    if (isLocal) {
+      this.inventory = [
+        { id: 'item_1', name: 'Rusty Sword', type: 'Weapon', icon: '🗡️' },
+        { id: 'item_2', name: 'Leather Tunic', type: 'Armor', icon: '🛡️' },
+        { id: 'item_3', name: 'Magic Ring', type: 'Ring', icon: '💍' }
+      ];
+    }
+
     // Smooth movement for remote players - stores target position
     this.targetX = x;
     this.targetY = y;
@@ -139,6 +150,8 @@ export default class Player {
       if (this.input_data.isChargingS2 !== undefined) this.isChargingS2 = this.input_data.isChargingS2;
       if (this.input_data.s2ChargeCount !== undefined) this.s2ChargeCount = this.input_data.s2ChargeCount;
       if (this.input_data.projectiles) this.projectiles = this.input_data.projectiles;
+      if (this.input_data.inventory !== undefined) this.inventory = this.input_data.inventory;
+      if (this.input_data.equipment !== undefined) this.equipment = this.input_data.equipment;
 
       this.input_data = null;
     }

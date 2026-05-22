@@ -508,6 +508,149 @@ export default class UI {
             });
         }
         this.updateLobbyRulesText();
+        this.initInventory();
+    }
+
+    initInventory() {
+        const btnInventory = document.getElementById('btn-inventory');
+        const inventoryModal = document.getElementById('inventory-modal');
+        const btnInventoryClose = document.getElementById('btn-inventory-close');
+        const btnInventoryCloseIcon = document.getElementById('btn-inventory-close-icon');
+
+        if (btnInventory) {
+            btnInventory.addEventListener('click', () => {
+                if (inventoryModal.style.display === 'flex') {
+                    inventoryModal.style.display = 'none';
+                } else {
+                    inventoryModal.style.display = 'flex';
+                    this.renderInventory();
+                }
+            });
+        }
+        const closeModal = () => { if (inventoryModal) inventoryModal.style.display = 'none'; };
+        if (btnInventoryClose) btnInventoryClose.addEventListener('click', closeModal);
+        if (btnInventoryCloseIcon) btnInventoryCloseIcon.addEventListener('click', closeModal);
+    }
+
+    renderInventory() {
+        if (!this.game || !this.game.player) return;
+        const p = this.game.player;
+        
+        // Render Equipment Slots
+        const eqContainer = document.getElementById('equipment-slots-container');
+        if (eqContainer) {
+            eqContainer.innerHTML = '';
+            const slotNames = ConfigModule.EQUIPMENT_SLOTS.split(',').map(s => s.trim());
+            slotNames.forEach(slotName => {
+                const slotDiv = document.createElement('div');
+                slotDiv.style.width = '70px';
+                slotDiv.style.height = '70px';
+                slotDiv.style.border = '2px dashed #7f8c8d';
+                slotDiv.style.borderRadius = '8px';
+                slotDiv.style.display = 'flex';
+                slotDiv.style.flexDirection = 'column';
+                slotDiv.style.alignItems = 'center';
+                slotDiv.style.justifyContent = 'center';
+                slotDiv.style.background = '#2c3e50';
+                slotDiv.style.cursor = 'pointer';
+                slotDiv.style.transition = '0.2s';
+                slotDiv.onmouseover = () => { slotDiv.style.transform = 'scale(1.05)'; };
+                slotDiv.onmouseout = () => { slotDiv.style.transform = 'scale(1)'; };
+                
+                const label = document.createElement('div');
+                label.innerText = slotName;
+                label.style.fontSize = '0.65em';
+                label.style.color = '#bdc3c7';
+                label.style.marginBottom = '2px';
+                label.style.textTransform = 'uppercase';
+                label.style.fontWeight = 'bold';
+                slotDiv.appendChild(label);
+
+                const itemData = p.equipment[slotName];
+                if (itemData) {
+                    const itemVisual = document.createElement('div');
+                    itemVisual.innerText = itemData.icon || '💎';
+                    itemVisual.style.fontSize = '2em';
+                    itemVisual.title = itemData.name || 'Equipped Item';
+                    slotDiv.appendChild(itemVisual);
+                    slotDiv.style.border = '2px solid #2ecc71';
+                    slotDiv.style.background = 'rgba(46, 204, 113, 0.15)';
+                    slotDiv.style.boxShadow = '0 0 10px rgba(46, 204, 113, 0.4)';
+                } else {
+                    const emptyVisual = document.createElement('div');
+                    emptyVisual.innerText = '🔒';
+                    emptyVisual.style.opacity = '0.2';
+                    emptyVisual.style.fontSize = '1.5em';
+                    slotDiv.appendChild(emptyVisual);
+                }
+
+                // Click to unequip
+                slotDiv.addEventListener('click', () => {
+                    if (itemData) {
+                        p.inventory.push(itemData);
+                        delete p.equipment[slotName];
+                        this.game.broadcastState();
+                        this.renderInventory();
+                    }
+                });
+                eqContainer.appendChild(slotDiv);
+            });
+        }
+
+        // Render Inventory Grid
+        const invContainer = document.getElementById('inventory-grid');
+        if (invContainer) {
+            invContainer.innerHTML = '';
+            
+            p.inventory.forEach((item, index) => {
+                const cell = document.createElement('div');
+                cell.style.width = '100%';
+                cell.style.aspectRatio = '1 / 1';
+                cell.style.border = '2px solid #95a5a6';
+                cell.style.borderRadius = '8px';
+                cell.style.background = '#34495e';
+                cell.style.display = 'flex';
+                cell.style.alignItems = 'center';
+                cell.style.justifyContent = 'center';
+                cell.style.fontSize = '2em';
+                cell.style.cursor = 'pointer';
+                cell.title = item.name || 'Item';
+                cell.innerText = item.icon || '💎';
+                cell.style.transition = '0.2s';
+                cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; cell.style.borderColor = '#f1c40f'; cell.style.boxShadow = '0 0 10px rgba(241,196,15,0.5)'; };
+                cell.onmouseout = () => { cell.style.transform = 'scale(1)'; cell.style.borderColor = '#95a5a6'; cell.style.boxShadow = 'none'; };
+                
+                // Click to equip
+                cell.addEventListener('click', () => {
+                    const slotNames = ConfigModule.EQUIPMENT_SLOTS.split(',').map(s => s.trim());
+                    // Find a slot that matches the item type, or just the first empty slot if none matches
+                    let targetSlot = slotNames.find(s => s.toLowerCase().includes((item.type || '').toLowerCase())) || slotNames.find(s => !p.equipment[s]);
+                    
+                    if (targetSlot) {
+                        if (p.equipment[targetSlot]) {
+                            p.inventory.push(p.equipment[targetSlot]); // unequip existing
+                        }
+                        p.equipment[targetSlot] = item;
+                        p.inventory.splice(index, 1); // remove from inventory
+                        this.game.broadcastState();
+                        this.renderInventory();
+                    }
+                });
+                invContainer.appendChild(cell);
+            });
+
+            // Fill empty cells
+            const minCells = 24;
+            for (let i = p.inventory.length; i < minCells; i++) {
+                const cell = document.createElement('div');
+                cell.style.width = '100%';
+                cell.style.aspectRatio = '1 / 1';
+                cell.style.border = '2px dashed #7f8c8d';
+                cell.style.borderRadius = '8px';
+                cell.style.background = 'rgba(52, 73, 94, 0.3)';
+                invContainer.appendChild(cell);
+            }
+        }
     }
 
     showConfirm(title, message, onYes, onNo) {
