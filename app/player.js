@@ -1,4 +1,5 @@
 import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA, PLAYER_MOVE_SPEEDS, LEVEL_UP_STAT_POINTS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, RANGED_MAX_RANGE, WARRIOR_MELEE_RANGE, MAGICGLADIATOR_MELEE_RANGE, MELEE_RANGE_LVL_SCALE_MULT, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, CHAT_MESSAGE_DURATION, CHAT_FADE_OUT_DURATION, LIMIT_LEVEL_TO_REBIRTH_REQ } from './utils.js';
+import * as ConfigModule from './config.js';
 
 export default class Player {
   constructor(id, isLocal, classType, x, y) {
@@ -196,9 +197,20 @@ export default class Player {
         const reqLevel = REBIRTH_BASE_LEVEL + (this.resets || 0) * REBIRTH_LEVEL_STEP;
         const lvlScale = 0.5 + 0.5 * ((this.level - 1) / Math.max(1, reqLevel - 1));
 
-        let maxRange = RANGED_MAX_RANGE; // default for ranged
-        if (this.classType === 'warrior') maxRange = WARRIOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
-        else if (this.classType === 'magicgladiator') maxRange = MAGICGLADIATOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
+        let maxRange = RANGED_MAX_RANGE; // default for other classes
+        if (this.classType === 'warrior') {
+          maxRange = WARRIOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
+        } else if (this.classType === 'magicgladiator') {
+          maxRange = MAGICGLADIATOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
+        } else if (this.classType === 'mage') {
+          const mageBaseAtk = cd.atk;
+          const mageRangeMult = Math.pow(this.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
+          maxRange = 8 * 60 * mageRangeMult;
+        } else if (this.classType === 'archer') {
+          const archerBaseAtk = cd.atk;
+          const archerRangeMult = Math.pow(this.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
+          maxRange = 10 * 50 * archerRangeMult;
+        }
 
         const weaponY = this.y - 40 * lvlScale;
         const distToE = Math.hypot(e.x - this.x, e.y - weaponY);
