@@ -43,7 +43,7 @@ export default class UI {
         container.innerHTML = html;
     }
 
-  bindEvents() {
+    bindEvents() {
         document.getElementById('btn-prev-class').addEventListener('click', () => this.prevClass());
         document.getElementById('btn-next-class').addEventListener('click', () => this.nextClass());
         document.getElementById('btn-start').addEventListener('click', () => this.game.startGame(this.selectedClass));
@@ -364,7 +364,7 @@ export default class UI {
                     const meta = CONFIG_METADATA[key];
                     const inputEl = document.getElementById(`cfg-${key}`);
                     const rangeEl = document.getElementById(`cfg-range-${key}`);
-                    
+
                     if (inputEl) {
                         const eventType = (meta.type === 'boolean' || meta.type === 'color') ? 'change' : 'input';
                         inputEl.addEventListener(eventType, () => {
@@ -406,7 +406,7 @@ export default class UI {
                 if (this.game.updateLayout) {
                     this.game.updateLayout();
                 }
-                
+
                 if (this.game.player) {
                     this.game.player.moveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.game.player.classType] || ConfigModule.PLAYER_MOVE_SPEEDS.default;
                     if (this.game.player.classType === 'warrior') {
@@ -509,27 +509,27 @@ export default class UI {
         const modal = document.getElementById('rebirth-modal');
         const titleEl = modal ? modal.querySelector('h2') : null;
         const textEl = document.getElementById('rebirth-modal-text');
-        
+
         if (!modal || !textEl) return;
-        
+
         if (titleEl) titleEl.innerText = title;
         textEl.innerText = message;
         modal.style.display = 'flex';
-        
+
         const confirmBtn = document.getElementById('btn-rebirth-confirm');
         const cancelBtn = document.getElementById('btn-rebirth-cancel');
-        
+
         const newConfirmBtn = confirmBtn.cloneNode(true);
         const newCancelBtn = cancelBtn.cloneNode(true);
-        
+
         confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
         cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-        
+
         newConfirmBtn.addEventListener('click', () => {
             modal.style.display = 'none';
             if (onYes) onYes();
         });
-        
+
         newCancelBtn.addEventListener('click', () => {
             modal.style.display = 'none';
             if (onNo) onNo();
@@ -600,8 +600,7 @@ export default class UI {
         const ptsPerLvl = ConfigModule.REBIRTH_POINTS_PER_LEVEL || 5;
 
         rulesList.innerHTML = `
-            <li><strong style="color:#f1c40f;">Controls:</strong> Click/Tap to move. Click enemies to auto-attack.</li>
-            <li><strong style="color:#e74c3c;">Skills:</strong> Keyboard <b>1</b> and <b>2</b> (or tap skill icons) to aim/cast attacks.</li>
+            <li><strong style="color:#f1c40f;">Controls:</strong> Click/Tap to move. Click enemies to auto-attack.</li>            
             <li><strong style="color:#e67e22;">Overcharge:</strong> Hold down Skill <b>2</b> to charge it! Auto-releases at max charge. <b>+1 Max Charge per Reset!</b></li>
             <li><strong style="color:#9b59b6;">Rebirth:</strong> At <b style="color:#fff;">Level ${baseLvl}</b> you can Reset! Gain permanent stat points (+${ptsPerLvl} per Level upgraded). Every reset increases the level requirement by +${stepLvl}.</li>
             <li><strong style="color:#f39c12;">Level Limit:</strong> Level gains are ${limitActive ? '<b style="color:#e74c3c;">CAPPED</b> at the active Rebirth level requirement' : '<b style="color:#2ecc71;">UNCAPPED</b> (no restriction on level ups)'}.</li>
@@ -711,7 +710,7 @@ export default class UI {
         if (resetsVal) resetsVal.textContent = player.resets || 0;
 
         const reqLevel = ConfigModule.REBIRTH_BASE_LEVEL + (player.resets || 0) * ConfigModule.REBIRTH_LEVEL_STEP;
-        
+
         const capWarning = document.getElementById('stat-level-cap-warning');
         if (capWarning) {
             if (ConfigModule.LIMIT_LEVEL_TO_REBIRTH_REQ && player.level >= reqLevel) {

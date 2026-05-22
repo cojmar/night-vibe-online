@@ -22,6 +22,7 @@ export default class Player {
     this.resets = PLAYER_INITIAL_RESETS;
     this.bonusStatPoints = PLAYER_INITIAL_STAT_POINTS;
     this.levelUpStatPoints = 0;
+    this.sessionStatPoints = 0;
 
     this.animTimer = 0;
     this.hitFlash = 0;
@@ -54,20 +55,23 @@ export default class Player {
   }
 
   get statPoints() {
-    return (this.bonusStatPoints || 0) + (this.levelUpStatPoints || 0);
+    return (this.bonusStatPoints || 0) + (this.levelUpStatPoints || 0) + (this.sessionStatPoints || 0);
   }
 
   set statPoints(val) {
-    const current = (this.bonusStatPoints || 0) + (this.levelUpStatPoints || 0);
+    const current = (this.bonusStatPoints || 0) + (this.levelUpStatPoints || 0) + (this.sessionStatPoints || 0);
     if (val === current - 1) {
       if ((this.levelUpStatPoints || 0) > 0) {
         this.levelUpStatPoints--;
+      } else if ((this.sessionStatPoints || 0) > 0) {
+        this.sessionStatPoints--;
       } else if ((this.bonusStatPoints || 0) > 0) {
         this.bonusStatPoints--;
       }
     } else {
       this.bonusStatPoints = val;
       this.levelUpStatPoints = 0;
+      this.sessionStatPoints = val;
     }
   }
 

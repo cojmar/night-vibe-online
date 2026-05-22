@@ -691,6 +691,7 @@ export default class Game {
     this.player.kills = 0;
     this.player.resets = newResets;
     this.player.bonusStatPoints = newBonusStats;
+    this.player.sessionStatPoints = newBonusStats;
     this.player.levelUpStatPoints = 0;
     this.player.atk = base.atk;
     this.player.spd = base.spd;
@@ -723,6 +724,7 @@ export default class Game {
 
     target.resets = savedResets;
     target.bonusStatPoints = savedStatPoints;
+    target.sessionStatPoints = savedStatPoints;
     target.levelUpStatPoints = 0;
 
     if (!myData) return;
@@ -740,6 +742,7 @@ export default class Game {
       const socketBonusStats = myData.bonusStatPoints !== undefined ? myData.bonusStatPoints : (myData.statPoints !== undefined ? myData.statPoints : undefined);
       if (socketBonusStats !== undefined) {
         target.bonusStatPoints = socketBonusStats;
+        target.sessionStatPoints = socketBonusStats;
       }
     }
 
