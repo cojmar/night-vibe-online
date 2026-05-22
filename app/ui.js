@@ -348,6 +348,14 @@ export default class UI {
                             <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
                             <input type="text" id="cfg-${meta.key}" value="${currentValue}" ${isPlaying ? 'disabled' : ''} style="width:100%; box-sizing:border-box; padding:8px 12px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14.5px; opacity:${isPlaying ? '0.6' : '1'}; cursor:${isPlaying ? 'not-allowed' : 'text'};">
                         `;
+                    } else if (meta.type === 'json') {
+                        let jsonStr = '';
+                        try { jsonStr = JSON.stringify(currentValue, null, 2); } catch (e) {}
+                        fieldDiv.innerHTML = `
+                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
+                            <textarea id="cfg-${meta.key}" ${isPlaying ? 'disabled' : ''} style="width:100%; height:150px; box-sizing:border-box; padding:8px; background:#2c3e50; border:1px solid #34495e; color:#2ecc71; border-radius:5px; font-family:monospace; font-size:13px; resize:vertical; outline:none;">${jsonStr}</textarea>
+                            <div style="font-size:0.75em; color:#e74c3c; margin-top:4px;" id="cfg-error-${meta.key}"></div>
+                        `;
                     } else {
                         fieldDiv.innerHTML = `
                             <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
@@ -456,6 +464,14 @@ export default class UI {
                     newValues[key] = input.value;
                 } else if (meta.type === 'string') {
                     newValues[key] = input.value;
+                } else if (meta.type === 'json') {
+                    try {
+                        newValues[key] = JSON.parse(input.value);
+                        document.getElementById(`cfg-error-${meta.key}`).textContent = '';
+                    } catch (e) {
+                        document.getElementById(`cfg-error-${meta.key}`).textContent = 'Invalid JSON format! Changes not saved.';
+                        continue;
+                    }
                 } else {
                     newValues[key] = parseFloat(input.value);
                 }

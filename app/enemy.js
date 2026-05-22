@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_PROJECTILE_LIFETIME } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_LASER_DPS, BOSS_PROJECTILE_LIFETIME } from './utils.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -176,9 +176,17 @@ export default class Enemy {
                     const projX = lx + t * dx2;
                     const projY = ly + t * dy2;
                     if (Math.hypot(p.x - projX, p.y - projY) < this.size * 0.5 + (p.size || 15)) {
-                        if (this.game.isHost) {
-                            p.hp -= this.atk * 1.5;
-                            if (p.hp <= 0) { p.hp = 0; p.alive = false; }
+                        // Calculate DPS scaled by the boss's power (maxHp / BOSS_BASE_HP gives the scale factor)
+                        const scaleFactor = this.maxHp / BOSS_BASE_HP;
+                        // Determine dmg for this tick:
+                        // BOSS_LASER_DPS * scale * (interval_in_seconds)
+                        let rawLaserDps = typeof BOSS_LASER_DPS !== 'undefined' ? BOSS_LASER_DPS : 40;
+                        const tickDmg = (rawLaserDps * scaleFactor) * (BOSS_LASER_DAMAGE_INTERVAL / 1000);
+                        
+                        if (p.isLocal) {
+                            this.game.dealDamageToPlayer(tickDmg);
+                        } else if (this.game.isHost) {
+                            this.game.net.send_cmd('set_data', { enemyHitPlayer: { id: p.id, dmg: tickDmg } });
                         }
                     }
                 }

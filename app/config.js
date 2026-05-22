@@ -4,8 +4,6 @@
 // A. DEFAULT CONFIGURATIONS OBJECT
 // ==========================================
 const FALLBACK_DEFAULTS = {
-  // 1. Player Movement (Simple)
-  MOVE_SPEED: 2.5,
 
   // 2. Player Combat & Ranges
   RANGED_MAX_RANGE: 450,
@@ -69,6 +67,7 @@ const FALLBACK_DEFAULTS = {
   BOSS_PROJECTILE_LIFETIME: 0,
   BOSS_LASER_CHANNEL_TIME: 90,
    BOSS_LASER_DAMAGE_INTERVAL: 300,
+  BOSS_LASER_DPS: 40,
 
   // 9. Projectile Collision Size
   PROJ_HIT_RADIUS_ARROW: 12,
@@ -94,6 +93,43 @@ const FALLBACK_DEFAULTS = {
    CLEAR_ITEMS_ON_START: true,
    POTION_RED_DROP_CHANCE: 0.25,
    POTION_BLUE_DROP_CHANCE: 0.10
+,
+
+  // 13. Game Data Entities
+  CLASS_DATA: {
+  warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700' },
+  mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22' },
+  archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c' },
+  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700' }
+},
+  ENEMY_TYPES: [
+  { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+  { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
+  { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+  { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
+  { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+  { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
+  { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+  { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
+],
+  SKILL_DESC: {
+  warrior: {
+    s1: { name: 'Bash', desc: 'Wide arc strike. 100% ATK + knockback.', ctrl: 'Left-click enemy' },
+    s2: { name: 'Sword Slash', desc: 'Shockwave projectile. 250% ATK + knockback.', ctrl: 'Right-click / long-press' }
+  },
+  mage: {
+    s1: { name: 'Magic Bolt', desc: 'Fast bolt. 90% ATK single-target.', ctrl: 'Left-click enemy' },
+    s2: { name: 'Fireball', desc: 'Exploding AoE fireball. 220% ATK.', ctrl: 'Right-click / long-press' }
+  },
+  archer: {
+    s1: { name: 'Quick Shot', desc: 'Fast arrow. 95% ATK, 15% crit.', ctrl: 'Left-click enemy' },
+    s2: { name: 'Arrow Barrage', desc: '3 arrows spread. 130% ATK each.', ctrl: 'Right-click / long-press' }
+  },
+  magicgladiator: {
+    s1: { name: 'Psionic Slash', desc: 'Double wide arc. 110% ATK, 12% crit.', ctrl: 'Left-click enemy' },
+    s2: { name: 'Cross Slash', desc: 'Massive AoE explosion. 300% ATK.', ctrl: 'Right-click / long-press' }
+  }
+}
 };
 
 export let DEFAULTS = { ...FALLBACK_DEFAULTS };
@@ -117,8 +153,6 @@ try {
 // B. METADATA FOR DYNAMIC SETTINGS UI GENERATION
 // ==========================================
 export const CONFIG_METADATA = {
-  // 1. Player Movement (Simple)
-  MOVE_SPEED: { label: "Global Move Speed", type: "number", min: 0.5, max: 10, step: 0.1, category: "Player Movement" },
 
   // 2. Player Combat & Ranges
   RANGED_MAX_RANGE: { label: "Ranged Max Attack Range", type: "number", min: 100, max: 1000, step: 50, category: "Combat & Ranges" },
@@ -174,6 +208,7 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   BOSS_PROJECTILE_HOMING: { label: "Boss Projectiles Homing", type: "boolean", category: "Boss Battles" },
   BOSS_LASER_CHANNEL_TIME: { label: "Boss Laser Channel Time (frames)", type: "number", min: 30, max: 300, step: 10, category: "Boss Battles" },
    BOSS_LASER_DAMAGE_INTERVAL: { label: "Boss Laser Damage Interval (ms)", type: "number", min: 50, max: 2000, step: 50, category: "Boss Battles" },
+  BOSS_LASER_DPS: { label: "Boss Laser Damage Per Second", type: "number", min: 5, max: 200, step: 5, category: "Boss Battles" },
   BOSS_PROJECTILE_LIFETIME: { label: "Boss Projectile Lifetime (ms, 0=infinite)", type: "number", min: 0, max: 30000, step: 500, category: "Boss Battles" },
 
   // 8. Projectiles & Hitboxes
@@ -198,6 +233,11 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   GEAR_STAT_VARIANCE: { label: "Gear Stat Variance (+/- %)", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
    GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" },
    CLEAR_ITEMS_ON_START: { label: "Clear Items on Game Start", type: "boolean", category: "Gear Drops & Stats" }
+,
+  // 12. Game Data Entities (JSON)
+  CLASS_DATA: { label: "Classes & Characters", type: "json", category: "Game Data Entities" },
+  ENEMY_TYPES: { label: "Enemy Types & Stats", type: "json", category: "Game Data Entities" },
+  SKILL_DESC: { label: "Skills Descriptions & Names", type: "json", category: "Game Data Entities" }
 };
 
 // ==========================================
@@ -221,8 +261,6 @@ export let DEPTH_GROUND_TOP = activeConfig.DEPTH_GROUND_TOP;
 export let DEPTH_GROUND_BOTTOM = activeConfig.DEPTH_GROUND_BOTTOM;
 export let GROUND_TOLERANCE = activeConfig.GROUND_TOLERANCE;
 export let DEAD_BODY_LIFETIME = activeConfig.DEAD_BODY_LIFETIME;
-
-export let MOVE_SPEED = activeConfig.MOVE_SPEED;
 
 export let RANGED_MAX_RANGE = activeConfig.RANGED_MAX_RANGE;
 export let WARRIOR_MELEE_RANGE = activeConfig.WARRIOR_MELEE_RANGE;
@@ -265,6 +303,7 @@ export let BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
 export let BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
 export let BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
 export let BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
+export let BOSS_LASER_DPS = activeConfig.BOSS_LASER_DPS;
 export let BOSS_PROJECTILE_LIFETIME = activeConfig.BOSS_PROJECTILE_LIFETIME;
 export let ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
 export let ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
@@ -294,6 +333,10 @@ export let GEAR_DROP_RATE = activeConfig.GEAR_DROP_RATE;
  export let POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
  export let POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
 
+export let CLASS_DATA = activeConfig.CLASS_DATA;
+export let ENEMY_TYPES = activeConfig.ENEMY_TYPES;
+export let SKILL_DESC = activeConfig.SKILL_DESC;
+
 // Static-structure configurations
 export const MOVE_STOP_DIST = 3;
 export const PLAYER_MOVE_SPEEDS = {
@@ -304,24 +347,6 @@ export const PLAYER_MOVE_SPEEDS = {
   default: 2.5
 };
 
-export const CLASS_DATA = {
-  warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700' },
-  mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22' },
-  archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c' },
-  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700' }
-};
-
-export const ENEMY_TYPES = [
-  { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-  { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
-  { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-  { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
-  { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-  { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
-  { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-  { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
-];
-
 export const ENV_LIST = ['forest', 'castle', 'volcano', 'beach', 'tundra', 'swamp'];
 export const ENV_DISPLAY = { forest: 'Forest', castle: 'Castle', volcano: 'Volcano', beach: 'Beach', tundra: 'Tundra', swamp: 'Swamp' };
 export const ENV_CONFIG = {
@@ -331,25 +356,6 @@ export const ENV_CONFIG = {
   beach: { skyTop: '#1a3a6a', skyMid: '#3a7aaa', skyBot: '#5a9aca', ground: '#d4a574', groundY: 0.51, horizonType: 'palms', horizonColor: '#1d441d', groundType: 'shells', groundColor: '#f5b041' },
   tundra: { skyTop: '#0a1a3a', skyMid: '#1a3a6a', skyBot: '#e8f0f8', ground: '#c0d8e8', groundY: 0.56, horizonType: 'pines', horizonColor: '#748a9c', groundType: 'ice', groundColor: '#ffffff' },
   swamp: { skyTop: '#0a1a0a', skyMid: '#1a2a1a', skyBot: '#0a150a', ground: '#1a2a1a', groundY: 0.48, horizonType: 'deadtrees', horizonColor: '#081108', groundType: 'mud', groundColor: '#3e4a34' }
-};
-
-export const SKILL_DESC = {
-  warrior: {
-    s1: { name: 'Bash', desc: 'Wide arc strike. 100% ATK + knockback.', ctrl: 'Left-click enemy' },
-    s2: { name: 'Sword Slash', desc: 'Shockwave projectile. 250% ATK + knockback.', ctrl: 'Right-click / long-press' }
-  },
-  mage: {
-    s1: { name: 'Magic Bolt', desc: 'Fast bolt. 90% ATK single-target.', ctrl: 'Left-click enemy' },
-    s2: { name: 'Fireball', desc: 'Exploding AoE fireball. 220% ATK.', ctrl: 'Right-click / long-press' }
-  },
-  archer: {
-    s1: { name: 'Quick Shot', desc: 'Fast arrow. 95% ATK, 15% crit.', ctrl: 'Left-click enemy' },
-    s2: { name: 'Arrow Barrage', desc: '3 arrows spread. 130% ATK each.', ctrl: 'Right-click / long-press' }
-  },
-  magicgladiator: {
-    s1: { name: 'Psionic Slash', desc: 'Double wide arc. 110% ATK, 12% crit.', ctrl: 'Left-click enemy' },
-    s2: { name: 'Cross Slash', desc: 'Massive AoE explosion. 300% ATK.', ctrl: 'Right-click / long-press' }
-  }
 };
 
 // ==========================================
@@ -365,6 +371,11 @@ export function updateConfig(newValues) {
   // Save customized config object back to localStorage
   localStorage.setItem('nightvibe-custom-config', JSON.stringify(activeConfig));
 
+  // Dynamically update the live bindings
+  CLASS_DATA = activeConfig.CLASS_DATA;
+  ENEMY_TYPES = activeConfig.ENEMY_TYPES;
+  SKILL_DESC = activeConfig.SKILL_DESC;
+
   // Dynamically update the live bindings so that all other game source modules receive the fresh settings immediately!
   GAME_W = activeConfig.GAME_W;
   GAME_H = activeConfig.GAME_H;
@@ -372,8 +383,6 @@ export function updateConfig(newValues) {
   DEPTH_GROUND_BOTTOM = activeConfig.DEPTH_GROUND_BOTTOM;
   GROUND_TOLERANCE = activeConfig.GROUND_TOLERANCE;
   DEAD_BODY_LIFETIME = activeConfig.DEAD_BODY_LIFETIME;
-
-  MOVE_SPEED = activeConfig.MOVE_SPEED;
 
   RANGED_MAX_RANGE = activeConfig.RANGED_MAX_RANGE;
   WARRIOR_MELEE_RANGE = activeConfig.WARRIOR_MELEE_RANGE;
@@ -416,6 +425,7 @@ export function updateConfig(newValues) {
   BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
 BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
     BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
+  BOSS_LASER_DPS = activeConfig.BOSS_LASER_DPS;
     BOSS_PROJECTILE_LIFETIME = activeConfig.BOSS_PROJECTILE_LIFETIME;
    ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
   ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
@@ -445,6 +455,7 @@ BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
    POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
    POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
    BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
+  BOSS_LASER_DPS = activeConfig.BOSS_LASER_DPS;
  }
 
 export function resetConfig() {
