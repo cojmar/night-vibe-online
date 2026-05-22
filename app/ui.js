@@ -436,13 +436,15 @@ export default class UI {
                 }
             };
             
+            
             const btnAddClass = document.getElementById('btn-add-class');
             if (btnAddClass) btnAddClass.onclick = () => {
                 const newKey = 'class_' + Math.floor(Math.random()*10000);
                 window.tempClassData[newKey] = { name: 'New Class', icon: '❓', hp: 100, mp: 50, atk: 10, spd: 5, color: '#ffffff', accent: '#cccccc' };
                 window.tempSkillDesc[newKey] = { s1: {name:'Basic', desc:'Attack', ctrl:'L-Click'}, s2: {name:'Special', desc:'Attack', ctrl:'R-Click'} };
-                renderClasses();
+                window.renderClasses();
             };
+
 
             const renderMonsters = () => {
                 const mContainer = document.getElementById('visual-monsters-container');
@@ -523,123 +525,29 @@ export default class UI {
             }
 
             // Bind search filtering
+            
             const searchInput = document.getElementById('config-search-input');
             if (searchInput) {
-                searchInput.value = '';
-                searchInput.oninput = () => {
-                    const query = searchInput.value.toLowerCase().trim();
-                    const container = document.getElementById('config-fields-container');
-                    if (!container) return;
-                    
-                    const categories = container.children;
-                    for (let i = 0; i < categories.length; i++) {
-                        const cat = categories[i];
-                        if (cat.tagName !== 'DIV' || !cat.style.borderLeft) continue; // Skip warn banner
-                        
-                        const catHeader = cat.children[0];
-                        const catName = catHeader ? catHeader.textContent.toLowerCase() : '';
-                        const catMatches = query === '' || catName.includes(query);
-                        
-                        let hasVisibleChild = catMatches;
-                        const fields = cat.children;
-                        for (let j = 1; j < fields.length; j++) { // Skip header at index 0
-                            const field = fields[j];
-                            const label = field.textContent.toLowerCase();
-                            if (query === '' || catMatches || label.includes(query)) {
-                                field.style.display = '';
-                            } else {
-                                field.style.display = 'none';
-                                hasVisibleChild = false;
-                            }
+                searchInput.addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase();
+                    // Filter General settings
+                    document.querySelectorAll('.config-group').forEach(group => {
+                        const labelText = group.querySelector('.config-label').textContent.toLowerCase();
+                        if (labelText.includes(term)) {
+                            group.style.display = 'flex';
+                        } else {
+                            group.style.display = 'none';
                         }
-                        
-                        cat.style.display = hasVisibleChild ? 'block' : 'none';
-                    }
-                };
+                    });
+                    
+                    // Filter Classes, Monsters, Items dynamically
+                    if (window.renderClasses) window.renderClasses();
+                    if (window.renderMonsters) window.renderMonsters();
+                    if (window.renderItems) window.renderItems();
+                });
             }
         };
 
-        const saveConfigFromUI = () => {
-            const newValues = {};
-            for (const key in CONFIG_METADATA) {
-                const input = document.getElementById(`cfg-${key}`);
-                if (!input) continue;
-
-                const meta = CONFIG_METADATA[key];
-                if (meta.type === 'boolean') {
-                    newValues[key] = input.checked;
-                } else if (meta.type === 'color') {
-                    newValues[key] = input.value;
-                } else if (meta.type === 'string') {
-                    newValues[key] = input.value;
-                } else if (meta.type === 'json') {
-                    try {
-                        newValues[key] = JSON.parse(input.value);
-                        document.getElementById(`cfg-error-${meta.key}`).textContent = '';
-                    } catch (e) {
-                        document.getElementById(`cfg-error-${meta.key}`).textContent = 'Invalid JSON format! Changes not saved.';
-                        continue;
-                    }
-                } else {
-                    newValues[key] = parseFloat(input.value);
-                }
-            }
-
-            // Save to localStorage & dynamic live-binding exports
-            
-            newValues['CLASS_DATA'] = window.tempClassData;
-            newValues['SKILL_DESC'] = window.tempSkillDesc;
-            newValues['ENEMY_TYPES'] = window.tempEnemyTypes;
-            newValues['ITEMS_DB'] = window.tempItemsDB;
-
-            updateConfig(newValues);
-
-            // Re-apply configurations onto active game components
-            if (this.game) {
-                this.classes = Object.keys(CLASS_DATA);
-                if (!this.classes.includes(this.selectedClass)) {
-                    this.selectedClass = this.classes[0] || 'warrior';
-                    this.currentCarouselIndex = 0;
-                } else {
-                    this.currentCarouselIndex = this.classes.indexOf(this.selectedClass);
-                }
-                this.updateClassCarousel();
-                if (this.game.updateLayout) {
-                    this.game.updateLayout();
-                }
-
-                if (this.game.player) {
-                    this.game.player.moveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.game.player.classType] || ConfigModule.PLAYER_MOVE_SPEEDS.default;
-                    if (this.game.player.classType === 'warrior') {
-                        this.game.player.atkRange = ConfigModule.WARRIOR_MELEE_RANGE;
-                    } else if (this.game.player.classType === 'magicgladiator') {
-                        this.game.player.atkRange = ConfigModule.MAGICGLADIATOR_MELEE_RANGE;
-                    } else {
-                        this.game.player.atkRange = ConfigModule.RANGED_MAX_RANGE;
-                    }
-                    this.updateHUD(this.game.player);
-                }
-
-                // Scenery depth ratio refresh
-                if (this.game.generateScenery) {
-                    this.game.generateScenery(this.game.selectedEnv);
-                }
-                if (this.game.broadcastState) {
-                    this.game.broadcastState();
-                }
-            }
-
-            this.updateLobbyRulesText();
-            this.updateClassCarousel();
-        };
-
-        if (btnOpenConfigEditor) {
-            btnOpenConfigEditor.addEventListener('click', () => {
-                settingsModal.style.display = 'none';
-                configEditorModal.style.display = 'flex';
-                buildConfigFields();
-            });
-        }
 
         if (btnConfigEditorCloseIcon) {
             btnConfigEditorCloseIcon.addEventListener('click', () => {
