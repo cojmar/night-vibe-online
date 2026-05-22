@@ -3,7 +3,7 @@
 // ==========================================
 // A. DEFAULT CONFIGURATIONS OBJECT
 // ==========================================
-export const DEFAULTS = {
+const FALLBACK_DEFAULTS = {
   // 1. Player Movement (Simple)
   MOVE_SPEED: 2.5,
 
@@ -87,6 +87,23 @@ export const DEFAULTS = {
   GEAR_STAT_MULTIPLIER: 1.5,
   GEAR_STAT_VARIANCE: 0.2
 };
+
+export let DEFAULTS = { ...FALLBACK_DEFAULTS };
+try {
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'app/nightvibe-gameplay-config.json', false); // false makes the request synchronous
+  xhr.send(null);
+  if (xhr.status === 200) {
+    const loadedDefaults = JSON.parse(xhr.responseText);
+    DEFAULTS = { ...FALLBACK_DEFAULTS, ...loadedDefaults };
+    // Prevent nulls (from generated JSON files) from breaking the equipment slots UI
+    if (!DEFAULTS.EQUIPMENT_SLOTS) {
+        DEFAULTS.EQUIPMENT_SLOTS = FALLBACK_DEFAULTS.EQUIPMENT_SLOTS;
+    }
+  }
+} catch (error) {
+  console.warn("Could not load app/nightvibe-gameplay-config.json synchronously, using hardcoded fallback", error);
+}
 
 // ==========================================
 // B. METADATA FOR DYNAMIC SETTINGS UI GENERATION
