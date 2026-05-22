@@ -59,9 +59,7 @@ export default class Game {
     };
     this.atmosEffects = [];
 
-    this.savePersistentData = this.savePersistentData.bind(this);
-    this.loadPersistentData = this.loadPersistentData.bind(this);
-    this._lastSaveTime = 0;
+    this.restoreWebsocketStats = this.restoreWebsocketStats.bind(this);
 
     this.bindEvents();
 
@@ -75,6 +73,22 @@ export default class Game {
       this.checkHost();
     });
     this.net.on('room.user_data', (data) => {
+      // Process enemyKilled for ourselves even if it comes from our own user data broadcast
+      if (data.data && data.data.enemyKilled && this.player && data.data.enemyKilled === this.net.me.info.user) {
+        if (this.player.addKill()) {
+          this.s2Cooldown = 0;
+          this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
+          this.ui.updateHUD(this.player);
+          this.spawnParticles(this.player.x, this.player.y - 20, '#ffd700', 60, 10);
+          this.spawnParticles(this.player.x, this.player.y - 20, '#fff', 40, 15);
+          this.spawnParticles(this.player.x, this.player.y - 20, '#f1c40f', 50, 5);
+          this.broadcastState();
+        }
+        if (this.state === 'PLAYING') {
+          this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
+        }
+      }
+
       if (this.net.me && data.user !== this.net.me.info.user) {
         if (!this.otherPlayers[data.user]) {
           // Default spawn for other players
@@ -163,22 +177,6 @@ export default class Game {
 
         if (data.data.gameOver) {
           this.quitToMenu();
-        }
-
-        if (data.data.enemyKilled && this.player && data.data.enemyKilled === this.net.me.info.user) {
-          if (this.player.addKill()) {
-            this.s2Cooldown = 0;
-            this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
-            this.ui.updateHUD(this.player);
-            this.spawnParticles(this.player.x, this.player.y - 20, '#ffd700', 60, 10);
-            this.spawnParticles(this.player.x, this.player.y - 20, '#fff', 40, 15);
-            this.spawnParticles(this.player.x, this.player.y - 20, '#f1c40f', 50, 5);
-            this.broadcastState();
-            this.savePersistentData();
-          }
-          if (this.state === 'PLAYING') {
-            this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
-          }
         }
 
         // Handle Host Sync
@@ -560,16 +558,12 @@ export default class Game {
     if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
       myData = this.net.room.users[this.net.me.info.user].data;
     }
-    const bonusStats = myData && myData.bonusStatPoints ? myData.bonusStatPoints : 0;
-    const resets = myData && myData.resets ? myData.resets : 0;
 
     const groundY = getGroundY(this.selectedEnv);
     this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, groundY - 20);
-    this.player.resets = resets;
-    this.player.statPoints = (this.player.statPoints || 0) + bonusStats;
 
-    if (resets === 0 && bonusStats === 0) {
-      this.restorePersistentStats(this.player, resets, bonusStats);
+    if (myData) {
+      this.restoreWebsocketStats(this.player, myData, selectedClass);
     }
 
     const nickInput = document.getElementById('nick-input');
@@ -622,7 +616,6 @@ export default class Game {
 
     this.ui.updateHUD(this.player);
     this.broadcastState();
-    this.savePersistentData();
   }
 
   requestRebirth() {
@@ -654,69 +647,44 @@ export default class Game {
     const extraPoints = this.player.level * 2;
     const newBonusStats = oldBonusStats + extraPoints;
 
-    this.net.send_cmd('set_data', { resets: newResets, bonusStatPoints: newBonusStats });
+    this.net.send_cmd('set_data', {
+      resets: newResets,
+      bonusStatPoints: newBonusStats,
+      level: 1,
+      kills: 0,
+      atk: undefined,
+      spd: undefined,
+      maxHp: undefined,
+      statPoints: newBonusStats
+    });
 
-    this.savePersistentData();
     this.quitToMenu();
   }
 
-  savePersistentData() {
-    if (!this.player) return;
-    const data = {
-      level: this.player.level,
-      resets: this.player.resets || 0,
-      classType: this.player.classType,
-      atk: this.player.atk,
-      spd: this.player.spd,
-      maxHp: this.player.maxHp,
-      savedAt: Date.now()
-    };
-    localStorage.setItem('nightvibe-player', JSON.stringify(data));
-  }
+  restoreWebsocketStats(target, myData, selectedClass) {
+    if (!myData) return;
 
-  loadPersistentData() {
-    try {
-      const raw = localStorage.getItem('nightvibe-player');
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      if (!data.level || !data.savedAt) return null;
-      const age = Date.now() - data.savedAt;
-      if (age > 30 * 24 * 60 * 60 * 1000) {
-        localStorage.removeItem('nightvibe-player');
-        return null;
-      }
-      return data;
-    } catch (e) {
-      return null;
+    if (myData.resets !== undefined) {
+      target.resets = myData.resets;
     }
-  }
 
-  restorePersistentStats(target, serverResets, serverBonusStats) {
-    const saved = this.loadPersistentData();
-    if (!saved) return;
-
-    const sr = serverResets || 0;
-    const mergedResets = Math.max(saved.resets || 0, sr);
-    target.resets = mergedResets;
-
-    if (sr === 0 && serverBonusStats === 0) {
-      target.level = saved.level;
-      target.classType = saved.classType;
-      target.atk = saved.atk;
-      target.spd = saved.spd;
-      target.maxHp = saved.maxHp;
-      target.hp = target.maxHp;
-      target.reqKills = Math.floor(5 * Math.pow(target.level, 1.4) + Math.sin(target.level) * 2);
-    } else {
-      if (saved.level > target.level) {
-        target.level = saved.level;
-        if (saved.classType) target.classType = saved.classType;
-        if (saved.atk > target.atk) target.atk = saved.atk;
-        if (saved.spd > target.spd) target.spd = saved.spd;
-        if (saved.maxHp > target.maxHp) target.maxHp = saved.maxHp;
-        target.reqKills = Math.floor(5 * Math.pow(target.level, 1.4) + Math.sin(target.level) * 2);
-        target.hp = target.maxHp;
+    if (myData.classType === selectedClass) {
+      if (myData.level !== undefined) target.level = myData.level;
+      if (myData.atk !== undefined) target.atk = myData.atk;
+      if (myData.spd !== undefined) target.spd = myData.spd;
+      if (myData.maxHp !== undefined) {
+        target.maxHp = myData.maxHp;
+        target.hp = myData.maxHp;
       }
+      if (myData.kills !== undefined) target.kills = myData.kills;
+      target.reqKills = Math.floor(5 * Math.pow(target.level, 1.4) + Math.sin(target.level) * 2);
+      if (myData.statPoints !== undefined) {
+        target.statPoints = myData.statPoints;
+      }
+    } else {
+      // Class changed or new class, stats are base class values, but resets and bonus points are carried over
+      const bonusStats = myData.bonusStatPoints || 0;
+      target.statPoints = (target.statPoints || 0) + bonusStats;
     }
   }
 
