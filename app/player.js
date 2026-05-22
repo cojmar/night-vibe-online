@@ -66,6 +66,45 @@ export default class Player {
     this.buffManaTimer = 0;
   }
 
+  get atk() {
+    let bonus = 0;
+    if (this.equipment) {
+      for (let slot in this.equipment) {
+        if (this.equipment[slot] && this.equipment[slot].stats && this.equipment[slot].stats.atk) {
+          bonus += this.equipment[slot].stats.atk;
+        }
+      }
+    }
+    return (this._atk || 0) + bonus;
+  }
+  set atk(val) { this._atk = val; }
+
+  get maxHp() {
+    let bonus = 0;
+    if (this.equipment) {
+      for (let slot in this.equipment) {
+        if (this.equipment[slot] && this.equipment[slot].stats && this.equipment[slot].stats.maxHp) {
+          bonus += this.equipment[slot].stats.maxHp;
+        }
+      }
+    }
+    return (this._maxHp || 0) + bonus;
+  }
+  set maxHp(val) { this._maxHp = val; }
+
+  get moveSpeed() {
+    let bonus = 0;
+    if (this.equipment) {
+      for (let slot in this.equipment) {
+        if (this.equipment[slot] && this.equipment[slot].stats && this.equipment[slot].stats.spd) {
+          bonus += this.equipment[slot].stats.spd;
+        }
+      }
+    }
+    return (this._moveSpeed || 0) + bonus;
+  }
+  set moveSpeed(val) { this._moveSpeed = val; }
+
   get statPoints() {
     return (this.bonusStatPoints || 0) + (this.levelUpStatPoints || 0) + (this.sessionStatPoints || 0);
   }
@@ -141,6 +180,8 @@ export default class Player {
       if (this.input_data.kills !== undefined) this.kills = this.input_data.kills;
       if (this.input_data.reqKills !== undefined) this.reqKills = this.input_data.reqKills;
       if (this.input_data.maxHp !== undefined) this.maxHp = this.input_data.maxHp;
+      if (this.input_data.atk !== undefined) this.atk = this.input_data.atk;
+      if (this.input_data.moveSpeed !== undefined) this.moveSpeed = this.input_data.moveSpeed;
       if (this.input_data.chatMsg !== undefined && this.input_data.chatMsg !== this.chatMsg) {
         this.chatMsg = this.input_data.chatMsg;
         if (this.chatMsg) this.chatTimer = CHAT_MESSAGE_DURATION;

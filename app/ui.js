@@ -571,11 +571,13 @@ export default class UI {
                     const itemVisual = document.createElement('div');
                     itemVisual.innerText = itemData.icon || '💎';
                     itemVisual.style.fontSize = '2em';
-                    itemVisual.title = itemData.name || 'Equipped Item';
+                    
+                    let statText = itemData.stats ? Object.entries(itemData.stats).map(([k, v]) => `${k.toUpperCase()}: +${v.toFixed(1)}`).join(', ') : '';
+                    itemVisual.title = `${itemData.name || 'Equipped Item'}\n${statText}`;
                     slotDiv.appendChild(itemVisual);
-                    slotDiv.style.border = '2px solid #2ecc71';
+                    slotDiv.style.border = `2px solid ${itemData.color || '#2ecc71'}`;
                     slotDiv.style.background = 'rgba(46, 204, 113, 0.15)';
-                    slotDiv.style.boxShadow = '0 0 10px rgba(46, 204, 113, 0.4)';
+                    slotDiv.style.boxShadow = `0 0 10px ${itemData.color || '#2ecc71'}66`;
                 } else {
                     const emptyVisual = document.createElement('div');
                     emptyVisual.innerText = '🔒';
@@ -606,7 +608,7 @@ export default class UI {
                 const cell = document.createElement('div');
                 cell.style.width = '100%';
                 cell.style.aspectRatio = '1 / 1';
-                cell.style.border = '2px solid #95a5a6';
+                cell.style.border = `2px solid ${item.color || '#95a5a6'}`;
                 cell.style.borderRadius = '8px';
                 cell.style.background = '#34495e';
                 cell.style.display = 'flex';
@@ -614,11 +616,13 @@ export default class UI {
                 cell.style.justifyContent = 'center';
                 cell.style.fontSize = '2em';
                 cell.style.cursor = 'pointer';
-                cell.title = item.name || 'Item';
+                
+                let statText = item.stats ? Object.entries(item.stats).map(([k, v]) => `${k.toUpperCase()}: +${v.toFixed(1)}`).join('\n') : '';
+                cell.title = `${item.name || 'Item'}\n${statText}`;
                 cell.innerText = item.icon || '💎';
                 cell.style.transition = '0.2s';
-                cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; cell.style.borderColor = '#f1c40f'; cell.style.boxShadow = '0 0 10px rgba(241,196,15,0.5)'; };
-                cell.onmouseout = () => { cell.style.transform = 'scale(1)'; cell.style.borderColor = '#95a5a6'; cell.style.boxShadow = 'none'; };
+                cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; cell.style.borderColor = '#f1c40f'; cell.style.boxShadow = `0 0 10px ${item.color || '#f1c40f'}99`; };
+                cell.onmouseout = () => { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; };
                 
                 // Click to equip
                 cell.addEventListener('click', () => {

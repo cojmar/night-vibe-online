@@ -1629,13 +1629,62 @@ export default class Game {
         if (this.isHost && !e.alive && !e.deadProcessed) {
           e.deadProcessed = true;
           const dropChance = Math.max(0.04, 0.35 - (this.wave * 0.025));
+          const groundY = getGroundY(this.selectedEnv);
+          
           if (Math.random() < dropChance) {
              const type = Math.random() < 0.55 ? 'red' : 'blue';
              const lifeTime = 15000 + this.wave * 2000;
-             const groundY = getGroundY(this.selectedEnv);
              const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
              this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
-           }
+          }
+
+          if (Math.random() < ConfigModule.GEAR_DROP_RATE) {
+             let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
+             let randRarity = Math.random();
+             const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
+             const rareThreshold = ConfigModule.GEAR_RARITY_RARE / totalWeight;
+             const magicThreshold = rareThreshold + (ConfigModule.GEAR_RARITY_MAGIC / totalWeight);
+
+             if (randRarity < rareThreshold) { rarity = 'rare'; color = '#f1c40f'; numAffixes = 3; }
+             else if (randRarity < magicThreshold) { rarity = 'magic'; color = '#3498db'; numAffixes = 2; }
+             
+             const categories = ['Weapon', 'Armor', 'Ring']; 
+             const category = categories[Math.floor(Math.random() * categories.length)];
+             
+             const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
+             const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
+             const variance = ConfigModule.GEAR_STAT_VARIANCE;
+             const finalStat = Math.floor(baseStat * (1 - variance + Math.random() * variance * 2));
+             
+             let stats = {}; let icon = '💎';
+             if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
+             else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
+             else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
+             
+             const possibleAffixes = ['atk', 'maxHp', 'spd'];
+             let affixesAdded = 1; let sanity = 0;
+             while (affixesAdded < numAffixes && sanity < 10) {
+                 sanity++;
+                 let randAffix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
+                 if (!stats[randAffix]) {
+                     if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
+                     if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
+                     if (randAffix === 'spd') stats.spd = Math.max(0.05, finalStat * 0.05);
+                     affixesAdded++;
+                 }
+             }
+             
+             const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
+             const itemName = `${prefixes[Math.floor(Math.random()*prefixes.length)]} ${category}`;
+
+             const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+             this.items.push({ 
+                 id: Math.random().toString(36).substr(2, 9), 
+                 type: 'gear', gearType: category, rarity: rarity, color: color, 
+                 name: itemName, stats: stats, icon: icon,
+                 x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY 
+             });
+          }
         }
 
         if (!this.isHost) {
@@ -1805,18 +1854,31 @@ export default class Game {
                if (Math.hypot(p.obj.x - item.x, p.obj.y - item.y) < 40) {
                   pickedUp = true;
                   if (this.isHost) {
-                    if (item.type === 'red') {
+                    if (item.type === 'gear') {
+                      if (p.id === 'host' || p.id === (this.net.me ? this.net.me.info.user : null)) {
+                        p.obj.inventory.push(item);
+                        this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🎒 Looted: ${item.name}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
+                        this.ui.addLog(`🎒 You picked up a ${item.name}!`, 'reward');
+                        if (this.ui) this.ui.renderInventory();
+                        this.broadcastState();
+                      } else {
+                        this.net.send_cmd('set_data', { giveItem: { item: item, target: p.id, id: Math.random() } });
+                      }
+                    } else if (item.type === 'red') {
                       p.obj.buffHpTimer = POTION_BUFF_DURATION;
                       this.spawnParticles(p.obj.x, p.obj.y - 20, '#e74c3c', 30, 6);
                       this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                      this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
                     } else if (item.type === 'blue') {
                       p.obj.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
                       this.spawnParticles(p.obj.x, p.obj.y - 20, '#3498db', 30, 6);
                       this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
+                      this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
                     }
-                    this.ui.addLog(item.type === 'red' ? `🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s` : `⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
                   } else {
-                    this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
+                    if (item.type !== 'gear') {
+                      this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
+                    }
                   }
                   break;
                 }
@@ -1856,6 +1918,17 @@ export default class Game {
                     }
                    this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
                  }
+              }
+              if (hData && hData.giveItem) {
+                const gi = hData.giveItem;
+                if (gi.target === (this.net.me ? this.net.me.info.user : null) && gi.id !== this.lastProcessedItemId) {
+                   this.lastProcessedItemId = gi.id;
+                   this.player.inventory.push(gi.item);
+                   this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${gi.item.name}!`, color: gi.item.color, life: 60, maxLife: 60, isCrit: false });
+                   this.ui.addLog(`🎒 You picked up a ${gi.item.name}!`, 'reward');
+                   if (this.ui) this.ui.renderInventory();
+                   this.broadcastState();
+                }
               }
             }
           }

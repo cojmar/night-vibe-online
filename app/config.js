@@ -74,7 +74,15 @@ export const DEFAULTS = {
   NETWORK_ROOM_NAME: 'Night-Vibe-Online-Arena',
 
   // 11. Inventory & Gear
-  EQUIPMENT_SLOTS: 'Weapon,Armor,Ring 1,Ring 2,Amulet'
+  EQUIPMENT_SLOTS: 'Weapon,Armor,Ring 1,Ring 2,Amulet',
+
+  // 12. Gear Drops & Stats
+  GEAR_DROP_RATE: 0.15,
+  GEAR_RARITY_NORMAL: 0.60,
+  GEAR_RARITY_MAGIC: 0.30,
+  GEAR_RARITY_RARE: 0.10,
+  GEAR_STAT_MULTIPLIER: 1.5,
+  GEAR_STAT_VARIANCE: 0.2
 };
 
 // ==========================================
@@ -142,7 +150,15 @@ export const CONFIG_METADATA = {
   NETWORK_ROOM_NAME: { label: "Multiplayer Room Name", type: "string", category: "Social & Chat" },
 
   // 10. Inventory & Gear
-  EQUIPMENT_SLOTS: { label: "Equipment Slots (comma separated)", type: "text", category: "Inventory & Gear" }
+  EQUIPMENT_SLOTS: { label: "Equipment Slots (comma separated)", type: "text", category: "Inventory & Gear" },
+
+  // 11. Gear Drops & Stats
+  GEAR_DROP_RATE: { label: "Gear Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+  GEAR_RARITY_NORMAL: { label: "Normal Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+  GEAR_RARITY_MAGIC: { label: "Magic Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+  GEAR_RARITY_RARE: { label: "Rare Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+  GEAR_STAT_MULTIPLIER: { label: "Gear Base Stat Multiplier", type: "number", min: 0.5, max: 5.0, step: 0.1, category: "Gear Drops & Stats" },
+  GEAR_STAT_VARIANCE: { label: "Gear Stat Variance (+/- %)", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" }
 };
 
 // ==========================================
@@ -220,6 +236,13 @@ export let CHAT_MESSAGE_DURATION = activeConfig.CHAT_MESSAGE_DURATION;
 export let CHAT_FADE_OUT_DURATION = activeConfig.CHAT_FADE_OUT_DURATION;
 export let NETWORK_ROOM_NAME = activeConfig.NETWORK_ROOM_NAME;
 export let EQUIPMENT_SLOTS = activeConfig.EQUIPMENT_SLOTS;
+
+export let GEAR_DROP_RATE = activeConfig.GEAR_DROP_RATE;
+export let GEAR_RARITY_NORMAL = activeConfig.GEAR_RARITY_NORMAL;
+export let GEAR_RARITY_MAGIC = activeConfig.GEAR_RARITY_MAGIC;
+export let GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
+export let GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
+export let GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
 
 // Static-structure configurations
 export const MOVE_STOP_DIST = 3;
@@ -353,6 +376,13 @@ export function updateConfig(newValues) {
   CHAT_FADE_OUT_DURATION = activeConfig.CHAT_FADE_OUT_DURATION;
   NETWORK_ROOM_NAME = activeConfig.NETWORK_ROOM_NAME;
   EQUIPMENT_SLOTS = activeConfig.EQUIPMENT_SLOTS;
+
+  GEAR_DROP_RATE = activeConfig.GEAR_DROP_RATE;
+  GEAR_RARITY_NORMAL = activeConfig.GEAR_RARITY_NORMAL;
+  GEAR_RARITY_MAGIC = activeConfig.GEAR_RARITY_MAGIC;
+  GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
+  GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
+  GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
 }
 
 export function resetConfig() {
