@@ -417,15 +417,10 @@ export default class UI {
 
         if (btnConfigReset) {
             btnConfigReset.addEventListener('click', () => {
-                this.showConfirm(
-                    "⚙️ Reset Defaults",
-                    "Reset all gameplay balance settings to original defaults?",
-                    () => {
-                        resetConfig();
-                        buildConfigFields();
-                        this.addLog("🛠️ Custom configurations reset to defaults.");
-                    }
-                );
+                resetConfig();
+                buildConfigFields();
+                saveConfigFromUI();
+                this.addLog("🛠️ Custom configurations reset to defaults.");
             });
         }
 
