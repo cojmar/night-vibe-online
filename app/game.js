@@ -493,12 +493,18 @@ export default class Game {
     this.canvas.height = ch * dpr;
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const sx = cw / GAME_W, sy = ch / GAME_H;
-    this.viewScale = Math.max(sx, sy);
+    // Lock scaling to the screen height to provide native side-scrolling experience
+    this.viewScale = ch / GAME_H;
     const scaledW = GAME_W * this.viewScale;
-    const scaledH = GAME_H * this.viewScale;
-    this.viewOX = (cw - scaledW) / 2;
-    this.viewOY = ch - scaledH;
+    
+    // If the game width is wider than the screen, left-align and let side-scrolling handle offsets.
+    // Otherwise, center the game world horizontally on screen.
+    if (cw < scaledW) {
+      this.viewOX = 0;
+    } else {
+      this.viewOX = (cw - scaledW) / 2;
+    }
+    this.viewOY = 0;
 
     this.cachedCanvasRect = this.canvas.getBoundingClientRect();
 
@@ -509,7 +515,7 @@ export default class Game {
     const rect = this.cachedCanvasRect || this.canvas.getBoundingClientRect();
     const canvasX = clientX - rect.left;
     const canvasY = clientY - rect.top;
-    const gameX = (canvasX - this.viewOX) / this.viewScale;
+    const gameX = (canvasX - this.viewOX) / this.viewScale + (this.cameraX || 0);
     const gameY = (canvasY - this.viewOY) / this.viewScale;
     return { x: gameX, y: gameY };
   }
@@ -522,7 +528,25 @@ export default class Game {
       this.screenShake -= dt;
       if (this.screenShake < 0) this.screenShake = 0;
     }
-    this.ctx.translate(this.viewOX + shakeX, this.viewOY + shakeY);
+
+    // Side-scrolling camera to follow local player
+    if (this.player && this.canvas) {
+      const cw = this.canvas.width / (window.devicePixelRatio || 1);
+      const viewportWidth = cw / this.viewScale;
+      const scaledW = GAME_W * this.viewScale;
+      if (cw < scaledW) {
+        this.cameraX = Math.max(0, Math.min(GAME_W - viewportWidth, this.player.x - viewportWidth / 2));
+      } else {
+        this.cameraX = 0;
+      }
+    } else {
+      this.cameraX = 0;
+    }
+
+    const tx = this.viewOX + shakeX - (this.cameraX || 0) * this.viewScale;
+    const ty = this.viewOY + shakeY;
+
+    this.ctx.translate(tx, ty);
     this.ctx.scale(this.viewScale, this.viewScale);
   }
 
