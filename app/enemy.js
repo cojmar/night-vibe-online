@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING } from './utils.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -142,8 +142,8 @@ export default class Enemy {
           // Increment a custom missile index so IDs are unique
           this.missileIndex = (this.missileIndex || 0) + 1;
           let missile = new Enemy(this.game, false, false, this.missileIndex);
-          missile.name = 'MISSILE';
-          missile.icon = '🚀';
+          missile.name = 'BOMB';
+          missile.icon = '💣';
           missile.hp = Math.round(50 * (1 + (this.game.wave - 1) * 0.15));
           missile.maxHp = missile.hp;
           missile.atk = this.atk;
@@ -158,10 +158,10 @@ export default class Enemy {
               const dx = targetPlayer.x - missile.x;
               const dy = targetPlayer.y - missile.y;
               const dist = Math.hypot(dx, dy) || 1;
-              missile.vx = (dx / dist) * this.speed * 2.5; // faster than boss, no homing
-              missile.vy = (dy / dist) * this.speed * 2.5;
+              missile.vx = (dx / dist) * BOSS_PROJECTILE_SPEED;
+              missile.vy = (dy / dist) * BOSS_PROJECTILE_SPEED;
           } else {
-              missile.vx = 0; missile.vy = this.speed * 2.5;
+              missile.vx = 0; missile.vy = BOSS_PROJECTILE_SPEED;
           }
           this.game.enemies.push(missile);
       }
@@ -170,11 +170,18 @@ export default class Enemy {
     const groundY = getGroundY(this.game.selectedEnv);
     const speedMultiplier = (this.y < groundY) ? ENEMY_SKY_SPEED_MULTIPLIER : 1.0;
 
-    if (this.name === 'MISSILE') {
-        // Missile just goes straight
+    if (this.name === 'MISSILE' || this.name === 'BOMB') {
+        if (BOSS_PROJECTILE_HOMING && closestDist > 50) {
+            const tx = targetPlayer.x - this.x;
+            const ty = targetPlayer.y - this.y;
+            const tdist = Math.hypot(tx, ty) || 1;
+            const tvx = (tx / tdist) * BOSS_PROJECTILE_SPEED;
+            const tvy = (ty / tdist) * BOSS_PROJECTILE_SPEED;
+            this.vx = this.vx * 0.96 + tvx * 0.04;
+            this.vy = this.vy * 0.96 + tvy * 0.04;
+        }
         this.x += (this.vx || 0) * dt;
         this.y += (this.vy || 0) * dt;
-        // Don't home in!
     } else if (closestDist > 50) {
       this.x += (dx / closestDist) * this.speed * speedMultiplier * dt;
       this.y += (dy / closestDist) * this.speed * speedMultiplier * dt;
@@ -191,7 +198,7 @@ export default class Enemy {
             this.game.net.send_cmd('set_data', { enemyHitPlayer: { id: targetPlayer.id, dmg: this.atk } });
         }
         
-        if (this.name === 'MISSILE') {
+        if (this.name === 'MISSILE' || this.name === 'BOMB') {
             this.hp = 0;
             this.alive = false;
             this.deathTime = Date.now();
@@ -232,7 +239,7 @@ export default class Enemy {
 
     // Add smooth animation bobbing for moving monsters
     let drawY = this.y;
-    if (this.alive && this.name !== 'MISSILE') {
+    if (this.alive && this.name !== 'MISSILE' && this.name !== 'BOMB') {
         const bounce = Math.sin(now / 120 + this.x * 0.05) * 3.5;
         drawY += bounce;
     }

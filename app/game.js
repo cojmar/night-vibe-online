@@ -2182,7 +2182,7 @@ export default class Game {
               document.getElementById('main-area').style.display = 'none';
             }
             this.initBgParticles();
-            if (this.wave % 5 === 0) {
+            if (this.wave % ConfigModule.BOSS_WAVE_INTERVAL === 0) {
               this.bossActive = true;
               this.waveTotalEnemies = 1;
               this.waveEnemiesToSpawn = 1;

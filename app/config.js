@@ -62,6 +62,9 @@ export const DEFAULTS = {
   BOSS_BASE_SIZE: 48,
   BOSS_BASE_COLOR: '#8e44ad',
   BOSS_ATTACK_COOLDOWN: 120,
+  BOSS_WAVE_INTERVAL: 5,
+  BOSS_PROJECTILE_SPEED: 4.0,
+  BOSS_PROJECTILE_HOMING: false,
 
   // 9. Projectile Collision Size
   PROJ_HIT_RADIUS_ARROW: 12,
@@ -138,6 +141,9 @@ export const CONFIG_METADATA = {
   BOSS_BASE_SIZE: { label: "Boss Base Physical Size (px)", type: "number", min: 20, max: 100, step: 4, category: "Boss Battles" },
   BOSS_BASE_COLOR: { label: "Boss Accent Color", type: "color", category: "Boss Battles" },
   BOSS_ATTACK_COOLDOWN: { label: "Boss Attack Delay (frames)", type: "number", min: 20, max: 300, step: 10, category: "Boss Battles" },
+  BOSS_WAVE_INTERVAL: { label: "Boss Spawn Wave Interval", type: "number", min: 1, max: 20, step: 1, category: "Boss Battles" },
+  BOSS_PROJECTILE_SPEED: { label: "Boss Projectile Speed", type: "number", min: 1.0, max: 15.0, step: 0.5, category: "Boss Battles" },
+  BOSS_PROJECTILE_HOMING: { label: "Boss Projectiles Homing", type: "boolean", category: "Boss Battles" },
 
   // 8. Projectiles & Hitboxes
   PROJ_HIT_RADIUS_ARROW: { label: "Arrow Hitbox Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
@@ -220,6 +226,9 @@ export let BOSS_BASE_SPEED = activeConfig.BOSS_BASE_SPEED;
 export let BOSS_BASE_SIZE = activeConfig.BOSS_BASE_SIZE;
 export let BOSS_BASE_COLOR = activeConfig.BOSS_BASE_COLOR;
 export let BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
+export let BOSS_WAVE_INTERVAL = activeConfig.BOSS_WAVE_INTERVAL;
+export let BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
+export let BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
 export let ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
 export let ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
 
@@ -360,6 +369,9 @@ export function updateConfig(newValues) {
   BOSS_BASE_SIZE = activeConfig.BOSS_BASE_SIZE;
   BOSS_BASE_COLOR = activeConfig.BOSS_BASE_COLOR;
   BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
+  BOSS_WAVE_INTERVAL = activeConfig.BOSS_WAVE_INTERVAL;
+  BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
+  BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
   ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
   ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
 
