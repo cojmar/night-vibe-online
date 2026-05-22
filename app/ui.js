@@ -279,9 +279,9 @@ export default class UI {
                     } else {
                         fieldDiv.innerHTML = `
                             <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px;">${meta.label}</label>
-                            <div style="display:flex; gap:10px; align-items:center;">
-                                <input type="number" id="cfg-${meta.key}" value="${currentValue}" min="${meta.min}" max="${meta.max}" step="${meta.step}" style="flex:1; padding:8px 12px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:15px;">
-                                <span style="font-size:0.85em; color:#7f8c8d; font-family:monospace; white-space:nowrap;">[${meta.min}-${meta.max}]</span>
+                            <div style="display:flex; gap:15px; align-items:center;">
+                                <input type="range" id="cfg-range-${meta.key}" value="${currentValue}" min="${meta.min}" max="${meta.max}" step="${meta.step}" style="flex:1; cursor:pointer; accent-color:#2ecc71;">
+                                <input type="number" id="cfg-${meta.key}" value="${currentValue}" min="${meta.min}" max="${meta.max}" step="${meta.step}" style="width:90px; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14px; text-align:center; font-family:monospace;">
                             </div>
                         `;
                     }
@@ -289,6 +289,28 @@ export default class UI {
                 });
 
                 container.appendChild(catEl);
+            }
+
+            // Bind bidirectional synchronization for range sliders and input boxes
+            for (const key in CONFIG_METADATA) {
+                const meta = CONFIG_METADATA[key];
+                if (meta.type === 'number') {
+                    const rangeEl = document.getElementById(`cfg-range-${key}`);
+                    const numEl = document.getElementById(`cfg-${key}`);
+                    if (rangeEl && numEl) {
+                        rangeEl.addEventListener('input', (e) => {
+                            numEl.value = e.target.value;
+                        });
+                        numEl.addEventListener('input', (e) => {
+                            let val = parseFloat(e.target.value);
+                            if (isNaN(val)) return;
+                            // Clamp value typed manually to prevent out of bounds
+                            if (val < meta.min) val = meta.min;
+                            if (val > meta.max) val = meta.max;
+                            rangeEl.value = val;
+                        });
+                    }
+                }
             }
         };
 
@@ -313,10 +335,8 @@ export default class UI {
 
             // Re-apply configurations onto active game components
             if (this.game) {
-                if (this.game.canvas) {
-                    this.game.canvas.width = ConfigModule.GAME_W;
-                    this.game.canvas.height = ConfigModule.GAME_H;
-                    this.game.resizeCanvas();
+                if (this.game.updateLayout) {
+                    this.game.updateLayout();
                 }
                 
                 if (this.game.player) {
@@ -332,8 +352,12 @@ export default class UI {
                 }
 
                 // Scenery depth ratio refresh
-                this.game.generateScenery(this.game.selectedEnv);
-                this.game.broadcastState();
+                if (this.game.generateScenery) {
+                    this.game.generateScenery(this.game.selectedEnv);
+                }
+                if (this.game.broadcastState) {
+                    this.game.broadcastState();
+                }
             }
 
             this.addLog("🛠️ Configuration saved & applied successfully!");
