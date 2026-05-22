@@ -94,7 +94,7 @@ export default class Game {
       if (this.net.me && data.user !== this.net.me.info.user) {
         if (!this.otherPlayers[data.user]) {
           // Default spawn for other players
-          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W / 2, data.data.y || getGroundY('forest') - 20);
+          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W / 2, data.data.y || GAME_H - 45);
         }
 
         const oldInGame = this.otherPlayers[data.user].inGame;
@@ -140,13 +140,6 @@ export default class Game {
           data.data.hits.forEach(hit => {
             let e = this.enemies.find(ex => ex.id === hit.id);
             if (e && e.alive) {
-              if (this.player && this.player.buffHpTimer > 0) {
-                const healAmount = Math.floor(hit.damage * 0.25);
-                this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
-                if (healAmount > 0) {
-                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 60, text: '+' + healAmount, color: '#2ecc71', life: 40, maxLife: 40, isCrit: false });
-                }
-              }
               e.hp -= hit.damage;
               e.hitFlash = 8;
               this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (hit.isCrit ? '💥 ' : '') + hit.damage, color: hit.isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: hit.isCrit });
@@ -561,8 +554,7 @@ export default class Game {
       myData = this.net.room.users[this.net.me.info.user].data;
     }
 
-    const groundY = getGroundY(this.selectedEnv);
-    this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, groundY - 20);
+    this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, GAME_H - 45);
 
     this.restoreWebsocketStats(this.player, myData, selectedClass);
 
@@ -627,7 +619,7 @@ export default class Game {
     const modal = document.getElementById('rebirth-modal');
     const text = document.getElementById('rebirth-modal-text');
     if (modal && text) {
-      text.innerText = `Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * 2} unallocated bonus stats on your next play!`;
+      text.innerText = `Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * 5} unallocated bonus stats on your next play!`;
       modal.style.display = 'flex';
     }
   }
@@ -639,13 +631,15 @@ export default class Game {
 
     const newResets = (this.player.resets || 0) + 1;
 
-    let oldBonusStats = 0;
+    let oldBonusStats = parseInt(localStorage.getItem('nightvibe-statpoints') || '0', 10);
     if (this.net && this.net.room && this.net.me && this.net.me.info) {
       const myData = this.net.room.users[this.net.me.info.user]?.data;
-      if (myData && myData.bonusStatPoints) oldBonusStats = myData.bonusStatPoints;
+      if (myData && myData.bonusStatPoints) {
+        oldBonusStats = Math.max(oldBonusStats, myData.bonusStatPoints);
+      }
     }
 
-    const extraPoints = this.player.level * 2;
+    const extraPoints = this.player.level * 5;
     const newBonusStats = oldBonusStats + extraPoints;
 
     localStorage.setItem('nightvibe-resets', newResets);
@@ -738,14 +732,13 @@ export default class Game {
 
   respawnPlayer() {
     document.getElementById('death-overlay').classList.remove('show');
-    const groundY = getGroundY(this.selectedEnv);
     if (this.player) {
       this.player.x = GAME_W / 2;
-      this.player.y = groundY - 20;
+      this.player.y = GAME_H - 45;
       this.player.hp = this.player.maxHp;
       this.player.alive = true;
     } else {
-      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, GAME_W / 2, groundY - 20);
+      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, GAME_W / 2, GAME_H - 45);
     }
     this.ui.updateHUD(this.player);
     this.ui.addLog('✨ Respawned!', 'reward');
@@ -1017,16 +1010,18 @@ export default class Game {
 
     this.pendingHits.push({ id: enemy.id, damage: damage, isCrit: isCrit, source: this.net.me.info.user });
 
+    // Local Vampirism healing (heals 75% of damage dealt)
+    if (this.player && this.player.buffHpTimer > 0 && this.player.hp > 0) {
+      const healAmount = Math.floor(damage * 0.75);
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+      if (healAmount > 0) {
+        this.floatingTexts.push({ x: this.player.x, y: this.player.y - 60, text: '+' + healAmount, color: '#2ecc71', life: 40, maxLife: 40, isCrit: false });
+      }
+    }
+
     if (this.isHost) {
       let e = this.enemies.find(ex => ex.id === enemy.id);
       if (e && e.alive) {
-        if (this.player.buffHpTimer > 0 && this.player.hp > 0) {
-          const healAmount = Math.floor(damage * 0.25);
-          this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
-          if (healAmount > 0) {
-            this.floatingTexts.push({ x: this.player.x, y: this.player.y - 60, text: '+' + healAmount, color: '#2ecc71', life: 40, maxLife: 40, isCrit: false });
-          }
-        }
         e.hp -= damage;
         e.hitFlash = 8;
         this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (isCrit ? '💥 ' : '') + damage, color: isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: isCrit });
@@ -1579,11 +1574,11 @@ export default class Game {
                     if (item.type === 'red') {
                       p.obj.buffHpTimer = 10000;
                       this.spawnParticles(p.obj.x, p.obj.y - 20, '#e74c3c', 30, 6);
-                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: '❤️ Vampirism 10s!', color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: '🩸 Vampirism 10s!', color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
                     }
                     p.obj.buffManaTimer = item.type === 'blue' ? 10000 : (p.obj.buffManaTimer || 0);
                     this.spawnParticles(p.obj.x, p.obj.y - 20, item.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                    this.ui.addLog(item.type === 'red' ? '❤️ Vampirism! Heal on hit for 10s' : '⚡ Skill Cooldown Buff!', 'reward');
+                    this.ui.addLog(item.type === 'red' ? '🩸 Vampirism! Heal on hit for 10s' : '⚡ Skill Cooldown Buff!', 'reward');
                   } else {
                     this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
                   }
@@ -1613,8 +1608,8 @@ export default class Game {
                    if (buff.type === 'red') {
                      this.player.buffHpTimer = 10000;
                      this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
-                     this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: '❤️ Vampirism 10s!', color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
-                     this.ui.addLog('❤️ Vampirism! Heal on hit for 10s', 'reward');
+                     this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: '🩸 Vampirism 10s!', color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                     this.ui.addLog('🩸 Vampirism! Heal on hit for 10s', 'reward');
                    } else {
                      this.player.buffManaTimer = 10000;
                      this.ui.addLog('⚡ Skill Cooldown Buff!', 'reward');

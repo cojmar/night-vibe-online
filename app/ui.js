@@ -24,7 +24,7 @@ export default class UI {
             html += `
         <div style="flex:1; background:rgba(0,0,0,0.5); border:1px solid #c0392b; border-radius:3px; position:relative; overflow:hidden;">
           <div style="position:absolute; left:0; top:0; height:100%; width:${pct}%; background:rgba(231, 76, 60, 0.4);"></div>
-          <div style="position:relative; font-size:12px; font-weight:bold; color:#fff; text-align:center; line-height:24px;">❤️ Regen ${Math.ceil(hpTimer / 1000)}s</div>
+          <div style="position:relative; font-size:12px; font-weight:bold; color:#fff; text-align:center; line-height:24px;">🩸 Vampirism ${Math.ceil(hpTimer / 1000)}s</div>
         </div>
       `;
         }
