@@ -60,6 +60,7 @@ export default class Game {
     this.atmosEffects = [];
 
     this.restoreWebsocketStats = this.restoreWebsocketStats.bind(this);
+    this.saveLocalProgression = this.saveLocalProgression.bind(this);
 
     this.bindEvents();
 
@@ -83,6 +84,7 @@ export default class Game {
           this.spawnParticles(this.player.x, this.player.y - 20, '#fff', 40, 15);
           this.spawnParticles(this.player.x, this.player.y - 20, '#f1c40f', 50, 5);
           this.broadcastState();
+          this.saveLocalProgression();
         }
         if (this.state === 'PLAYING') {
           this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
@@ -562,9 +564,7 @@ export default class Game {
     const groundY = getGroundY(this.selectedEnv);
     this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, groundY - 20);
 
-    if (myData) {
-      this.restoreWebsocketStats(this.player, myData, selectedClass);
-    }
+    this.restoreWebsocketStats(this.player, myData, selectedClass);
 
     const nickInput = document.getElementById('nick-input');
     if (nickInput) this.player.nick = nickInput.value;
@@ -616,6 +616,7 @@ export default class Game {
 
     this.ui.updateHUD(this.player);
     this.broadcastState();
+    this.saveLocalProgression();
   }
 
   requestRebirth() {
@@ -647,6 +648,9 @@ export default class Game {
     const extraPoints = this.player.level * 2;
     const newBonusStats = oldBonusStats + extraPoints;
 
+    localStorage.setItem('nightvibe-resets', newResets);
+    localStorage.setItem('nightvibe-statpoints', newBonusStats);
+
     this.net.send_cmd('set_data', {
       resets: newResets,
       bonusStatPoints: newBonusStats,
@@ -662,9 +666,17 @@ export default class Game {
   }
 
   restoreWebsocketStats(target, myData, selectedClass) {
+    // Read resets and statPoints from localStorage as default fallbacks
+    const savedResets = parseInt(localStorage.getItem('nightvibe-resets') || '0', 10);
+    const savedStatPoints = parseInt(localStorage.getItem('nightvibe-statpoints') || '0', 10);
+
+    target.resets = savedResets;
+    target.statPoints = savedStatPoints;
+
     if (!myData) return;
 
-    if (myData.resets !== undefined) {
+    // Override with network data if it has valid values
+    if (myData.resets !== undefined && myData.resets > 0) {
       target.resets = myData.resets;
     }
 
@@ -678,14 +690,23 @@ export default class Game {
       }
       if (myData.kills !== undefined) target.kills = myData.kills;
       target.reqKills = Math.floor(5 * Math.pow(target.level, 1.4) + Math.sin(target.level) * 2);
-      if (myData.statPoints !== undefined) {
+      
+      if (myData.statPoints !== undefined && myData.statPoints > 0) {
         target.statPoints = myData.statPoints;
       }
     } else {
       // Class changed or new class, stats are base class values, but resets and bonus points are carried over
-      const bonusStats = myData.bonusStatPoints || 0;
-      target.statPoints = (target.statPoints || 0) + bonusStats;
+      const bonusStats = myData.bonusStatPoints || myData.statPoints || 0;
+      if (bonusStats > 0) {
+        target.statPoints = bonusStats;
+      }
     }
+  }
+
+  saveLocalProgression() {
+    if (!this.player) return;
+    localStorage.setItem('nightvibe-resets', this.player.resets || 0);
+    localStorage.setItem('nightvibe-statpoints', this.player.statPoints || 0);
   }
 
   quitToMenu() {
@@ -1736,13 +1757,7 @@ export default class Game {
       if (this.s2Cooldown > 0) { this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier); }
        this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
 
-       if (this.player && this.state === 'PLAYING' && this.isHost && this.player.resets !== undefined) {
-         const now = Date.now();
-         if (now - this._lastSaveTime > 5000) {
-           this._lastSaveTime = now;
-           this.savePersistentData();
-         }
-       }
+
 
        if (this.isHost) {
         this.enemies = this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000));
