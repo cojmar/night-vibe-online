@@ -47,6 +47,7 @@ export const REQ_KILLS_SIN_AMP = 2;
 export const REBIRTH_BASE_LEVEL = 4;
 export const REBIRTH_LEVEL_STEP = 5;
 export const REBIRTH_POINTS_PER_LEVEL = 5;
+export const LIMIT_LEVEL_TO_REBIRTH_REQ = true; // If true, player level is capped at the level required for rebirth
 
 // ==========================================
 // 5. PLAYER INITIAL STATE CONFIGURATION
