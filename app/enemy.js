@@ -28,8 +28,10 @@ export default class Enemy {
     const scale = 1 + (wave - 1) * ENEMY_SCALE_WAVE_MULT + (avgLevel - 1) * ENEMY_SCALE_LVL_MULT;
     
     if (isBoss) {
+      const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
+      const baseMonster = available[available.length - 1]; // Pick strongest current monster
       this.name = 'BOSS';
-      this.icon = '👑';
+      this.icon = baseMonster.icon;
       this.hp = Math.round(BOSS_BASE_HP * scale);
       this.maxHp = this.hp;
       this.atk = Math.round(BOSS_BASE_ATK * scale);
@@ -253,6 +255,12 @@ export default class Enemy {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(this.icon, this.x, drawY);
+    if (this.name === 'BOSS') {
+        const originalFont = ctx.font;
+        ctx.font = `${Math.floor(this.size * 0.7)}px sans-serif`;
+        ctx.fillText('👑', this.x, drawY - this.size * 0.75);
+        ctx.font = originalFont;
+    }
     ctx.textBaseline = 'alphabetic';
 
     // HP Bar
