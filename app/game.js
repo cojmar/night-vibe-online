@@ -675,8 +675,8 @@ export default class Game {
 
     const newResets = (this.player.resets || 0) + 1;
 
-    // The old bonus stats are the actual current unallocated stat points of the player
-    const oldBonusStats = this.player.bonusStatPoints || 0;
+    // The old bonus stats come from localStorage (the persistent account value)
+    const oldBonusStats = parseInt(localStorage.getItem('nightvibe-statpoints'), 10) || 0;
 
     const extraPoints = this.player.level * REBIRTH_POINTS_PER_LEVEL;
     const newBonusStats = oldBonusStats + extraPoints;
@@ -723,7 +723,6 @@ export default class Game {
     const savedStatPoints = hasSavedStatPoints ? parseInt(localStorage.getItem('nightvibe-statpoints'), 10) : PLAYER_INITIAL_STAT_POINTS;
 
     target.resets = savedResets;
-    target.bonusStatPoints = savedStatPoints;
     target.sessionStatPoints = savedStatPoints;
     target.levelUpStatPoints = 0;
 
@@ -741,7 +740,6 @@ export default class Game {
       
       const socketBonusStats = myData.bonusStatPoints !== undefined ? myData.bonusStatPoints : (myData.statPoints !== undefined ? myData.statPoints : undefined);
       if (socketBonusStats !== undefined) {
-        target.bonusStatPoints = socketBonusStats;
         target.sessionStatPoints = socketBonusStats;
       }
     }
@@ -762,7 +760,6 @@ export default class Game {
   saveLocalProgression() {
     if (!this.player) return;
     localStorage.setItem('nightvibe-resets', this.player.resets || 0);
-    localStorage.setItem('nightvibe-statpoints', this.player.bonusStatPoints || 0);
   }
 
   quitToMenu() {
