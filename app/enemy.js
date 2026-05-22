@@ -175,8 +175,11 @@ export default class Enemy {
                     const t = Math.max(0, Math.min(1, ((p.x - lx) * dx2 + (p.y - ly) * dy2) / lenSq));
                     const projX = lx + t * dx2;
                     const projY = ly + t * dy2;
-                    if (Math.hypot(p.x - projX, p.y - projY) < 30 + p.size) {
-                        if (this.game.isHost) p.takeDamage(this.atk * 1.5, this.id);
+                    if (Math.hypot(p.x - projX, p.y - projY) < 30 + (p.size || 15)) {
+                        if (this.game.isHost) {
+                            p.hp -= this.atk * 1.5;
+                            if (p.hp <= 0) { p.hp = 0; p.alive = false; }
+                        }
                     }
                 }
             }
