@@ -156,7 +156,7 @@ export const CONFIG_METADATA = {
   NETWORK_ROOM_NAME: { label: "Multiplayer Room Name", type: "string", category: "Social & Chat" },
 
   // 10. Inventory & Gear
-  EQUIPMENT_SLOTS: { label: "Equipment Slots (comma separated)", type: "text", category: "Inventory & Gear" },
+  EQUIPMENT_SLOTS: { label: "Equipment Slots (comma separated)", type: "string", category: "Inventory & Gear" },
 
   // 11. Gear Drops & Stats
   GEAR_DROP_RATE: { label: "Gear Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },

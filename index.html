@@ -1436,12 +1436,20 @@
       <div class="menu-grid">
         <!-- Left Column: Player & Lobby -->
         <div class="menu-col">
-          <button id="btn-menu-settings"
-            style="background: #2c3e50; color: #fff; border: 1px solid #2ecc71; border-radius: 6px; font-size: 1.1em; padding: 10px; width: 100%; cursor: pointer; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
-            onmouseover="this.style.background='#34495e'" onmouseout="this.style.background='#2c3e50'"
-            title="Open Settings & Gameplay Balance Editor">
-            ⚙️ Settings & Balance Editor
-          </button>
+          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button id="btn-menu-inventory"
+              style="background: #2c3e50; color: #fff; border: 1px solid #f1c40f; border-radius: 6px; font-size: 1.1em; padding: 10px; width: 50%; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
+              onmouseover="this.style.background='#34495e'" onmouseout="this.style.background='#2c3e50'"
+              title="Open Inventory">
+              🎒 Inventory
+            </button>
+            <button id="btn-menu-settings"
+              style="background: #2c3e50; color: #fff; border: 1px solid #2ecc71; border-radius: 6px; font-size: 1.0em; padding: 10px; width: 50%; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
+              onmouseover="this.style.background='#34495e'" onmouseout="this.style.background='#2c3e50'"
+              title="Open Settings & Gameplay Balance Editor">
+              ⚙️ Config Editor
+            </button>
+          </div>
           <div
             style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #f39c12; border-radius:6px; margin-bottom:15px;">
             <label for="nick-input" style="font-size:0.9em; color:#bdc3c7; display:block; margin-bottom:5px;">Your

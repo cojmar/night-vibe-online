@@ -558,11 +558,17 @@ export default class Game {
     this.state = 'PLAYING';
     this.selectedEnv = ENV_LIST[0];
     this.kills = GAME_INITIAL_KILLS;
-    this.wave = GAME_INITIAL_WAVE;
-    this.waveTotalEnemies = GAME_INITIAL_WAVE_ENEMIES;
+    this.wave = ConfigModule.GAME_INITIAL_WAVE;
+    if (this.wave % ConfigModule.BOSS_WAVE_INTERVAL === 0) {
+      this.bossActive = true;
+      this.waveTotalEnemies = 1;
+      this.waveEnemiesToSpawn = 1;
+    } else {
+      this.bossActive = false;
+      this.waveTotalEnemies = ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
+      this.waveEnemiesToSpawn = ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
+    }
     this.waveEnemiesKilled = 0;
-    this.waveEnemiesToSpawn = GAME_INITIAL_WAVE_ENEMIES;
-    this.bossActive = false;
     this.waveTransitionTimer = 0;
     this.emptyWaveTimer = 0;
     this.enemySpawnInterval = ENEMY_SPAWN_INTERVAL;

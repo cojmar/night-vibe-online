@@ -545,34 +545,50 @@ export default class UI {
 
     initInventory() {
         const btnInventory = document.getElementById('btn-inventory');
+        const btnMenuInventory = document.getElementById('btn-menu-inventory');
         const inventoryModal = document.getElementById('inventory-modal');
         const btnInventoryClose = document.getElementById('btn-inventory-close');
         const btnInventoryCloseIcon = document.getElementById('btn-inventory-close-icon');
 
-        if (btnInventory) {
-            btnInventory.addEventListener('click', () => {
-                if (inventoryModal.style.display === 'flex') {
-                    inventoryModal.style.display = 'none';
-                } else {
-                    inventoryModal.style.display = 'flex';
-                    this.renderInventory();
-                }
-            });
-        }
+        const toggleInventory = () => {
+            if (inventoryModal.style.display === 'flex') {
+                inventoryModal.style.display = 'none';
+            } else {
+                inventoryModal.style.display = 'flex';
+                this.renderInventory();
+            }
+        };
+
+        if (btnInventory) btnInventory.addEventListener('click', toggleInventory);
+        if (btnMenuInventory) btnMenuInventory.addEventListener('click', toggleInventory);
+        
         const closeModal = () => { if (inventoryModal) inventoryModal.style.display = 'none'; };
         if (btnInventoryClose) btnInventoryClose.addEventListener('click', closeModal);
         if (btnInventoryCloseIcon) btnInventoryCloseIcon.addEventListener('click', closeModal);
     }
 
     renderInventory() {
-        if (!this.game || !this.game.player) return;
-        const p = this.game.player;
+        let p = null;
+        if (this.game && this.game.player) {
+            p = this.game.player;
+        } else {
+            // Player not spawned yet (Main Menu), pull directly from local storage
+            try {
+                const savedInv = JSON.parse(localStorage.getItem('nightvibe-inventory') || '[]');
+                const savedEq = JSON.parse(localStorage.getItem('nightvibe-equipment') || '{}');
+                p = { inventory: savedInv, equipment: savedEq };
+            } catch (e) {
+                p = { inventory: [], equipment: {} };
+            }
+        }
         
         // Render Equipment Slots
         const eqContainer = document.getElementById('equipment-slots-container');
         if (eqContainer) {
             eqContainer.innerHTML = '';
-            const slotNames = ConfigModule.EQUIPMENT_SLOTS.split(',').map(s => s.trim());
+            const fallbackSlots = "Weapon,Armor,Ring 1,Ring 2,Amulet";
+            const rawSlots = ConfigModule.EQUIPMENT_SLOTS || fallbackSlots;
+            const slotNames = String(rawSlots).split(',').map(s => s.trim());
             slotNames.forEach(slotName => {
                 const slotDiv = document.createElement('div');
                 slotDiv.style.width = '70px';
@@ -632,18 +648,26 @@ export default class UI {
                     dropBtn.onclick = (e) => {
                         e.stopPropagation();
                         delete p.equipment[slotName];
-                        itemData.x = p.x + (Math.random() * 60 - 30);
-                        itemData.y = p.y + (Math.random() * 60 - 30) + 20;
+                        itemData.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : GAME_W / 2 + (Math.random() * 60 - 30);
+                        itemData.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : GAME_H / 2 + (Math.random() * 60 - 30) + 20;
                         itemData.life = 60000;
-                        if (this.game.isHost) {
-                            this.game.items.push(itemData);
+                        
+                        if (this.game && this.game.player) {
+                            if (this.game.isHost) {
+                                this.game.items.push(itemData);
+                            } else {
+                                this.game.net.send_cmd('set_data', { spawnItem: itemData });
+                            }
+                            this.game.saveLocalProgression();
+                            this.game.broadcastState();
+                            this.updateHUD(p);
                         } else {
-                            this.game.net.send_cmd('set_data', { spawnItem: itemData });
+                            // If dropped from the menu, we cannot reliably spawn it on the map right now,
+                            // but we still remove it from the persistent gear.
+                            localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
+                            localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
                         }
-                        this.game.saveLocalProgression();
-                        this.game.broadcastState();
                         this.renderInventory();
-                        this.updateHUD(p);
                     };
                     slotDiv.appendChild(dropBtn);
                 } else {
@@ -659,10 +683,15 @@ export default class UI {
                     if (itemData) {
                         p.inventory.push(itemData);
                         delete p.equipment[slotName];
-                        this.game.saveLocalProgression();
-                        this.game.broadcastState();
+                        if (this.game && this.game.player) {
+                            this.game.saveLocalProgression();
+                            this.game.broadcastState();
+                            this.updateHUD(p);
+                        } else {
+                            localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
+                            localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
+                        }
                         this.renderInventory();
-                        this.updateHUD(p);
                     }
                 });
 
@@ -735,24 +764,32 @@ export default class UI {
                 dropBtn.onclick = (e) => {
                     e.stopPropagation();
                     p.inventory.splice(index, 1);
-                    item.x = p.x + (Math.random() * 60 - 30);
-                    item.y = p.y + (Math.random() * 60 - 30) + 20;
+                    item.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : GAME_W / 2 + (Math.random() * 60 - 30);
+                    item.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : GAME_H / 2 + (Math.random() * 60 - 30) + 20;
                     item.life = 60000;
-                    if (this.game.isHost) {
-                        this.game.items.push(item);
+                    
+                    if (this.game && this.game.player) {
+                        if (this.game.isHost) {
+                            this.game.items.push(item);
+                        } else {
+                            this.game.net.send_cmd('set_data', { spawnItem: item });
+                        }
+                        this.game.saveLocalProgression();
+                        this.game.broadcastState();
+                        this.updateHUD(p);
                     } else {
-                        this.game.net.send_cmd('set_data', { spawnItem: item });
+                        localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
+                        localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
                     }
-                    this.game.saveLocalProgression();
-                    this.game.broadcastState();
                     this.renderInventory();
-                    this.updateHUD(p);
                 };
                 cell.appendChild(dropBtn);
                 
                 // Click to equip
                 cell.addEventListener('click', () => {
-                    const slotNames = ConfigModule.EQUIPMENT_SLOTS.split(',').map(s => s.trim());
+                    const fallbackSlots = "Weapon,Armor,Ring 1,Ring 2,Amulet";
+                    const rawSlots = ConfigModule.EQUIPMENT_SLOTS || fallbackSlots;
+                    const slotNames = String(rawSlots).split(',').map(s => s.trim());
                     // Find a slot that matches the item type, or just the first empty slot if none matches
                     let targetSlot = slotNames.find(s => s.toLowerCase().includes((item.type || '').toLowerCase())) || slotNames.find(s => !p.equipment[s]);
                     
@@ -762,10 +799,15 @@ export default class UI {
                         }
                         p.equipment[targetSlot] = item;
                         p.inventory.splice(index, 1); // remove from inventory
-                        this.game.saveLocalProgression();
-                        this.game.broadcastState();
+                        if (this.game && this.game.player) {
+                            this.game.saveLocalProgression();
+                            this.game.broadcastState();
+                            this.updateHUD(p);
+                        } else {
+                            localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
+                            localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
+                        }
                         this.renderInventory();
-                        this.updateHUD(p);
                     }
                 });
 
