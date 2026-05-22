@@ -473,17 +473,40 @@ export default class Game {
     this.canvas.addEventListener('touchend', () => {
       touchActive = false;
       clearTimeout(touchLongPressTimer);
-      if (this.player && this.player.isChargingS2) {
+      if (this.player && this.player.isChargingS2 && !this.chargingViaButton) {
         this.releaseSkill2();
       }
     });
     this.canvas.addEventListener('touchcancel', () => {
       touchActive = false;
       clearTimeout(touchLongPressTimer);
-      if (this.player && this.player.isChargingS2) {
+      if (this.player && this.player.isChargingS2 && !this.chargingViaButton) {
         this.releaseSkill2();
       }
     });
+
+    const cdRingBtn = document.getElementById('cd-ring');
+    const startUltBtn = (e) => {
+      if (this.state !== 'PLAYING' || !this.player) return;
+      e.preventDefault(); e.stopPropagation();
+      this.chargingViaButton = true;
+      this.startChargingSkill2();
+    };
+    const endUltBtn = (e) => {
+      if (this.state !== 'PLAYING' || !this.player) return;
+      e.preventDefault(); e.stopPropagation();
+      const wasChargingViaButton = this.chargingViaButton;
+      this.chargingViaButton = false;
+      if (this.player.isChargingS2 && wasChargingViaButton) {
+        this.releaseSkill2();
+      }
+    };
+    cdRingBtn.addEventListener('mousedown', startUltBtn);
+    cdRingBtn.addEventListener('touchstart', startUltBtn, { passive: false });
+    cdRingBtn.addEventListener('mouseup', endUltBtn);
+    cdRingBtn.addEventListener('mouseleave', endUltBtn);
+    cdRingBtn.addEventListener('touchend', endUltBtn);
+    cdRingBtn.addEventListener('touchcancel', endUltBtn);
   }
 
   updateLayout() {

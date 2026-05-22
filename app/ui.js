@@ -1154,15 +1154,25 @@ export default class UI {
     updateCooldownRing(s2Cooldown, s2MaxCooldown) {
         const c = document.getElementById('cd-circle');
         const t = document.getElementById('cd-text');
+        const ring = document.getElementById('cd-ring');
+        if (!c || !t || !ring) return;
         const circ = 2 * Math.PI * 26;
         if (s2Cooldown > 0) {
             const p = s2Cooldown / s2MaxCooldown;
             c.style.strokeDasharray = circ;
             c.style.strokeDashoffset = circ * p;
+            c.style.stroke = '#e74c3c';
             t.textContent = (s2Cooldown / 1000).toFixed(1);
+            t.style.color = '#fff';
+            t.style.fontSize = '14px';
         } else {
+            c.style.strokeDasharray = circ;
             c.style.strokeDashoffset = 0;
-            t.textContent = '✓';
+            c.style.stroke = '#2ecc71';
+            t.textContent = 'RDY';
+            t.style.color = '#2ecc71';
+            t.style.fontSize = '14px';
+            t.style.fontWeight = 'bold';
         }
     }
 

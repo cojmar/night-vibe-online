@@ -852,9 +852,15 @@
       z-index: 6;
       width: 56px;
       height: 56px;
-      pointer-events: none;
+      pointer-events: auto;
+      cursor: pointer;
       opacity: 0;
-      transition: opacity 0.3s;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 50%;
+      transition: opacity 0.3s, transform 0.1s;
+    }
+    .cooldown-ring:active {
+      transform: scale(0.9);
     }
 
     .cooldown-ring.visible {
