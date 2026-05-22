@@ -1,4 +1,4 @@
-# AGENTS.md — N-RPG Arena Combat Sandbox
+# AGENTS.md — Night Vibe Online Arena Combat Sandbox
 
 ## Repo structure
 - **Single-page vanilla JS game** — no build tools, no package manager, no test framework.

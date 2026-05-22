@@ -54,8 +54,8 @@ export default class Game {
       bgElements: saved.bgElements !== undefined ? saved.bgElements : 2.0,
       groundElements: saved.groundElements !== undefined ? saved.groundElements : 2.0,
       atmos: saved.atmos !== undefined ? saved.atmos : 2.0,
-      autoGraphics: saved.autoGraphics !== undefined ? saved.autoGraphics : false,
-      autoLimit: saved.autoLimit !== undefined ? saved.autoLimit : false
+      autoGraphics: saved.autoGraphics !== undefined ? saved.autoGraphics : true,
+      autoLimit: saved.autoLimit !== undefined ? saved.autoLimit : true
     };
     this.atmosEffects = [];
 

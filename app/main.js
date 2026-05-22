@@ -16,17 +16,17 @@ window.app = new class {
         this.game = null;
         
         // Setup Nickname
-        let nick = localStorage.getItem('nrpg_nick');
+        let nick = localStorage.getItem('night-vibe-online_nick');
         if (!nick) {
             nick = 'Player_' + Math.floor(Math.random() * 9000 + 1000);
-            localStorage.setItem('nrpg_nick', nick);
+            localStorage.setItem('night-vibe-online_nick', nick);
         }
         const nickInput = document.getElementById('nick-input');
         nickInput.value = nick;
         let nickSendTimer = null;
         nickInput.addEventListener('input', (e) => {
             const newNick = e.target.value.trim() || 'Player_' + Math.floor(Math.random() * 9000 + 1000);
-            localStorage.setItem('nrpg_nick', newNick);
+            localStorage.setItem('night-vibe-online_nick', newNick);
             if (this.game && this.game.player) this.game.player.nick = newNick;
             clearTimeout(nickSendTimer);
             nickSendTimer = setTimeout(() => {
@@ -140,7 +140,7 @@ window.app = new class {
         
         // Wait for connection to BSON WebSockets
         this.net.on('connect', () => {
-            this.net.send_cmd('auth', { 'user': '', 'room': 'N-RPG-Arena' });
+            this.net.send_cmd('auth', { 'user': '', 'room': 'Night-Vibe-Online-Arena' });
         });
         
         this.net.on('auth.info', (data) => {
