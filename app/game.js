@@ -672,17 +672,27 @@ export default class Game {
     this.broadcastState();
   }
 
-  upgradeStat(statType) {
+  upgradeStat(statType, amount = 1) {
     if (!this.player || !this.player.statPoints || this.player.statPoints <= 0) return;
-    this.player.statPoints--;
+
+    let count = amount === 'all' ? this.player.statPoints : parseInt(amount, 10);
+    if (isNaN(count) || count <= 0) count = 1;
+    count = Math.min(count, this.player.statPoints);
+    if (count <= 0) return;
+
+    let remaining = count;
+    while (remaining > 0) {
+      this.player.statPoints--;
+      remaining--;
+    }
 
     if (statType === 'atk') {
-      this.player._atk += 1.0;
+      this.player._atk += 1.0 * count;
     } else if (statType === 'spd') {
-      this.player._spd += 1.0;
+      this.player._spd += 1.0 * count;
     } else if (statType === 'hp') {
-      this.player._maxHp += 1;
-      this.player.hp += 1;
+      this.player._maxHp += 1 * count;
+      this.player.hp += 1 * count;
     }
 
     this.ui.updateHUD(this.player);

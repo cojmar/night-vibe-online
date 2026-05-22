@@ -12,6 +12,7 @@ export default class UI {
         this.recentLogs = [];
         this.MAX_LOGS = 12;
         this.logHoldTimer = null;
+        this.statMultiplier = 1; // Default allocation multiplier
 
         this.bindEvents();
         this.updateClassCarousel();
@@ -51,9 +52,30 @@ export default class UI {
         document.getElementById('btn-quit-game').addEventListener('click', () => this.game.quitToMenu());
         document.getElementById('btn-death-quit').addEventListener('click', () => this.game.quitToMenu());
 
-        document.getElementById('btn-up-atk').addEventListener('click', () => { if (this.game) this.game.upgradeStat('atk'); });
-        document.getElementById('btn-up-spd').addEventListener('click', () => { if (this.game) this.game.upgradeStat('spd'); });
-        document.getElementById('btn-up-hp').addEventListener('click', () => { if (this.game) this.game.upgradeStat('hp'); });
+        document.getElementById('btn-up-atk').addEventListener('click', () => { if (this.game) this.game.upgradeStat('atk', this.statMultiplier); });
+        document.getElementById('btn-up-spd').addEventListener('click', () => { if (this.game) this.game.upgradeStat('spd', this.statMultiplier); });
+        document.getElementById('btn-up-hp').addEventListener('click', () => { if (this.game) this.game.upgradeStat('hp', this.statMultiplier); });
+
+        // Bind stat multiplier selector buttons
+        const multButtons = document.querySelectorAll('.stat-mult-btn');
+        multButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const val = e.currentTarget.getAttribute('data-val');
+                this.statMultiplier = val === 'all' ? 'all' : parseInt(val, 10) || 1;
+                
+                // Update active visual styles on buttons
+                multButtons.forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = '#2c3e50';
+                    b.style.borderColor = '#34495e';
+                    b.style.color = '#bdc3c7';
+                });
+                e.currentTarget.classList.add('active');
+                e.currentTarget.style.background = '#3498db';
+                e.currentTarget.style.borderColor = 'transparent';
+                e.currentTarget.style.color = 'white';
+            });
+        });
 
         const btnRebirth = document.getElementById('btn-rebirth');
         if (btnRebirth) btnRebirth.addEventListener('click', () => { if (this.game) this.game.requestRebirth(); });
@@ -1036,6 +1058,11 @@ export default class UI {
         const row = document.getElementById('stat-pts-row');
         row.style.display = pts > 0 ? 'block' : 'none';
         document.getElementById('stat-pts-val').textContent = pts;
+
+        const multRow = document.getElementById('stat-mult-row');
+        if (multRow) {
+            multRow.style.display = pts > 0 ? 'flex' : 'none';
+        }
 
         const d = pts > 0 ? 'inline-block' : 'none';
         document.getElementById('btn-up-atk').style.display = d;
