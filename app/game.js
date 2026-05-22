@@ -584,6 +584,7 @@ export default class Game {
     this.projectiles = [];
     this.particles = [];
     this.floatingTexts = [];
+    if (ConfigModule.CLEAR_ITEMS_ON_START) this.items = [];
     this.s2Cooldown = 0;
     this.ui.recentLogs = [];
     this.prng = new PRNG(this.wave * 12345);

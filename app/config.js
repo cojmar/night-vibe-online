@@ -89,6 +89,7 @@ const FALLBACK_DEFAULTS = {
    GEAR_STAT_MULTIPLIER: 1.5,
    GEAR_STAT_VARIANCE: 0.2,
    GEAR_DROP_ONLY_BOSS: false,
+   CLEAR_ITEMS_ON_START: true,
    POTION_RED_DROP_CHANCE: 0.25,
    POTION_BLUE_DROP_CHANCE: 0.10
 };
@@ -191,7 +192,8 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   GEAR_RARITY_RARE: { label: "Rare Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
   GEAR_STAT_MULTIPLIER: { label: "Gear Base Stat Multiplier", type: "number", min: 0.5, max: 5.0, step: 0.1, category: "Gear Drops & Stats" },
   GEAR_STAT_VARIANCE: { label: "Gear Stat Variance (+/- %)", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
-   GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" }
+   GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" },
+   CLEAR_ITEMS_ON_START: { label: "Clear Items on Game Start", type: "boolean", category: "Gear Drops & Stats" }
 };
 
 // ==========================================
@@ -282,6 +284,7 @@ export let GEAR_DROP_RATE = activeConfig.GEAR_DROP_RATE;
  export let GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
  export let GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
  export let GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
+ export let CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
  export let POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
  export let POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
 
@@ -430,6 +433,7 @@ export function updateConfig(newValues) {
   GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
  GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
    GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
+   CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
    POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
    POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
  }
