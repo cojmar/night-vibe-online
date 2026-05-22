@@ -67,6 +67,7 @@ const FALLBACK_DEFAULTS = {
   BOSS_PROJECTILE_SPEED: 4.0,
   BOSS_PROJECTILE_HOMING: false,
   BOSS_LASER_CHANNEL_TIME: 90,
+   BOSS_LASER_DAMAGE_INTERVAL: 300,
 
   // 9. Projectile Collision Size
   PROJ_HIT_RADIUS_ARROW: 12,
@@ -171,6 +172,7 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   BOSS_PROJECTILE_SPEED: { label: "Boss Projectile Speed", type: "number", min: 1.0, max: 15.0, step: 0.5, category: "Boss Battles" },
   BOSS_PROJECTILE_HOMING: { label: "Boss Projectiles Homing", type: "boolean", category: "Boss Battles" },
   BOSS_LASER_CHANNEL_TIME: { label: "Boss Laser Channel Time (frames)", type: "number", min: 30, max: 300, step: 10, category: "Boss Battles" },
+   BOSS_LASER_DAMAGE_INTERVAL: { label: "Boss Laser Damage Interval (ms)", type: "number", min: 50, max: 2000, step: 50, category: "Boss Battles" },
 
   // 8. Projectiles & Hitboxes
   PROJ_HIT_RADIUS_ARROW: { label: "Arrow Hitbox Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
@@ -260,6 +262,7 @@ export let BOSS_SPAWN_INCREMENT = activeConfig.BOSS_SPAWN_INCREMENT;
 export let BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
 export let BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
 export let BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
+export let BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
 export let ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
 export let ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
 
@@ -408,8 +411,9 @@ export function updateConfig(newValues) {
   BOSS_SPAWN_INCREMENT = activeConfig.BOSS_SPAWN_INCREMENT;
   BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
   BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
-  BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
-  ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
+BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
+   BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
+   ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
   ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
 
   POTION_BUFF_DURATION = activeConfig.POTION_BUFF_DURATION;
@@ -436,6 +440,7 @@ export function updateConfig(newValues) {
    CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
    POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
    POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
+   BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
  }
 
 export function resetConfig() {

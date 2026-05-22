@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL } from './utils.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -148,9 +148,17 @@ export default class Enemy {
             this.bossChannelTimer -= dt;
             if (this.bossChannelTimer <= 0) {
                 this.bossState = 'FIRING_LASER';
-                this.bossLaserTimer = 20; // Laser lasts 20 frames
-                
-                // Fire Laser and deal damage
+                this.bossLaserTimer = 120; // Laser lasts 120 frames (2 seconds)
+                this.bossLaserDmgTimer = 0; // Reset damage timer
+            }
+            return; // Don't move while channeling
+        } else if (this.bossState === 'FIRING_LASER') {
+            this.bossLaserTimer -= dt;
+            
+            // Deal damage continuously every BOSS_LASER_DAMAGE_INTERVAL ms while player is in laser
+            this.bossLaserDmgTimer = (this.bossLaserDmgTimer || 0) + dt * 16.67;
+            if (this.bossLaserDmgTimer >= BOSS_LASER_DAMAGE_INTERVAL) {
+                this.bossLaserDmgTimer = 0;
                 const lx = this.x;
                 const ly = this.y - this.size * 0.5;
                 const tx = this.targetLaserPos.x - lx;
@@ -161,20 +169,18 @@ export default class Enemy {
                 
                 for (let p of players) {
                     if (p.invulnerable || !p.alive) continue;
-                    const dx = endX - lx;
-                    const dy = endY - ly;
-                    const lenSq = dx * dx + dy * dy;
-                    const t = Math.max(0, Math.min(1, ((p.x - lx) * dx + (p.y - ly) * dy) / lenSq));
-                    const projX = lx + t * dx;
-                    const projY = ly + t * dy;
-                    if (Math.hypot(p.x - projX, p.y - projY) < 30 + p.size) { // 30 is beam hit radius
+                    const dx2 = endX - lx;
+                    const dy2 = endY - ly;
+                    const lenSq = dx2 * dx2 + dy2 * dy2;
+                    const t = Math.max(0, Math.min(1, ((p.x - lx) * dx2 + (p.y - ly) * dy2) / lenSq));
+                    const projX = lx + t * dx2;
+                    const projY = ly + t * dy2;
+                    if (Math.hypot(p.x - projX, p.y - projY) < 30 + p.size) {
                         if (this.game.isHost) p.takeDamage(this.atk * 1.5, this.id);
                     }
                 }
             }
-            return; // Don't move while channeling
-        } else if (this.bossState === 'FIRING_LASER') {
-            this.bossLaserTimer -= dt;
+            
             if (this.bossLaserTimer <= 0) {
                 this.bossState = 'IDLE';
             }
@@ -296,7 +302,7 @@ export default class Enemy {
     }
 
     if (this.name === 'BOSS') {
-        if (this.bossState === 'CHANNELING_LASER') {
+       if (this.bossState === 'CHANNELING_LASER') {
             ctx.strokeStyle = `rgba(255, 0, 0, ${0.2 + (1 - this.bossChannelTimer / BOSS_LASER_CHANNEL_TIME)})`;
             ctx.lineWidth = 2;
             ctx.setLineDash([15, 15]);
@@ -312,7 +318,7 @@ export default class Enemy {
             const ty = this.targetLaserPos.y - ly;
             const len = Math.hypot(tx, ty) || 1;
             ctx.strokeStyle = 'red';
-            ctx.lineWidth = 40;
+            ctx.lineWidth = 60;
             ctx.beginPath();
             ctx.moveTo(lx, ly);
             ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
@@ -320,7 +326,7 @@ export default class Enemy {
             
             // Add a bright core to the laser
             ctx.strokeStyle = 'white';
-            ctx.lineWidth = 15;
+            ctx.lineWidth = 20;
             ctx.beginPath();
             ctx.moveTo(lx, ly);
             ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
