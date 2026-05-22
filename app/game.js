@@ -781,8 +781,11 @@ export default class Game {
 
     this.ui.addLog('🎮 Returned to character selection!', 'player');
 
-     // Broadcast leaving the game
+    // Broadcast leaving the game
     if (this.net && this.net.me) {
+      // Reset in-game progression stats so next game starts fresh at level 1
+      // while preserving persistent progression (resets, bonusStatPoints) from localStorage
+      this._resetSessionData();
       this.net.send_cmd('set_data', { inGame: false, state: 'MENU' });
     }
     
@@ -796,6 +799,26 @@ export default class Game {
 
     this.checkHost();
     this.updateLayout();
+  }
+
+  _resetSessionData() {
+    const base = CLASS_DATA.warrior;
+    const savedResets = parseInt(localStorage.getItem('nightvibe-resets'), 10) || 0;
+    const savedStatPoints = parseInt(localStorage.getItem('nightvibe-statpoints'), 10) || 0;
+
+    if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
+      const myData = this.net.room.users[this.net.me.info.user].data;
+      myData.resets = savedResets;
+      myData.bonusStatPoints = savedStatPoints;
+      myData.statPoints = savedStatPoints;
+      myData.level = 1;
+      myData.kills = 0;
+      myData.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(1, REQ_KILLS_EXPONENT) + Math.sin(1) * REQ_KILLS_SIN_AMP);
+      myData.atk = base.atk;
+      myData.spd = base.spd;
+      myData.maxHp = base.hp;
+      myData.hp = base.hp;
+    }
   }
 
   respawnPlayer() {
