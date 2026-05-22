@@ -36,7 +36,7 @@ export default class Game {
     this.s2MaxCooldown = 1000;
     this.lastTime = 0;
     this.enemySpawnTimer = 0;
-    this.enemySpawnInterval = 2000;
+    this.enemySpawnInterval = 1000;
 
     this.viewScale = 1;
     this.viewOX = 0;
@@ -527,7 +527,7 @@ export default class Game {
     this.bossActive = false;
     this.waveTransitionTimer = 0;
     this.emptyWaveTimer = 0;
-    this.enemySpawnInterval = 1500;
+    this.enemySpawnInterval = 800;
     this.enemySpawnTimer = 0;
     this.enemies = [];
     this.projectiles = [];
