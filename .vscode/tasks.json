@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "analysis: eslint",
+      "type": "shell",
+      "command": "npx",
+      "args": ["eslint", "app"],
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "analysis: ast-grep",
+      "type": "shell",
+      "command": "ast-grep",
+      "args": ["scan", "--config", ".ast-grep.yml"]
+    },
+    {
+      "label": "analysis: run all",
+      "type": "shell",
+      "command": "npx eslint app ; ast-grep scan --config .ast-grep.yml",
+      "problemMatcher": ["$eslint-stylish"],
+      "group": "test"
+    }
+  ]
+}

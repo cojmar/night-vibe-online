@@ -1,0 +1,6 @@
+id: no-sync-xhr
+language: JavaScript
+severity: warning
+message: Avoid synchronous XMLHttpRequest; it blocks the main thread.
+rule:
+  pattern: $XHR.open($METHOD, $URL, false)

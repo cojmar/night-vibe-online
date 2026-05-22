@@ -1,0 +1,6 @@
+id: no-hardcoded-prod-ws
+language: JavaScript
+severity: warning
+message: Avoid hardcoding production WebSocket URLs in source; route through config.
+rule:
+  pattern: this.net.connect('wss://ws.emupedia.net/ws/')

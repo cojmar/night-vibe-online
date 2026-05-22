@@ -301,6 +301,46 @@ A completely dynamic engine configuration editor built directly from the system'
 - **Deployment:** GitHub Pages (static site, no build step)
 - **Architecture:** Single-page game with modular file-based structure
 
+---
+
+## Static Analysis
+
+This repo includes a lightweight ESLint flat config for the gameplay source in `app/`.
+
+- Lint once (no install step required if you use `npx`):
+
+```bash
+npx eslint app
+```
+
+- Optional auto-fix for safe issues:
+
+```bash
+npx eslint app --fix
+```
+
+Notes:
+- The config is in `eslint.config.mjs`.
+- Static assets in `assets/` and generated graph output in `graphify-out/` are excluded.
+
+### Recommended Review Workflow
+
+Run these in order during local review:
+
+```bash
+# 1) Code-impact context (code-review-graph)
+# (Use your MCP client tools: get_minimal_context -> detect_changes -> get_impact_radius -> get_affected_flows)
+
+# 2) Linting
+npx eslint app
+
+# 3) Pattern checks
+ast-grep scan --config .ast-grep.yml
+
+# 4) Architecture/docs checks (optional when relevant)
+graphify update .
+```
+
 ```
 index.html          → Entry point
 app/main.js         → App bootstrap (wires Game / UI / Network)

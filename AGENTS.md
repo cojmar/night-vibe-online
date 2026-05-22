@@ -15,8 +15,30 @@
 - `assets/` — static resources (images, fonts, etc.).
 
 ## Commands
-- **No commands.** This is a static site. Edit files → commit → push → GitHub Pages rebuilds.
-- **Test locally:** open `index.html` in a browser.
+- **No build commands.** This is a static site. Edit files → commit → push → GitHub Pages rebuilds.
+- **Test locally:** serve the repo root over HTTP (recommended) or open `index.html` directly.
+
+## Analysis workflow
+- Use `code-review-graph` first for code-impact tasks.
+- Use `graphify` for architecture/cross-doc reasoning.
+- Use `ast-grep` for fast pattern checks and codemods.
+
+### Daily review order
+1. `code-review-graph get_minimal_context`
+2. `code-review-graph detect_changes`
+3. `code-review-graph get_impact_radius`
+4. `code-review-graph get_affected_flows`
+5. `npx eslint app`
+6. `ast-grep scan --config .ast-grep.yml`
+
+### Graphify usage
+- Read `graphify-out/GRAPH_REPORT.md` first when it exists.
+- After code-only edits, refresh with `graphify update .`.
+- After docs/architecture edits, run full graphify refresh workflow before trusting doc-related answers.
+
+### ast-grep scope
+- Keep rules focused on gameplay/client source under `app/`.
+- Prefer warning-level checks first; promote to stricter enforcement after cleanup.
 
 ## Deployment
 - GitHub Pages, `main` branch, root path (`/`). Live at: https://cojmar.github.io/night-vibe-online/
