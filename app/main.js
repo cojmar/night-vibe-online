@@ -20,7 +20,9 @@ window.app = new class {
         this.net = new Network();
         this.ui = new UI(null); // Will set game instance later
         this.game = null;
-
+        this.booted = false;
+        this.authTimeout = null;
+        
         // Setup Nickname
         let nick = localStorage.getItem('night-vibe-online_nick');
         if (!nick) {
@@ -29,11 +31,87 @@ window.app = new class {
         }
         const nickInput = document.getElementById('nick-input');
         nickInput.value = nick;
+
+        const loader = document.getElementById('loader');
+        const container = document.getElementById('container');
+
+        const ensureLocalIdentity = () => {
+            if (this.net.me && this.net.me.info && this.net.me.info.user) return;
+
+            let localUid = localStorage.getItem('night-vibe-online_local_uid');
+            if (!localUid) {
+                localUid = `local_${Math.random().toString(36).slice(2, 10)}`;
+                localStorage.setItem('night-vibe-online_local_uid', localUid);
+            }
+
+            this.net.me = {
+                info: { user: localUid, nick: nickInput.value },
+                data: { nick: nickInput.value, inGame: false, state: 'MENU' }
+            };
+
+            if (!this.net.room) {
+                this.net.room = {
+                    room: NETWORK_ROOM_NAME,
+                    name: NETWORK_ROOM_NAME,
+                    me: localUid,
+                    users: {},
+                    data: {}
+                };
+            } else {
+                this.net.room.room = this.net.room.room || NETWORK_ROOM_NAME;
+                this.net.room.name = this.net.room.name || NETWORK_ROOM_NAME;
+                this.net.room.me = this.net.room.me || localUid;
+                this.net.room.users = this.net.room.users || {};
+                this.net.room.data = this.net.room.data || {};
+            }
+        };
+
+        const bootGame = (mode = 'online') => {
+            if (this.booted) return;
+            this.booted = true;
+
+            if (this.authTimeout) {
+                clearTimeout(this.authTimeout);
+                this.authTimeout = null;
+            }
+
+            if (loader) loader.style.display = 'none';
+            if (container) container.style.display = 'flex';
+
+            this.game = new Game(this);
+            this.ui.game = this.game; // Link UI to Game
+            this.game.init();
+
+            if (mode === 'online') {
+                this.net.send_cmd('nick', { nick: nickInput.value });
+            } else {
+                this.ui.addLog('📴 Offline mode enabled (multiplayer unavailable).', 'reward');
+            }
+        };
+
+        const bootOfflineFallback = (reason = 'connection blocked') => {
+            if (this.booted) return;
+
+            if (loader) {
+                loader.textContent = `Multiplayer unavailable (${reason}). Starting local mode...`;
+            }
+
+            if (this.net.connect_timeout) clearTimeout(this.net.connect_timeout);
+            this.net.connect = () => this.net;
+
+            ensureLocalIdentity();
+            bootGame('offline');
+        };
+
         let nickSendTimer = null;
         nickInput.addEventListener('input', (e) => {
             const newNick = e.target.value.trim() || 'Player_' + Math.floor(Math.random() * 9000 + 1000);
             localStorage.setItem('night-vibe-online_nick', newNick);
             if (this.game && this.game.player) this.game.player.nick = newNick;
+            if (this.net.me && this.net.me.info) {
+                this.net.me.info.nick = newNick;
+                if (this.net.me.data) this.net.me.data.nick = newNick;
+            }
             clearTimeout(nickSendTimer);
             nickSendTimer = setTimeout(() => {
                 this.net.send_cmd('nick', { nick: newNick });
@@ -149,18 +227,22 @@ window.app = new class {
             this.net.send_cmd('auth', { 'user': '', 'room': NETWORK_ROOM_NAME });
         });
 
-        this.net.on('auth.info', (data) => {
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('container').style.display = 'flex';
-
-            this.net.send_cmd('nick', { nick: nickInput.value });
-
-            // Initialize Game engine
-            this.game = new Game(this);
-            this.ui.game = this.game; // Link UI to Game
-            this.game.init();
+        this.net.on('disconnect', () => {
+            if (!this.booted) {
+                bootOfflineFallback('network blocked');
+            }
+        });
+        
+        this.net.on('auth.info', () => {
+            bootGame('online');
         });
 
+        this.authTimeout = setTimeout(() => {
+            if (!this.booted) {
+                bootOfflineFallback('auth timeout');
+            }
+        }, 8000);
+        
         this.net.connect('wss://ws.emupedia.net/ws/');
     }
 }
