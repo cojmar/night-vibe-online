@@ -264,6 +264,7 @@ export default class Player {
       this.isMoving = false;
       this.moveTargetX = 0;
       this.moveTargetY = 0;
+      this.targetedItemId = null;
       gameInstance.moveMarker = null;
       if (!this.autoAttackTarget) {
         document.getElementById('walk-indicator').classList.remove('visible');

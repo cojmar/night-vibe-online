@@ -842,6 +842,38 @@ export default class Game {
     const groundY = getGroundY(this.selectedEnv);
     const onGround = cy >= groundY - GROUND_TOLERANCE;
     let clickedEnemy = null;
+    let clickedItem = null;
+
+    // Check if player clicked a potion on the ground
+    if (this.items) {
+      for (let item of this.items) {
+        const dist = Math.hypot(cx - item.x, cy - item.y);
+        if (dist < 40) {
+          clickedItem = item;
+          break;
+        }
+      }
+    }
+
+    if (clickedItem) {
+      this.player.autoAttackTarget = null;
+      this.player.targetedItemId = clickedItem.id;
+      this.player.isMoving = true;
+      this.player.moveTargetX = clickedItem.x;
+      this.player.moveTargetY = clickedItem.y;
+      this.player.action = 'walk';
+
+      // Visual feedback
+      this.moveMarker = { x: clickedItem.x, y: clickedItem.y, life: 30, maxLife: 30, color: 'green' };
+      const typeStr = clickedItem.type === 'red' ? '❤️ Potion' : '⚡ Potion';
+      document.getElementById('walk-indicator').innerHTML = `🧪 Collecting ${typeStr}...`;
+      document.getElementById('walk-indicator').classList.add('visible');
+      this.broadcastState();
+      return;
+    }
+
+    // Clear item target if clicked elsewhere
+    this.player.targetedItemId = null;
 
     for (let e of this.enemies) {
       if (!e.alive) continue;
@@ -883,7 +915,7 @@ export default class Game {
       document.getElementById('walk-indicator').classList.add('visible');
     }
 
-    this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30 };
+    this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30, color: 'cyan' };
     this.broadcastState();
   }
 
@@ -1510,10 +1542,43 @@ export default class Game {
 
       if (this.moveMarker && this.moveMarker.life > 0) {
         const progress = this.moveMarker.life / this.moveMarker.maxLife;
-        this.ctx.globalAlpha = progress * 0.6;
-        this.ctx.strokeStyle = '#95a5a6'; this.ctx.lineWidth = 2; this.ctx.setLineDash([4, 4]);
-        this.ctx.beginPath(); this.ctx.arc(this.moveMarker.x, this.moveMarker.y, 12 * progress, 0, Math.PI * 2); this.ctx.stroke();
-        this.ctx.setLineDash([]);
+        this.ctx.globalAlpha = progress * 0.8;
+        
+        const isGreen = this.moveMarker.color === 'green';
+        if (isGreen) {
+          // Green expanding star/crosshair splash for item collection!
+          this.ctx.strokeStyle = '#2ecc71';
+          this.ctx.shadowColor = '#2ecc71';
+          this.ctx.shadowBlur = 10;
+          this.ctx.lineWidth = 2.5;
+          const cx = this.moveMarker.x;
+          const cy = this.moveMarker.y;
+          const r = 15 * progress;
+          
+          this.ctx.beginPath();
+          // Star cross lines
+          this.ctx.moveTo(cx - r, cy); this.ctx.lineTo(cx + r, cy);
+          this.ctx.moveTo(cx, cy - r); this.ctx.lineTo(cx, cy + r);
+          this.ctx.stroke();
+          
+          // Outer pulsing ring
+          this.ctx.beginPath();
+          this.ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
+          this.ctx.stroke();
+        } else {
+          // Standard walk click splash: cyan expanding dashed ring
+          this.ctx.strokeStyle = '#3498db';
+          this.ctx.shadowColor = '#3498db';
+          this.ctx.shadowBlur = 10;
+          this.ctx.lineWidth = 2.5;
+          this.ctx.setLineDash([4, 4]);
+          this.ctx.beginPath();
+          this.ctx.arc(this.moveMarker.x, this.moveMarker.y, 14 * progress, 0, Math.PI * 2);
+          this.ctx.stroke();
+          this.ctx.setLineDash([]);
+        }
+        
+        this.ctx.shadowBlur = 0;
         this.moveMarker.life -= dt;
       }
       this.ctx.globalAlpha = 1;
@@ -1596,11 +1661,37 @@ export default class Game {
         renderables.push({
           y: this.player.moveTargetY - 1, draw: (ctx) => {
             ctx.save();
-            ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 150) * 0.2;
-            ctx.fillStyle = '#2ecc71';
-            ctx.beginPath();
-            ctx.ellipse(this.player.moveTargetX, this.player.moveTargetY, 15, 7.5, 0, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.globalAlpha = 0.6 + Math.sin(Date.now() / 150) * 0.2;
+            
+            const isCollecting = !!this.player.targetedItemId;
+            if (isCollecting) {
+              // Draw a beautiful rotating star/diamond for item collection!
+              ctx.fillStyle = '#2ecc71';
+              ctx.shadowColor = '#2ecc71';
+              ctx.shadowBlur = 10;
+              
+              const size = 10;
+              ctx.translate(this.player.moveTargetX, this.player.moveTargetY);
+              ctx.rotate(Date.now() / 200);
+              
+              ctx.beginPath();
+              for (let j = 0; j < 4; j++) {
+                ctx.rotate(Math.PI / 2);
+                ctx.lineTo(size, 0);
+                ctx.lineTo(size / 3, size / 3);
+              }
+              ctx.closePath();
+              ctx.fill();
+            } else {
+              // Draw standard walk cyan ellipse
+              ctx.fillStyle = '#3498db';
+              ctx.shadowColor = '#3498db';
+              ctx.shadowBlur = 10;
+              ctx.beginPath();
+              ctx.ellipse(this.player.moveTargetX, this.player.moveTargetY, 15, 7.5, 0, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            
             ctx.restore();
           }
         });
@@ -1646,10 +1737,20 @@ export default class Game {
       }
 
       if (this.items) {
+        if (this.player && this.player.targetedItemId) {
+          const exists = this.items.some(item => item.id === this.player.targetedItemId);
+          if (!exists) {
+            this.player.targetedItemId = null;
+          }
+        }
+
         for (let i = 0; i < this.items.length; i++) {
           let item = this.items[i];
           item.life -= dt * 16.67;
           if (item.life <= 0) {
+            if (this.player && this.player.targetedItemId === item.id) {
+              this.player.targetedItemId = null;
+            }
             this.items.splice(i, 1); i--; continue;
           }
 
@@ -1695,6 +1796,9 @@ export default class Game {
                 }
              }
             if (pickedUp) {
+              if (this.player && this.player.targetedItemId === item.id) {
+                this.player.targetedItemId = null;
+              }
               this.items.splice(i, 1); i--; continue;
             }
           } else {
@@ -1732,6 +1836,31 @@ export default class Game {
 
           renderables.push({
             y: item.y, draw: (ctx) => {
+              if (this.player && this.player.targetedItemId === item.id) {
+                // Ground selector circle
+                ctx.save();
+                ctx.shadowColor = '#2ecc71';
+                ctx.shadowBlur = 15;
+                ctx.strokeStyle = '#2ecc71';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.ellipse(item.x, item.y, 22, 11, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+
+                // Animated dotted connection line from player to item
+                ctx.save();
+                ctx.strokeStyle = 'rgba(46, 204, 113, 0.7)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([5, 5]);
+                ctx.lineDashOffset = -this.globalTime / 15; // Moving dashes flow effect
+                ctx.beginPath();
+                ctx.moveTo(this.player.x, this.player.y);
+                ctx.lineTo(item.x, item.y);
+                ctx.stroke();
+                ctx.restore();
+              }
+
               ctx.save();
               const floatOffset = Math.sin(this.globalTime / 200) * 5;
               const pulse = Math.abs(Math.sin(this.globalTime / 150));
@@ -1759,6 +1888,23 @@ export default class Game {
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
               ctx.fillText(item.type === 'red' ? '❤️' : '⚡', 0, -18 - pulse * 2);
+
+              // Bobbing green downward arrow indicator above the targeted item
+              if (this.player && this.player.targetedItemId === item.id) {
+                ctx.save();
+                ctx.fillStyle = '#2ecc71';
+                ctx.shadowColor = '#2ecc71';
+                ctx.shadowBlur = 8;
+                const arrowY = -36 + Math.sin(this.globalTime / 100) * 3;
+                ctx.beginPath();
+                ctx.moveTo(0, arrowY);
+                ctx.lineTo(-5, arrowY - 8);
+                ctx.lineTo(5, arrowY - 8);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+              }
+
               ctx.restore();
             }
           });
