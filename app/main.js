@@ -243,6 +243,8 @@ window.app = new class {
             }
         }, 8000);
         
-        this.net.connect('wss://ws.emupedia.net/ws/');
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const wsUrl = isLocal ? 'ws://localhost:3001/ws/' : 'wss://ws.emupedia.net/ws/';
+        this.net.connect(wsUrl);
     }
 }

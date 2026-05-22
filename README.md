@@ -303,6 +303,22 @@ A completely dynamic engine configuration editor built directly from the system'
 
 ---
 
+## To run locally for multiplayer testing:
+
+### Terminal 1 — WS server
+
+```bash
+cd E:\dev\spacerust\cojmar\ws-server
+npm start
+```
+
+### Terminal 2 — static site
+
+```bash
+cd E:\dev\spacerust\cojmar\night-vibe-online
+npx serve . -l tcp://0.0.0.0:3000
+```
+
 ## Static Analysis
 
 This repo includes a lightweight ESLint flat config for the gameplay source in `app/`.
