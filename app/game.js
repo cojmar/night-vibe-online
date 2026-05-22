@@ -561,8 +561,15 @@ export default class Game {
     this.wave = ConfigModule.GAME_INITIAL_WAVE;
     if (this.wave % ConfigModule.BOSS_WAVE_INTERVAL === 0) {
       this.bossActive = true;
-      this.waveTotalEnemies = 1;
-      this.waveEnemiesToSpawn = 1;
+      let numBosses = 1;
+      if (ConfigModule.BOSS_WAVE_INTERVAL > 0) {
+          const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
+          if (bossWaveNum > 1) {
+              numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
+          }
+      }
+      this.waveTotalEnemies = numBosses;
+      this.waveEnemiesToSpawn = numBosses;
     } else {
       this.bossActive = false;
       this.waveTotalEnemies = ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
@@ -2190,8 +2197,15 @@ export default class Game {
             this.initBgParticles();
             if (this.wave % ConfigModule.BOSS_WAVE_INTERVAL === 0) {
               this.bossActive = true;
-              this.waveTotalEnemies = 1;
-              this.waveEnemiesToSpawn = 1;
+              let numBosses = 1;
+              if (ConfigModule.BOSS_WAVE_INTERVAL > 0) {
+                  const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
+                  if (bossWaveNum > 1) {
+                      numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
+                  }
+              }
+              this.waveTotalEnemies = numBosses;
+              this.waveEnemiesToSpawn = numBosses;
               this.ui.showBossWarning();
             } else {
               this.bossActive = false;

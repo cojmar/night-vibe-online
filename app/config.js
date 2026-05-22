@@ -63,6 +63,7 @@ const FALLBACK_DEFAULTS = {
   BOSS_BASE_COLOR: '#8e44ad',
   BOSS_ATTACK_COOLDOWN: 120,
   BOSS_WAVE_INTERVAL: 5,
+  BOSS_SPAWN_INCREMENT: 1,
   BOSS_PROJECTILE_SPEED: 4.0,
   BOSS_PROJECTILE_HOMING: false,
 
@@ -159,6 +160,7 @@ export const CONFIG_METADATA = {
   BOSS_BASE_COLOR: { label: "Boss Accent Color", type: "color", category: "Boss Battles" },
   BOSS_ATTACK_COOLDOWN: { label: "Boss Attack Delay (frames)", type: "number", min: 20, max: 300, step: 10, category: "Boss Battles" },
   BOSS_WAVE_INTERVAL: { label: "Boss Spawn Wave Interval", type: "number", min: 1, max: 20, step: 1, category: "Boss Battles" },
+  BOSS_SPAWN_INCREMENT: { label: "Additional Bosses per Boss Wave", type: "number", min: 0, max: 10, step: 1, category: "Boss Battles" },
   BOSS_PROJECTILE_SPEED: { label: "Boss Projectile Speed", type: "number", min: 1.0, max: 15.0, step: 0.5, category: "Boss Battles" },
   BOSS_PROJECTILE_HOMING: { label: "Boss Projectiles Homing", type: "boolean", category: "Boss Battles" },
 
@@ -244,6 +246,7 @@ export let BOSS_BASE_SIZE = activeConfig.BOSS_BASE_SIZE;
 export let BOSS_BASE_COLOR = activeConfig.BOSS_BASE_COLOR;
 export let BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
 export let BOSS_WAVE_INTERVAL = activeConfig.BOSS_WAVE_INTERVAL;
+export let BOSS_SPAWN_INCREMENT = activeConfig.BOSS_SPAWN_INCREMENT;
 export let BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
 export let BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
 export let ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
@@ -387,6 +390,7 @@ export function updateConfig(newValues) {
   BOSS_BASE_COLOR = activeConfig.BOSS_BASE_COLOR;
   BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
   BOSS_WAVE_INTERVAL = activeConfig.BOSS_WAVE_INTERVAL;
+  BOSS_SPAWN_INCREMENT = activeConfig.BOSS_SPAWN_INCREMENT;
   BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
   BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
   ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
