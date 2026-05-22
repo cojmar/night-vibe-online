@@ -39,9 +39,11 @@ export default class Game {
     this.enemySpawnTimer = 0;
     this.enemySpawnInterval = 1000;
 
-    this.viewScale = 1;
+    this.viewScaleX = 1;
+    this.viewScaleY = 1;
     this.viewOX = 0;
     this.viewOY = 0;
+    this.cameraClampX = 0;
     this.globalTime = 0;
     this.moveMarker = null;
 
@@ -497,18 +499,15 @@ export default class Game {
     this.canvas.height = ch * dpr;
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Lock scaling to the screen height to provide native side-scrolling experience
-    this.viewScale = ch / GAME_H;
-    const scaledW = GAME_W * this.viewScale;
-    
-    // If the game width is wider than the screen, left-align and let side-scrolling handle offsets.
-    // Otherwise, center the game world horizontally on screen.
-    if (cw < scaledW) {
-      this.viewOX = 0;
-    } else {
-      this.viewOX = (cw - scaledW) / 2;
-    }
+    // Non-uniform scaling: stretch game world to fill entire canvas in both orientations
+    this.viewScaleX = cw / GAME_W;
+    this.viewScaleY = ch / GAME_H;
+    this.viewOX = 0;
     this.viewOY = 0;
+
+    // Compute horizontal camera clamp based on scaleY (vertical viewport)
+    const viewportH = GAME_H * this.viewScaleY;
+    this.cameraClampX = Math.max(0, GAME_W - viewportH * (GAME_W / GAME_H));
 
     this.cachedCanvasRect = this.canvas.getBoundingClientRect();
 
@@ -519,8 +518,8 @@ export default class Game {
     const rect = this.cachedCanvasRect || this.canvas.getBoundingClientRect();
     const canvasX = clientX - rect.left;
     const canvasY = clientY - rect.top;
-    const gameX = (canvasX - this.viewOX) / this.viewScale + (this.cameraX || 0);
-    const gameY = (canvasY - this.viewOY) / this.viewScale;
+    const gameX = (canvasX - this.viewOX) / this.viewScaleX + (this.cameraX || 0);
+    const gameY = (canvasY - this.viewOY) / this.viewScaleY;
     return { x: gameX, y: gameY };
   }
 
@@ -533,25 +532,20 @@ export default class Game {
       if (this.screenShake < 0) this.screenShake = 0;
     }
 
-    // Side-scrolling camera to follow local player
+    // Side-scrolling camera to follow local player (clamped by vertical viewport)
     if (this.player && this.canvas) {
-      const cw = this.canvas.width / (window.devicePixelRatio || 1);
-      const viewportWidth = cw / this.viewScale;
-      const scaledW = GAME_W * this.viewScale;
-      if (cw < scaledW) {
-        this.cameraX = Math.max(0, Math.min(GAME_W - viewportWidth, this.player.x - viewportWidth / 2));
-      } else {
-        this.cameraX = 0;
-      }
+      const viewportH = GAME_H * this.viewScaleY;
+      const viewportW = viewportH * (GAME_W / GAME_H);
+      this.cameraX = Math.max(0, Math.min(this.cameraClampX, this.player.x - viewportW / 2));
     } else {
       this.cameraX = 0;
     }
 
-    const tx = this.viewOX + shakeX - (this.cameraX || 0) * this.viewScale;
+    const tx = this.viewOX + shakeX - (this.cameraX || 0) * this.viewScaleX;
     const ty = this.viewOY + shakeY;
 
     this.ctx.translate(tx, ty);
-    this.ctx.scale(this.viewScale, this.viewScale);
+    this.ctx.scale(this.viewScaleX, this.viewScaleY);
   }
 
   startGame(selectedClass) {

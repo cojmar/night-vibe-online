@@ -5,17 +5,22 @@ import { CHAT_MESSAGE_DURATION, NETWORK_ROOM_NAME } from './utils.js';
 
 window.app = new class {
     constructor() {
-        // Wait for DOM
-        window.addEventListener('DOMContentLoaded', () => {
+        // Top-level await in module dependencies can delay evaluation until
+        // after DOMContentLoaded has already fired.
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', () => {
+                this.init();
+            }, { once: true });
+        } else {
             this.init();
-        });
+        }
     }
 
     init() {
         this.net = new Network();
         this.ui = new UI(null); // Will set game instance later
         this.game = null;
-        
+
         // Setup Nickname
         let nick = localStorage.getItem('night-vibe-online_nick');
         if (!nick) {
@@ -41,7 +46,7 @@ window.app = new class {
         const gameChatModal = document.getElementById('game-chat-modal');
         const gameChatInput = document.getElementById('game-chat-input');
         const gameChatSendBtn = document.getElementById('game-chat-send');
-        
+
         const sendGameChat = () => {
             const msg = gameChatInput.value.trim();
             if (msg && this.game && this.game.player) {
@@ -54,7 +59,7 @@ window.app = new class {
         };
 
         gameChatSendBtn.addEventListener('click', sendGameChat);
-        
+
 
         window.addEventListener('keydown', (e) => {
             if (this.game && this.game.state === 'PLAYING' && e.key === 'Enter') {
@@ -69,7 +74,7 @@ window.app = new class {
                 gameChatModal.style.display = 'none';
             }
         });
-        
+
         let lastLobbyHtml = '';
         setInterval(() => {
             if (!this.net.room || !this.net.room.users) return;
@@ -101,36 +106,36 @@ window.app = new class {
                 };
 
                 let html = '<div style="color:#ffd700; font-size:1.1em; font-weight:bold; border-bottom:1px solid #34495e; padding-bottom:8px; margin-bottom:8px;">👥 Lobby Players (' + count + ')</div>';
-                
+
                 // Add self
                 const selfStatus = (this.game && this.game.state === 'PLAYING') ? '<span style="color:#e74c3c; font-weight:bold;">⚔️ In Game</span>' : '<span style="color:#2ecc71; font-weight:bold;">💤 In Menu</span>';
                 const selfLevel = (this.game && this.game.player) ? this.game.player.level : 1;
                 const selfResets = (this.game && this.game.player) ? (this.game.player.resets || 0) : 0;
                 const selfClass = (this.game && this.game.player) ? this.game.player.classType : 'warrior';
-                
+
                 html += buildCard(nickInput.value + ' (You)', selfStatus, selfClass, selfLevel, selfResets, true);
-                
+
                 const myUid = (this.net.me && this.net.me.info) ? this.net.me.info.user : null;
                 for (let uid in this.net.room.users) {
                     if (uid === myUid) continue;
                     const u = this.net.room.users[uid];
-                    let uNick = uid.substring(0,8);
+                    let uNick = uid.substring(0, 8);
                     if (u.data && u.data.nick) uNick = u.data.nick;
                     else if (u.nick) uNick = u.nick;
                     else if (u.info && u.info.nick) uNick = u.info.nick;
-                    
+
                     const status = (u.data && u.data.inGame) ? '<span style="color:#e74c3c; font-weight:bold;">⚔️ In Game</span>' : '<span style="color:#2ecc71; font-weight:bold;">💤 In Menu</span>';
                     const uLevel = (u.data && u.data.level) ? u.data.level : 1;
                     const uResets = (u.data && u.data.resets) ? u.data.resets : 0;
                     const uClass = (u.data && u.data.classType) ? u.data.classType : 'warrior';
-                    
+
                     html += buildCard(uNick, status, uClass, uLevel, uResets, false);
                 }
                 if (html !== lastLobbyHtml) {
                     list.innerHTML = html;
                     lastLobbyHtml = html;
                 }
-                
+
                 if (myUid && this.net.room.users[myUid] && this.net.room.users[myUid].data) {
                     const myResets = this.net.room.users[myUid].data.resets || 0;
                     const menuResets = document.getElementById('menu-resets-display');
@@ -138,24 +143,24 @@ window.app = new class {
                 }
             }
         }, 1000);
-        
+
         // Wait for connection to BSON WebSockets
         this.net.on('connect', () => {
             this.net.send_cmd('auth', { 'user': '', 'room': NETWORK_ROOM_NAME });
         });
-        
+
         this.net.on('auth.info', (data) => {
             document.getElementById('loader').style.display = 'none';
             document.getElementById('container').style.display = 'flex';
-            
+
             this.net.send_cmd('nick', { nick: nickInput.value });
-            
+
             // Initialize Game engine
             this.game = new Game(this);
             this.ui.game = this.game; // Link UI to Game
             this.game.init();
         });
-        
+
         this.net.connect('wss://ws.emupedia.net/ws/');
     }
 }
