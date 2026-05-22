@@ -383,6 +383,38 @@ export default class UI {
                     }
                 }
             }
+
+            // Bind search filtering
+            const searchInput = document.getElementById('config-search-input');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.oninput = () => {
+                    const query = searchInput.value.toLowerCase().trim();
+                    const container = document.getElementById('config-fields-container');
+                    if (!container) return;
+                    
+                    const categories = container.children;
+                    for (let i = 0; i < categories.length; i++) {
+                        const cat = categories[i];
+                        if (cat.tagName !== 'DIV' || !cat.style.borderLeft) continue; // Skip warn banner
+                        
+                        let hasVisibleChild = false;
+                        const fields = cat.children;
+                        for (let j = 1; j < fields.length; j++) { // Skip header at index 0
+                            const field = fields[j];
+                            const label = field.textContent.toLowerCase();
+                            if (query === '' || label.includes(query)) {
+                                field.style.display = '';
+                                hasVisibleChild = true;
+                            } else {
+                                field.style.display = 'none';
+                            }
+                        }
+                        
+                        cat.style.display = hasVisibleChild ? 'block' : 'none';
+                    }
+                };
+            }
         };
 
         const saveConfigFromUI = () => {
