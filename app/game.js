@@ -1363,7 +1363,7 @@ export default class Game {
     skyGrad.addColorStop(0.5, env.skyMid);
     skyGrad.addColorStop(1, env.skyBot);
     this.ctx.fillStyle = skyGrad;
-    this.ctx.fillRect(0, 0, GAME_W, gY);
+    this.ctx.fillRect(-2000, 0, GAME_W + 4000, gY);
 
     const nightAlpha = this.nightAlpha || 0;
     const dayAlpha = this.dayAlpha || 0;
@@ -1393,7 +1393,7 @@ export default class Game {
 
     if (nightAlpha > 0) {
       this.ctx.fillStyle = `rgba(5, 5, 20, ${nightAlpha * 0.4})`;
-      this.ctx.fillRect(0, 0, GAME_W, gY);
+      this.ctx.fillRect(-2000, 0, GAME_W + 4000, gY);
     }
 
     this.ctx.save();
@@ -1435,7 +1435,7 @@ export default class Game {
     this.ctx.restore();
 
     this.ctx.fillStyle = env.ground;
-    this.ctx.fillRect(0, gY, GAME_W, GAME_H - gY);
+    this.ctx.fillRect(-2000, gY, GAME_W + 4000, GAME_H - gY);
   }
 
   loop(time) {
