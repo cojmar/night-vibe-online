@@ -66,6 +66,7 @@ const FALLBACK_DEFAULTS = {
   BOSS_SPAWN_INCREMENT: 1,
   BOSS_PROJECTILE_SPEED: 4.0,
   BOSS_PROJECTILE_HOMING: false,
+  BOSS_LASER_CHANNEL_TIME: 90,
 
   // 9. Projectile Collision Size
   PROJ_HIT_RADIUS_ARROW: 12,
@@ -163,6 +164,7 @@ export const CONFIG_METADATA = {
   BOSS_SPAWN_INCREMENT: { label: "Additional Bosses per Boss Wave", type: "number", min: 0, max: 10, step: 1, category: "Boss Battles" },
   BOSS_PROJECTILE_SPEED: { label: "Boss Projectile Speed", type: "number", min: 1.0, max: 15.0, step: 0.5, category: "Boss Battles" },
   BOSS_PROJECTILE_HOMING: { label: "Boss Projectiles Homing", type: "boolean", category: "Boss Battles" },
+  BOSS_LASER_CHANNEL_TIME: { label: "Boss Laser Channel Time (frames)", type: "number", min: 30, max: 300, step: 10, category: "Boss Battles" },
 
   // 8. Projectiles & Hitboxes
   PROJ_HIT_RADIUS_ARROW: { label: "Arrow Hitbox Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
@@ -249,6 +251,7 @@ export let BOSS_WAVE_INTERVAL = activeConfig.BOSS_WAVE_INTERVAL;
 export let BOSS_SPAWN_INCREMENT = activeConfig.BOSS_SPAWN_INCREMENT;
 export let BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
 export let BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
+export let BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
 export let ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
 export let ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
 
@@ -393,6 +396,7 @@ export function updateConfig(newValues) {
   BOSS_SPAWN_INCREMENT = activeConfig.BOSS_SPAWN_INCREMENT;
   BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
   BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
+  BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
   ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
   ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
 
