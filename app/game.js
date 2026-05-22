@@ -1584,8 +1584,9 @@ export default class Game {
         if (dead) this.atmosEffects.splice(i, 1);
       }
 
-      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
       this.ctx.save();
       this.applyViewport(dt);
