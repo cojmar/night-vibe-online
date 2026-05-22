@@ -195,15 +195,15 @@ scale = 1 + (wave - 1) * 0.15 + (avgLevel - 1) * 0.12
 
 ### Leveling
 - Gain XP by killing enemies
-- **Level up** every 3 kills
-- Each level grants **5 stat points** to spend on ATK, SPD, or HP
+- **Level up** by matching the scaling kill count requirement (configurable base and exponent)
+- Each level grants **stat points** (default: 5) to spend on ATK, SPD, or HP
 
 ### Rebirth (Prestige)
-When you reach the required level (`4 + resets * 5`), you can choose to **Rebirth**:
+When you reach the required level (base requirement + resets * scaling step, fully configurable), you can choose to **Rebirth**:
 - Resets your level, kills, and stat allocations
-- Grants **permanent bonus stat points** equal to `level * 2`
+- Grants **permanent bonus stat points** equal to `level * points_per_level` (default: 2)
 - Increases your S2 charge limit by +1 per rebirth
-- Each subsequent rebirth requires a higher level (+5 per reset)
+- **Level Cap Protection:** If level limiting is enabled, character progression is capped at the rebirth level requirement until a rebirth is performed, with an explicit HUD warning display.
 
 > Rebirth is the only way to increase your max S2 charge capacity beyond the base of 3. Plan your resets carefully.
 
@@ -264,16 +264,33 @@ Each environment features a **day/night cycle** — the sun and moon traverse th
 
 ---
 
-## Settings & Optimization
+## Settings & Dynamic Balance Editor
 
-The game features an **auto-graphics system** that monitors FPS in real-time and dynamically scales visual effects to maintain smooth performance:
+The configuration suite is fully accessible directly from the **Main Menu Lobby** (via the premium "Settings & Balance Editor" panel) and **In-Game Overlay**:
 
+### 1. Performance & Graphics Optimization
+An **auto-graphics system** monitors FPS in real-time and dynamically scales visual effects to maintain smooth performance:
 - **Particles Multiplier** — Death explosions, hit sparks, trails, buff auras
 - **Background Elements** — Sky decorations (trees, walls, mountains, etc.)
 - **Ground Elements** — Grass, stones, shells, mud, and foliage
 - **Atmospheric Effects** — Rain, clouds, fog, and smoke
 
-All settings can be adjusted manually or left on auto (recommended). The system reduces effects when FPS drops below 40 and restores them when above 55.
+The system reduces effects when FPS drops below 40 and restores them when above 55.
+
+### 2. Live Sandbox Balance Editor
+A completely dynamic engine configuration editor built directly from the system's parameter metadata. It allows players to edit over 30 variables:
+- **Gameplay Dimensions & Depth:** Rescale canvas dimensions and playfield Y-sorting horizons in real-time.
+- **Player & Class Dynamics:** Configure starting level, resets, melee/ranged attack ranges, base move speeds, and XP level up formulas.
+- **Enemy & Boss Attributes:** Dynamic difficulty scaling, wave size increments, spawn intervals, and elite boss variables.
+- **Zero-Delay Saving:** Removing any old "Save & Apply" delays, all adjustments (checkbox ticks, slider drags, text inputs, color pickers) apply **automatically and instantly** to active gameplay elements and broadcast over the network to all clients in real-time.
+- **Export & Import JSON:** One-click options to export the entire custom gameplay balance configuration to a local JSON file or import a shared gameplay mode file.
+
+### 3. Local Preferences Saving
+- Class selections (Warrior, Mage, Archer, Magic Gladiator) are automatically persisted in local browser storage and fully restored on page refresh.
+- Custom game performance and graphics profiles are seamlessly backed up.
+
+### 4. Unified Premium Modal Dialogs
+- Replaced traditional native browser alerts with a high-end, unified Yes/No confirmation dialog panel, matching the cyber-fantasy UI theme for rebirth and default-settings restores.
 
 ---
 

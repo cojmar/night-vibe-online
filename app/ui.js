@@ -5,8 +5,10 @@ export default class UI {
     constructor(gameInstance) {
         this.game = gameInstance;
         this.classes = ['warrior', 'mage', 'archer', 'magicgladiator'];
-        this.currentCarouselIndex = 0;
-        this.selectedClass = 'warrior';
+        const savedClass = localStorage.getItem('night-vibe-online_selected-class');
+        const savedIdx = savedClass ? this.classes.indexOf(savedClass) : -1;
+        this.currentCarouselIndex = savedIdx !== -1 ? savedIdx : 0;
+        this.selectedClass = this.classes[this.currentCarouselIndex];
         this.recentLogs = [];
         this.MAX_LOGS = 12;
         this.logHoldTimer = null;
@@ -388,6 +390,8 @@ export default class UI {
                 }
             }
 
+            this.updateLobbyRulesText();
+            this.updateClassCarousel();
         };
 
         if (btnOpenConfigEditor) {
@@ -413,11 +417,15 @@ export default class UI {
 
         if (btnConfigReset) {
             btnConfigReset.addEventListener('click', () => {
-                if (confirm("Reset all game balance settings to original defaults?")) {
-                    resetConfig();
-                    buildConfigFields();
-                    this.addLog("🛠️ Custom configurations reset to defaults.");
-                }
+                this.showConfirm(
+                    "⚙️ Reset Defaults",
+                    "Reset all gameplay balance settings to original defaults?",
+                    () => {
+                        resetConfig();
+                        buildConfigFields();
+                        this.addLog("🛠️ Custom configurations reset to defaults.");
+                    }
+                );
             });
         }
 
@@ -451,6 +459,7 @@ export default class UI {
                         const imported = JSON.parse(event.target.result);
                         updateConfig(imported);
                         buildConfigFields();
+                        saveConfigFromUI();
                         this.addLog("📤 Gameplay balance config imported successfully!");
                     } catch (err) {
                         alert("Failed to parse configuration JSON: " + err.message);
@@ -460,6 +469,38 @@ export default class UI {
                 e.target.value = '';
             });
         }
+        this.updateLobbyRulesText();
+    }
+
+    showConfirm(title, message, onYes, onNo) {
+        const modal = document.getElementById('rebirth-modal');
+        const titleEl = modal ? modal.querySelector('h2') : null;
+        const textEl = document.getElementById('rebirth-modal-text');
+        
+        if (!modal || !textEl) return;
+        
+        if (titleEl) titleEl.innerText = title;
+        textEl.innerText = message;
+        modal.style.display = 'flex';
+        
+        const confirmBtn = document.getElementById('btn-rebirth-confirm');
+        const cancelBtn = document.getElementById('btn-rebirth-cancel');
+        
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        
+        newConfirmBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+            if (onYes) onYes();
+        });
+        
+        newCancelBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+            if (onNo) onNo();
+        });
     }
 
     nextClass() {
@@ -474,6 +515,7 @@ export default class UI {
 
     updateClassCarousel() {
         this.selectedClass = this.classes[this.currentCarouselIndex];
+        localStorage.setItem('night-vibe-online_selected-class', this.selectedClass);
         const cd = CLASS_DATA[this.selectedClass];
         document.getElementById('current-class-name').textContent = cd.name;
         document.getElementById('class-icon').textContent = cd.icon;
@@ -485,7 +527,7 @@ export default class UI {
         const sk = SKILL_DESC[this.selectedClass];
 
         // Calculate derived stats from HP/MP/ATK
-        const baseMoveSpeed = { warrior: 2.5, magicgladiator: 2.3, archer: 2.0, mage: 1.7 }[this.selectedClass] || 2.5;
+        const baseMoveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.selectedClass] || 2.5;
         const baseS2Cooldown = 5000;
         const s1Scale = 1.0;
         const aoeScale = 1.0;
@@ -513,6 +555,25 @@ export default class UI {
             this.game.player.color = cd.color;
             this.game.player.accent = cd.accent;
         }
+    }
+
+    updateLobbyRulesText() {
+        const rulesList = document.querySelector('.menu-panel ul');
+        if (!rulesList) return;
+
+        const baseLvl = ConfigModule.REBIRTH_BASE_LEVEL;
+        const stepLvl = ConfigModule.REBIRTH_LEVEL_STEP;
+        const limitActive = ConfigModule.LIMIT_LEVEL_TO_REBIRTH_REQ;
+        const ptsPerLvl = ConfigModule.REBIRTH_POINTS_PER_LEVEL || 5;
+
+        rulesList.innerHTML = `
+            <li><strong style="color:#f1c40f;">Controls:</strong> Click/Tap to move. Click enemies to auto-attack.</li>
+            <li><strong style="color:#e74c3c;">Skills:</strong> Keyboard <b>1</b> and <b>2</b> (or tap skill icons) to aim/cast attacks.</li>
+            <li><strong style="color:#e67e22;">Overcharge:</strong> Hold down Skill <b>2</b> to charge it! Auto-releases at max charge. <b>+1 Max Charge per Reset!</b></li>
+            <li><strong style="color:#9b59b6;">Rebirth:</strong> At <b style="color:#fff;">Level ${baseLvl}</b> you can Reset! Gain permanent stat points (+${ptsPerLvl} per Level upgraded). Every reset increases the level requirement by +${stepLvl}.</li>
+            <li><strong style="color:#f39c12;">Level Limit:</strong> Level gains are ${limitActive ? '<b style="color:#e74c3c;">CAPPED</b> at the active Rebirth level requirement' : '<b style="color:#2ecc71;">UNCAPPED</b> (no restriction on level ups)'}.</li>
+            <li><strong style="color:#2ecc71;">Chat:</strong> Press <b>Enter</b> during gameplay to talk to everyone!</li>
+        `;
     }
 
     toggleFullscreen() {
