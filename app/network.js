@@ -3,9 +3,9 @@ export default class {
 		this.use_shared_objects = true; //if true generates/updates room and me shared_objects from server
 		this.use_workers = false; //To do
 		this.socket = {
-			on: () => { this.on(arguments) },
+			on: (...args) => this.on(...args),
 			send: (data) => { if (this.ws) this.ws.send(data) },
-			send_cmd: () => { this.send_cmd(arguments) },
+			send_cmd: (...args) => this.send_cmd(...args),
 			close: () => { if (this.ws) this.ws.close() }
 		}
 		this.events = {};
@@ -21,6 +21,9 @@ export default class {
 			return true;
 		}
 		for (var n in data2) {
+			// Guard against prototype pollution from server payloads
+			if (n === '__proto__' || n === 'constructor' || n === 'prototype') continue;
+			if (!Object.prototype.hasOwnProperty.call(data2, n)) continue;
 			if (!data1[n]) {
 				data1[n] = data2[n];
 				if (!ret) ret = true;
@@ -39,7 +42,7 @@ export default class {
 	keep_alive() {
 		if (this.keep_alive_interval) clearInterval(this.keep_alive_interval);
 		this.keep_alive_interval = setInterval(() => {
-			this.send('ping');
+			if (this.connected) this.send_cmd('ping', {});
 		}, 30000);
 		return this;
 	}
@@ -102,8 +105,7 @@ export default class {
 		});
 
 	}
-	connect() {
-		let server = arguments[0] || false;
+	connect(server) {
 		if (server) this.server = server;
 		if (this.socket.close) this.socket.close(4666);
 		if (this.connect_timeout) clearTimeout(this.connect_timeout);

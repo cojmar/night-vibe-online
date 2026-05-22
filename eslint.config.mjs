@@ -19,6 +19,7 @@ export default [
         BSON: "readonly",
         run_mode: "readonly",
         XMLHttpRequest: "readonly",
+        fetch: "readonly",
         FileReader: "readonly",
         ResizeObserver: "readonly",
         requestAnimationFrame: "readonly",

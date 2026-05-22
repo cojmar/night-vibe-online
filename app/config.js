@@ -100,11 +100,11 @@ const FALLBACK_DEFAULTS = {
 
 export let DEFAULTS = { ...FALLBACK_DEFAULTS };
 try {
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', 'app/nightvibe-gameplay-config.json', false); // false makes the request synchronous
-  xhr.send(null);
-  if (xhr.status === 200) {
-    const loadedDefaults = JSON.parse(xhr.responseText);
+  // Top-level await is supported in ES modules; avoids blocking the main thread
+  // the way the previous synchronous XMLHttpRequest did.
+  const response = await fetch('app/nightvibe-gameplay-config.json');
+  if (response.ok) {
+    const loadedDefaults = await response.json();
     DEFAULTS = { ...FALLBACK_DEFAULTS, ...loadedDefaults };
     // Prevent nulls (from generated JSON files) from breaking the equipment slots UI
     if (!DEFAULTS.EQUIPMENT_SLOTS) {
@@ -112,7 +112,7 @@ try {
     }
   }
 } catch (error) {
-  console.warn("Could not load app/nightvibe-gameplay-config.json synchronously, using hardcoded fallback", error);
+  console.warn("Could not load app/nightvibe-gameplay-config.json, using hardcoded fallback", error);
 }
 
 // ==========================================

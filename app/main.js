@@ -167,15 +167,24 @@ window.app = new class {
                     return '👤';
                 };
 
+                const esc = (s) => String(s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+
                 const buildCard = (name, statusStr, cls, level, resets, isSelf) => {
                     const icon = getIcon(cls);
                     const borderColor = statusStr.includes('Game') ? '#e74c3c' : '#2ecc71';
                     const bg = isSelf ? 'rgba(243, 156, 18, 0.15)' : 'rgba(0,0,0,0.4)';
+                    const safeLevel = esc(level);
+                    const safeResets = esc(resets);
                     return `
                     <div style="background:${bg}; border-left:4px solid ${borderColor}; padding:8px 10px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
                         <div style="display:flex; flex-direction:column;">
-                            <span style="font-weight:bold; color:${isSelf ? '#f1c40f' : '#ecf0f1'}; font-size:1.05em;">${name}</span>
-                            <span style="font-size:0.85em; color:#bdc3c7; margin-top:3px;">${icon} Lv.<span style="color:#fff;">${level}</span> ${resets > 0 ? `<span style="color:#9b59b6;">(🔄${resets})</span>` : ''}</span>
+                            <span style="font-weight:bold; color:${isSelf ? '#f1c40f' : '#ecf0f1'}; font-size:1.05em;">${esc(name)}</span>
+                            <span style="font-size:0.85em; color:#bdc3c7; margin-top:3px;">${icon} Lv.<span style="color:#fff;">${safeLevel}</span> ${resets > 0 ? `<span style="color:#9b59b6;">(🔄${safeResets})</span>` : ''}</span>
                         </div>
                         <div style="font-size:0.85em; text-align:right;">
                             ${statusStr}
