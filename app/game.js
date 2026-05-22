@@ -59,6 +59,10 @@ export default class Game {
     };
     this.atmosEffects = [];
 
+    this.savePersistentData = this.savePersistentData.bind(this);
+    this.loadPersistentData = this.loadPersistentData.bind(this);
+    this._lastSaveTime = 0;
+
     this.bindEvents();
 
     // Bind network events
@@ -163,13 +167,14 @@ export default class Game {
 
         if (data.data.enemyKilled && this.player && data.data.enemyKilled === this.net.me.info.user) {
           if (this.player.addKill()) {
-            this.s2Cooldown = 0; // Cooldowns reset
+            this.s2Cooldown = 0;
             this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
             this.ui.updateHUD(this.player);
             this.spawnParticles(this.player.x, this.player.y - 20, '#ffd700', 60, 10);
             this.spawnParticles(this.player.x, this.player.y - 20, '#fff', 40, 15);
             this.spawnParticles(this.player.x, this.player.y - 20, '#f1c40f', 50, 5);
             this.broadcastState();
+            this.savePersistentData();
           }
           if (this.state === 'PLAYING') {
             this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
@@ -563,6 +568,10 @@ export default class Game {
     this.player.resets = resets;
     this.player.statPoints = (this.player.statPoints || 0) + bonusStats;
 
+    if (resets === 0 && bonusStats === 0) {
+      this.restorePersistentStats(this.player, resets, bonusStats);
+    }
+
     const nickInput = document.getElementById('nick-input');
     if (nickInput) this.player.nick = nickInput.value;
 
@@ -613,6 +622,7 @@ export default class Game {
 
     this.ui.updateHUD(this.player);
     this.broadcastState();
+    this.savePersistentData();
   }
 
   requestRebirth() {
@@ -646,7 +656,68 @@ export default class Game {
 
     this.net.send_cmd('set_data', { resets: newResets, bonusStatPoints: newBonusStats });
 
+    this.savePersistentData();
     this.quitToMenu();
+  }
+
+  savePersistentData() {
+    if (!this.player) return;
+    const data = {
+      level: this.player.level,
+      resets: this.player.resets || 0,
+      classType: this.player.classType,
+      atk: this.player.atk,
+      spd: this.player.spd,
+      maxHp: this.player.maxHp,
+      savedAt: Date.now()
+    };
+    localStorage.setItem('nightvibe-player', JSON.stringify(data));
+  }
+
+  loadPersistentData() {
+    try {
+      const raw = localStorage.getItem('nightvibe-player');
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data.level || !data.savedAt) return null;
+      const age = Date.now() - data.savedAt;
+      if (age > 30 * 24 * 60 * 60 * 1000) {
+        localStorage.removeItem('nightvibe-player');
+        return null;
+      }
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  restorePersistentStats(target, serverResets, serverBonusStats) {
+    const saved = this.loadPersistentData();
+    if (!saved) return;
+
+    const sr = serverResets || 0;
+    const mergedResets = Math.max(saved.resets || 0, sr);
+    target.resets = mergedResets;
+
+    if (sr === 0 && serverBonusStats === 0) {
+      target.level = saved.level;
+      target.classType = saved.classType;
+      target.atk = saved.atk;
+      target.spd = saved.spd;
+      target.maxHp = saved.maxHp;
+      target.hp = target.maxHp;
+      target.reqKills = Math.floor(5 * Math.pow(target.level, 1.4) + Math.sin(target.level) * 2);
+    } else {
+      if (saved.level > target.level) {
+        target.level = saved.level;
+        if (saved.classType) target.classType = saved.classType;
+        if (saved.atk > target.atk) target.atk = saved.atk;
+        if (saved.spd > target.spd) target.spd = saved.spd;
+        if (saved.maxHp > target.maxHp) target.maxHp = saved.maxHp;
+        target.reqKills = Math.floor(5 * Math.pow(target.level, 1.4) + Math.sin(target.level) * 2);
+        target.hp = target.maxHp;
+      }
+    }
   }
 
   quitToMenu() {
@@ -1377,10 +1448,12 @@ export default class Game {
           e.deadProcessed = true;
           const dropChance = Math.max(0.04, 0.35 - (this.wave * 0.025));
           if (Math.random() < dropChance) {
-            const type = Math.random() < 0.55 ? 'red' : 'blue';
-            const lifeTime = 15000 + this.wave * 2000;
-            this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true });
-          }
+             const type = Math.random() < 0.55 ? 'red' : 'blue';
+             const lifeTime = 15000 + this.wave * 2000;
+             const groundY = getGroundY(this.selectedEnv);
+             const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+             this.items.push({ id: Math.random().toString(36).substr(2, 9), type: type, x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+           }
         }
 
         if (!this.isHost) {
@@ -1489,17 +1562,16 @@ export default class Game {
             this.items.splice(i, 1); i--; continue;
           }
 
-          // Fall to ground if still falling
-          if (item.falling) {
-            item.vy += 0.3 * dt;
-            item.y += item.vy * dt;
-            const groundY = getGroundY(this.selectedEnv);
-            if (item.y >= groundY - 5) {
-              item.y = groundY - 5;
-              item.falling = false;
-              item.vy = 0;
-            }
-          }
+// Fall to target position if still falling
+           if (item.falling) {
+             item.vy += 1.0 * dt;
+             item.y += item.vy * dt;
+             if (item.y >= item.targetY) {
+               item.y = item.targetY;
+               item.falling = false;
+               item.vy = 0;
+             }
+           }
 
           if (this.isHost) {
             let activePlayersList = [{ id: this.net.me ? this.net.me.info.user : 'host', obj: this.player }];
@@ -1694,9 +1766,17 @@ export default class Game {
       }
 
       if (this.s2Cooldown > 0) { this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier); }
-      this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
+       this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
 
-      if (this.isHost) {
+       if (this.player && this.state === 'PLAYING' && this.isHost && this.player.resets !== undefined) {
+         const now = Date.now();
+         if (now - this._lastSaveTime > 5000) {
+           this._lastSaveTime = now;
+           this.savePersistentData();
+         }
+       }
+
+       if (this.isHost) {
         this.enemies = this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000));
 
         const aliveCount = this.enemies.filter(e => e.alive).length;
