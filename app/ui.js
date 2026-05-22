@@ -400,42 +400,79 @@ export default class UI {
             window.tempClassData = JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA));
             window.tempSkillDesc = JSON.parse(JSON.stringify(ConfigModule.SKILL_DESC));
             window.tempEnemyTypes = JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES));
-
-            const renderClasses = () => {
+            window.tempItemsDB = JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB || []));
+            if (window.tempItemsDB.length === 0) {
+                window.tempItemsDB = [
+                    { name: 'Epic Weapon', icon: '🗡️', gearType: 'Weapon', stats: { atk: 15, spd: 0 }, rarity: 'rare', color: '#f1c40f' },
+                    { name: 'Legendary Armor', icon: '🛡️', gearType: 'Armor', stats: { maxHp: 150, atk: 2 }, rarity: 'rare', color: '#f1c40f' },
+                    { name: 'Mystic Ring', icon: '💍', gearType: 'Ring', stats: { spd: 0.2, atk: 5 }, rarity: 'magic', color: '#3498db' },
+                    { name: 'Basic Sword', icon: '🗡️', gearType: 'Weapon', stats: { atk: 5, spd: 0 }, rarity: 'normal', color: '#ffffff' }
+                ];
+            }
+            
+            // Expose render functions for inline HTML event handlers
+            window.renderClasses = () => {
                 const cContainer = document.getElementById('visual-classes-container');
                 if (!cContainer) return;
                 cContainer.innerHTML = '';
+                const term = (document.getElementById('config-search-input')?.value || '').toLowerCase();
                 for (const classKey in window.tempClassData) {
                     const c = window.tempClassData[classKey];
+                    if (term && !c.name.toLowerCase().includes(term) && !classKey.toLowerCase().includes(term)) continue;
                     const s = window.tempSkillDesc[classKey] || { s1:{name:'',desc:'',ctrl:''}, s2:{name:'',desc:'',ctrl:''} };
                     const card = document.createElement('div');
-                    card.style.background = '#2c3e50'; card.style.padding = '10px'; card.style.marginBottom = '10px'; card.style.borderRadius = '5px';
+                    card.className = 'visual-card class-card-item';
+                    card.style.background = '#2c3e50'; card.style.padding = '15px'; card.style.marginBottom = '15px'; card.style.borderRadius = '8px'; card.style.border = '1px solid #34495e'; card.style.position = 'relative';
                     card.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                            <input type="text" value="${c.name}" style="background:#34495e; color:#fff; border:none; padding:4px; font-weight:bold; width:150px;" onchange="window.tempClassData['${classKey}'].name = this.value">
-                            <button style="background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;" onclick="delete window.tempClassData['${classKey}']; delete window.tempSkillDesc['${classKey}']; renderClasses();">Del</button>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #34495e; padding-bottom:8px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:1.5em; width:30px; text-align:center;">${c.icon && c.icon.startsWith('http') ? `<img src="${c.icon}" style="width:100%; height:auto;">` : (c.icon || '❓')}</span>
+                                <input type="text" value="${c.name}" style="background:#1e272e; color:#2ecc71; border:1px solid #34495e; padding:6px; font-weight:bold; font-size:1.1em; width:180px; border-radius:4px;" onchange="window.tempClassData['${classKey}'].name = this.value; window.renderClasses();" placeholder="Class Name">
+                            </div>
+                            <button style="background:#c0392b; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;" onclick="delete window.tempClassData['${classKey}']; delete window.tempSkillDesc['${classKey}']; window.renderClasses();">🗑️ Delete</button>
                         </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:0.85em;">
-                            <div>Key (ID): <input type="text" value="${classKey}" disabled style="width:80px; background:#1e272e; color:#bdc3c7; border:none;"></div>
-                            <div>Icon/URL: <input type="text" value="${c.icon || ''}" style="width:100px; background:#1e272e; color:#fff; border:none;" onchange="window.tempClassData['${classKey}'].icon = this.value"></div>
-                            <div>HP: <input type="number" value="${c.hp}" style="width:60px;" onchange="window.tempClassData['${classKey}'].hp = parseFloat(this.value)"></div>
-                            <div>ATK: <input type="number" value="${c.atk}" style="width:60px;" onchange="window.tempClassData['${classKey}'].atk = parseFloat(this.value)"></div>
-                            <div>SPD: <input type="number" value="${c.spd}" style="width:60px;" onchange="window.tempClassData['${classKey}'].spd = parseFloat(this.value)"></div>
-                            <div>Color: <input type="color" value="${c.color}" style="width:50px; height:20px; padding:0; border:none;" onchange="window.tempClassData['${classKey}'].color = this.value"></div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:0.9em; margin-bottom:10px;">
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#bdc3c7; font-size:0.85em;">Key (ID)</label>
+                                <input type="text" value="${classKey}" disabled style="background:#1e272e; color:#7f8c8d; border:1px solid #2c3e50; padding:5px; border-radius:3px;">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#bdc3c7; font-size:0.85em;">Icon (Emoji / URL)</label>
+                                <input type="text" value="${c.icon || ''}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempClassData['${classKey}'].icon = this.value; window.renderClasses();">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#bdc3c7; font-size:0.85em;">Theme Color</label>
+                                <input type="color" value="${c.color || '#ffffff'}" style="width:100%; height:30px; padding:0; border:none; border-radius:3px; cursor:pointer;" onchange="window.tempClassData['${classKey}'].color = this.value">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#e74c3c; font-size:0.85em;">❤️ HP</label>
+                                <input type="number" value="${c.hp}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempClassData['${classKey}'].hp = parseFloat(this.value)">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#f39c12; font-size:0.85em;">⚔️ ATK</label>
+                                <input type="number" value="${c.atk}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempClassData['${classKey}'].atk = parseFloat(this.value)">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#3498db; font-size:0.85em;">⚡ SPD</label>
+                                <input type="number" value="${c.spd}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" step="0.1" onchange="window.tempClassData['${classKey}'].spd = parseFloat(this.value)">
+                            </div>
                         </div>
-                        <div style="margin-top:8px; border-top:1px solid #7f8c8d; padding-top:5px; font-size:0.85em;">
-                            <b>Skill 1:</b> <input type="text" value="${s.s1.name}" placeholder="Name" onchange="window.tempSkillDesc['${classKey}'].s1.name = this.value"><br>
-                            Desc: <input type="text" value="${s.s1.desc}" style="width:90%;" onchange="window.tempSkillDesc['${classKey}'].s1.desc = this.value">
-                        </div>
-                        <div style="margin-top:5px; font-size:0.85em;">
-                            <b>Skill 2:</b> <input type="text" value="${s.s2.name}" placeholder="Name" onchange="window.tempSkillDesc['${classKey}'].s2.name = this.value"><br>
-                            Desc: <input type="text" value="${s.s2.desc}" style="width:90%;" onchange="window.tempSkillDesc['${classKey}'].s2.desc = this.value">
+                        <div style="display:flex; gap:10px; background:#1e272e; padding:10px; border-radius:5px; border:1px solid #34495e;">
+                            <div style="flex:1;">
+                                <div style="color:#2ecc71; font-weight:bold; margin-bottom:5px; font-size:0.9em;">Skill 1 (Auto-Attack)</div>
+                                <input type="text" value="${s.s1.name}" placeholder="Skill Name" style="width:100%; background:#2c3e50; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px; margin-bottom:5px;" onchange="window.tempSkillDesc['${classKey}'].s1.name = this.value">
+                                <input type="text" value="${s.s1.desc}" placeholder="Description" style="width:100%; background:#2c3e50; color:#aaa; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempSkillDesc['${classKey}'].s1.desc = this.value">
+                            </div>
+                            <div style="flex:1;">
+                                <div style="color:#e74c3c; font-weight:bold; margin-bottom:5px; font-size:0.9em;">Skill 2 (Special)</div>
+                                <input type="text" value="${s.s2.name}" placeholder="Skill Name" style="width:100%; background:#2c3e50; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px; margin-bottom:5px;" onchange="window.tempSkillDesc['${classKey}'].s2.name = this.value">
+                                <input type="text" value="${s.s2.desc}" placeholder="Description" style="width:100%; background:#2c3e50; color:#aaa; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempSkillDesc['${classKey}'].s2.desc = this.value">
+                            </div>
                         </div>
                     `;
                     cContainer.appendChild(card);
                 }
             };
-            
             
             const btnAddClass = document.getElementById('btn-add-class');
             if (btnAddClass) btnAddClass.onclick = () => {
@@ -445,26 +482,49 @@ export default class UI {
                 window.renderClasses();
             };
 
-
-            const renderMonsters = () => {
+            window.renderMonsters = () => {
                 const mContainer = document.getElementById('visual-monsters-container');
                 if (!mContainer) return;
                 mContainer.innerHTML = '';
+                const term = (document.getElementById('config-search-input')?.value || '').toLowerCase();
                 window.tempEnemyTypes.forEach((m, idx) => {
+                    if (term && !m.name.toLowerCase().includes(term)) return;
                     const card = document.createElement('div');
-                    card.style.background = '#2c3e50'; card.style.padding = '10px'; card.style.marginBottom = '10px'; card.style.borderRadius = '5px';
+                    card.className = 'visual-card monster-card-item';
+                    card.style.background = '#2c3e50'; card.style.padding = '15px'; card.style.marginBottom = '15px'; card.style.borderRadius = '8px'; card.style.border = '1px solid #34495e';
                     card.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                            <input type="text" value="${m.name}" style="background:#34495e; color:#fff; border:none; padding:4px; font-weight:bold; width:150px;" onchange="window.tempEnemyTypes[${idx}].name = this.value">
-                            <button style="background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;" onclick="window.tempEnemyTypes.splice(${idx}, 1); renderMonsters();">Del</button>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #34495e; padding-bottom:8px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:1.5em; width:30px; text-align:center;">${m.icon && m.icon.startsWith('http') ? `<img src="${m.icon}" style="width:100%; height:auto;">` : (m.icon || '❓')}</span>
+                                <input type="text" value="${m.name}" style="background:#1e272e; color:#e74c3c; border:1px solid #34495e; padding:6px; font-weight:bold; font-size:1.1em; width:180px; border-radius:4px;" onchange="window.tempEnemyTypes[${idx}].name = this.value; window.renderMonsters();" placeholder="Monster Name">
+                            </div>
+                            <button style="background:#c0392b; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;" onclick="window.tempEnemyTypes.splice(${idx}, 1); window.renderMonsters();">🗑️ Delete</button>
                         </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:0.85em;">
-                            <div>Icon/URL: <input type="text" value="${m.icon || ''}" style="width:100px; background:#1e272e; color:#fff; border:none;" onchange="window.tempEnemyTypes[${idx}].icon = this.value"></div>
-                            <div>HP: <input type="number" value="${m.hp}" style="width:60px;" onchange="window.tempEnemyTypes[${idx}].hp = parseFloat(this.value)"></div>
-                            <div>ATK: <input type="number" value="${m.atk}" style="width:60px;" onchange="window.tempEnemyTypes[${idx}].atk = parseFloat(this.value)"></div>
-                            <div>SPD: <input type="number" value="${m.speed}" style="width:60px;" step="0.1" onchange="window.tempEnemyTypes[${idx}].speed = parseFloat(this.value)"></div>
-                            <div>Size: <input type="number" value="${m.size}" style="width:60px;" onchange="window.tempEnemyTypes[${idx}].size = parseFloat(this.value)"></div>
-                            <div>Color: <input type="color" value="${m.color}" style="width:50px; height:20px; padding:0; border:none;" onchange="window.tempEnemyTypes[${idx}].color = this.value"></div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:0.9em;">
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#bdc3c7; font-size:0.85em;">Icon (Emoji / URL)</label>
+                                <input type="text" value="${m.icon || ''}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempEnemyTypes[${idx}].icon = this.value; window.renderMonsters();">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#bdc3c7; font-size:0.85em;">Theme Color</label>
+                                <input type="color" value="${m.color || '#ffffff'}" style="width:100%; height:30px; padding:0; border:none; border-radius:3px; cursor:pointer;" onchange="window.tempEnemyTypes[${idx}].color = this.value">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#e74c3c; font-size:0.85em;">❤️ Base HP</label>
+                                <input type="number" value="${m.hp}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempEnemyTypes[${idx}].hp = parseFloat(this.value)">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#f39c12; font-size:0.85em;">⚔️ Base ATK</label>
+                                <input type="number" value="${m.atk}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempEnemyTypes[${idx}].atk = parseFloat(this.value)">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#3498db; font-size:0.85em;">⚡ Base SPD</label>
+                                <input type="number" value="${m.speed}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" step="0.1" onchange="window.tempEnemyTypes[${idx}].speed = parseFloat(this.value)">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#9b59b6; font-size:0.85em;">📏 Size (Radius)</label>
+                                <input type="number" value="${m.size}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempEnemyTypes[${idx}].size = parseFloat(this.value)">
+                            </div>
                         </div>
                     `;
                     mContainer.appendChild(card);
@@ -474,58 +534,78 @@ export default class UI {
             const btnAddMonster = document.getElementById('btn-add-monster');
             if (btnAddMonster) btnAddMonster.onclick = () => {
                 window.tempEnemyTypes.push({ name: 'New Monster', icon: '❓', hp: 50, atk: 5, color: '#ffffff', speed: 0.5, size: 20 });
-                renderMonsters();
+                window.renderMonsters();
             };
 
-            renderClasses();
-            renderMonsters();
-
-
-            // Bind bidirectional synchronization for range sliders and input boxes
-            for (const key in CONFIG_METADATA) {
-                const meta = CONFIG_METADATA[key];
-                if (meta.type === 'number') {
-                    const rangeEl = document.getElementById(`cfg-range-${key}`);
-                    const numEl = document.getElementById(`cfg-${key}`);
-                    if (rangeEl && numEl) {
-                        rangeEl.addEventListener('input', (e) => {
-                            numEl.value = e.target.value;
-                        });
-                        numEl.addEventListener('input', (e) => {
-                            let val = parseFloat(e.target.value);
-                            if (isNaN(val)) return;
-                            // Clamp value typed manually to prevent out of bounds
-                            if (val < meta.min) val = meta.min;
-                            if (val > meta.max) val = meta.max;
-                            rangeEl.value = val;
-                        });
-                    }
-                }
-            }
-
-            // Bind instant saving upon any interaction with the inputs (only if not playing)
-            if (!isPlaying) {
-                for (const key in CONFIG_METADATA) {
-                    const meta = CONFIG_METADATA[key];
-                    const inputEl = document.getElementById(`cfg-${key}`);
-                    const rangeEl = document.getElementById(`cfg-range-${key}`);
-
-                    if (inputEl) {
-                        const eventType = (meta.type === 'boolean' || meta.type === 'color') ? 'change' : 'input';
-                        inputEl.addEventListener(eventType, () => {
-                            saveConfigFromUI();
-                        });
-                    }
-                    if (rangeEl) {
-                        rangeEl.addEventListener('input', () => {
-                            saveConfigFromUI();
-                        });
-                    }
-                }
-            }
-
-            // Bind search filtering
+            window.renderItems = () => {
+                const iContainer = document.getElementById('visual-items-container');
+                if (!iContainer) return;
+                iContainer.innerHTML = '';
+                const term = (document.getElementById('config-search-input')?.value || '').toLowerCase();
+                window.tempItemsDB.forEach((item, idx) => {
+                    if (term && !item.name.toLowerCase().includes(term) && !item.gearType.toLowerCase().includes(term)) return;
+                    const card = document.createElement('div');
+                    card.className = 'visual-card item-card-item';
+                    card.style.background = '#2c3e50'; card.style.padding = '15px'; card.style.marginBottom = '15px'; card.style.borderRadius = '8px'; card.style.border = '1px solid #34495e';
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #34495e; padding-bottom:8px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:1.5em; width:30px; text-align:center;">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}" style="width:100%; height:auto;">` : (item.icon || '❓')}</span>
+                                <input type="text" value="${item.name}" style="background:#1e272e; color:#f1c40f; border:1px solid #34495e; padding:6px; font-weight:bold; font-size:1.1em; width:180px; border-radius:4px;" onchange="window.tempItemsDB[${idx}].name = this.value; window.renderItems();" placeholder="Gear Name">
+                            </div>
+                            <button style="background:#c0392b; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;" onclick="window.tempItemsDB.splice(${idx}, 1); window.renderItems();">🗑️ Delete</button>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:0.9em;">
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#bdc3c7; font-size:0.85em;">Slot Type</label>
+                                <select style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].gearType = this.value">
+                                    <option value="Weapon" ${item.gearType==='Weapon'?'selected':''}>Weapon</option>
+                                    <option value="Armor" ${item.gearType==='Armor'?'selected':''}>Armor</option>
+                                    <option value="Ring" ${item.gearType==='Ring'?'selected':''}>Ring</option>
+                                    <option value="Ring 1" ${item.gearType==='Ring 1'?'selected':''}>Ring 1</option>
+                                    <option value="Ring 2" ${item.gearType==='Ring 2'?'selected':''}>Ring 2</option>
+                                    <option value="Amulet" ${item.gearType==='Amulet'?'selected':''}>Amulet</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#bdc3c7; font-size:0.85em;">Icon (Emoji / URL)</label>
+                                <input type="text" value="${item.icon || ''}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].icon = this.value; window.renderItems();">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#bdc3c7; font-size:0.85em;">Rarity</label>
+                                <select style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].rarity = this.value; window.renderItems();">
+                                    <option value="normal" ${item.rarity==='normal'?'selected':''}>Normal (White)</option>
+                                    <option value="magic" ${item.rarity==='magic'?'selected':''}>Magic (Blue)</option>
+                                    <option value="rare" ${item.rarity==='rare'?'selected':''}>Rare (Gold)</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#e74c3c; font-size:0.85em;">❤️ Base HP</label>
+                                <input type="number" value="${item.stats.maxHp || 0}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].stats.maxHp = parseFloat(this.value)">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#f39c12; font-size:0.85em;">⚔️ Base ATK</label>
+                                <input type="number" value="${item.stats.atk || 0}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].stats.atk = parseFloat(this.value)">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <label style="color:#3498db; font-size:0.85em;">⚡ Base SPD</label>
+                                <input type="number" value="${item.stats.spd || 0}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" step="0.1" onchange="window.tempItemsDB[${idx}].stats.spd = parseFloat(this.value)">
+                            </div>
+                        </div>
+                    `;
+                    iContainer.appendChild(card);
+                });
+            };
             
+            const btnAddItem = document.getElementById('btn-add-item');
+            if (btnAddItem) btnAddItem.onclick = () => {
+                window.tempItemsDB.push({ name: 'New Item', icon: '❓', gearType: 'Ring', stats: { atk: 1, maxHp: 10, spd: 0 }, rarity: 'normal', color: '#ffffff' });
+                window.renderItems();
+            };
+
+            window.renderClasses();
+            window.renderMonsters();
+            window.renderItems();
             const searchInput = document.getElementById('config-search-input');
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
