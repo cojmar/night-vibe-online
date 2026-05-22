@@ -1398,6 +1398,12 @@
       <div class="menu-grid">
         <!-- Left Column: Player & Lobby -->
         <div class="menu-col">
+          <button id="btn-menu-settings"
+            style="background: #2c3e50; color: #fff; border: 1px solid #2ecc71; border-radius: 6px; font-size: 1.1em; padding: 10px; width: 100%; cursor: pointer; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
+            onmouseover="this.style.background='#34495e'" onmouseout="this.style.background='#2c3e50'"
+            title="Open Settings & Gameplay Balance Editor">
+            ⚙️ Settings & Balance Editor
+          </button>
           <div
             style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #f39c12; border-radius:6px; margin-bottom:15px;">
             <label for="nick-input" style="font-size:0.9em; color:#bdc3c7; display:block; margin-bottom:5px;">Your
@@ -1409,12 +1415,7 @@
             </div>
           </div>
 
-          <button id="btn-menu-settings"
-            style="background: #2c3e50; color: #fff; border: 1px solid #2ecc71; border-radius: 6px; font-size: 1.1em; padding: 10px; width: 100%; cursor: pointer; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
-            onmouseover="this.style.background='#34495e'" onmouseout="this.style.background='#2c3e50'"
-            title="Open Settings & Gameplay Balance Editor">
-            ⚙️ Settings & Balance Editor
-          </button>
+
 
           <div
             style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #3498db; border-radius:6px; margin-bottom:15px; font-size:0.85em; color:#ecf0f1; line-height:1.4;">
@@ -1446,12 +1447,7 @@
         <!-- Middle Column: Class Selection -->
         <div class="menu-col center-col">
 
-          <div class="carousel-nav" style="margin-bottom: 15px; flex: none;">
-            <button class="carousel-btn" id="btn-prev-class">◀</button>
-            <span class="carousel-title" id="current-class-name" style="font-size:1.8em;">Warrior</span>
-            <button class="carousel-btn" id="btn-next-class">▶</button>
 
-          </div>
           <button class="btn-start" id="btn-start"
             style="font-size:1.5em; padding:12px 30px; width:100%; margin-bottom:15px;">🎮 START GAME</button>
 
@@ -1460,8 +1456,12 @@
             style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; overflow:hidden;">
             <div class="class-icon" id="class-icon" style="font-size:5em; margin-bottom:10px; align-self:center;">⚔️
             </div>
-            <div class="class-name" id="class-card-name" style="font-size:1.8em; margin: 10px 0; align-self:center;">
-              Warrior</div>
+            <div class="carousel-nav" style="margin-bottom: 15px; flex: none;">
+              <button class="carousel-btn" id="btn-prev-class">◀</button>
+              <span class="carousel-title" id="current-class-name" style="font-size:1.8em;">Warrior</span>
+              <button class="carousel-btn" id="btn-next-class">▶</button>
+
+            </div>
             <div class="class-card-scroll">
               <div class="class-stats"
                 style="font-size:0.9em; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; text-align:left; align-self:stretch; background:rgba(0,0,0,0.5); padding:15px; border-radius:6px; border:1px solid #34495e;">
