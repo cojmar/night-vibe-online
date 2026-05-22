@@ -36,7 +36,7 @@ export default class Enemy {
       this.maxHp = this.hp;
       this.atk = Math.round(BOSS_BASE_ATK * scale);
       this.speed = BOSS_BASE_SPEED;
-      this.size = BOSS_BASE_SIZE * Math.min(1 + (wave - 1) * 0.05, 2.5); // Grow with waves
+      this.size = BOSS_BASE_SIZE * Math.min(1 + (wave - 1) * 0.1, 4.0); // Scale massively with waves (up to 4x)
       this.color = BOSS_BASE_COLOR;
       this.bossState = 'IDLE';
       
@@ -46,7 +46,7 @@ export default class Enemy {
       this.x = offsetX;
       
       const groundY = getGroundY(gameInstance.selectedEnv);
-      this.y = groundY - BOSS_BASE_SIZE + (spawnIndex % 2 === 0 ? 0 : 20);
+      this.y = groundY - this.size + (spawnIndex % 2 === 0 ? 0 : 20);
     } else {
       const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
       const type = available[Math.floor(localPrng.nextFloat() * available.length)];
