@@ -36,9 +36,14 @@ export default class Enemy {
       this.speed = BOSS_BASE_SPEED;
       this.size = BOSS_BASE_SIZE;
       this.color = BOSS_BASE_COLOR;
-      this.x = GAME_W * 0.15 + localPrng.nextFloat() * GAME_W * 0.7;
+      
+      const totalBosses = gameInstance.waveTotalEnemies > 0 ? gameInstance.waveTotalEnemies : 1;
+      const spacing = GAME_W * 0.7 / totalBosses;
+      const offsetX = GAME_W * 0.15 + (spacing / 2) + (spawnIndex * spacing);
+      this.x = offsetX;
+      
       const groundY = getGroundY(gameInstance.selectedEnv);
-      this.y = groundY - BOSS_BASE_SIZE;
+      this.y = groundY - BOSS_BASE_SIZE + (spawnIndex % 2 === 0 ? 0 : 20);
     } else {
       const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
       const type = available[Math.floor(localPrng.nextFloat() * available.length)];
