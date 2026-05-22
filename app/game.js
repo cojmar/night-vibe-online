@@ -95,7 +95,7 @@ export default class Game {
       if (this.net.me && data.user !== this.net.me.info.user) {
         if (!this.otherPlayers[data.user]) {
           // Default spawn for other players
-          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W / 2, data.data.y || (getGroundY(this.selectedEnv) + GAME_H) / 2);
+          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W / 2, data.data.y || GAME_H - 45);
         }
 
         const oldInGame = this.otherPlayers[data.user].inGame;
@@ -484,26 +484,6 @@ export default class Game {
         this.releaseSkill2();
       }
     });
-
-    const cdRingBtn = document.getElementById('cd-ring');
-    const startUltBtn = (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
-      e.preventDefault(); e.stopPropagation();
-      this.startChargingSkill2();
-    };
-    const endUltBtn = (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
-      e.preventDefault(); e.stopPropagation();
-      if (this.player.isChargingS2) {
-        this.releaseSkill2();
-      }
-    };
-    cdRingBtn.addEventListener('mousedown', startUltBtn);
-    cdRingBtn.addEventListener('touchstart', startUltBtn, { passive: false });
-    cdRingBtn.addEventListener('mouseup', endUltBtn);
-    cdRingBtn.addEventListener('mouseleave', endUltBtn);
-    cdRingBtn.addEventListener('touchend', endUltBtn);
-    cdRingBtn.addEventListener('touchcancel', endUltBtn);
   }
 
   updateLayout() {
@@ -651,7 +631,7 @@ export default class Game {
       myData = this.net.room.users[this.net.me.info.user].data;
     }
 
-    this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, (getGroundY(this.selectedEnv) + GAME_H) / 2);
+    this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, GAME_H - 45);
 
     this.checkHost();
 
@@ -908,11 +888,11 @@ export default class Game {
     document.getElementById('death-overlay').classList.remove('show');
     if (this.player) {
       this.player.x = GAME_W / 2;
-      this.player.y = (getGroundY(this.selectedEnv) + GAME_H) / 2;
+      this.player.y = GAME_H - 45;
       this.player.hp = this.player.maxHp;
       this.player.alive = true;
     } else {
-      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, GAME_W / 2, (getGroundY(this.selectedEnv) + GAME_H) / 2);
+      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, GAME_W / 2, GAME_H - 45);
     }
     this.ui.updateHUD(this.player);
     this.ui.addLog('✨ Respawned!', 'reward');
@@ -1383,7 +1363,7 @@ export default class Game {
     skyGrad.addColorStop(0.5, env.skyMid);
     skyGrad.addColorStop(1, env.skyBot);
     this.ctx.fillStyle = skyGrad;
-    this.ctx.fillRect(-2000, 0, GAME_W + 4000, gY);
+    this.ctx.fillRect(0, 0, GAME_W, gY);
 
     const nightAlpha = this.nightAlpha || 0;
     const dayAlpha = this.dayAlpha || 0;
@@ -1413,7 +1393,7 @@ export default class Game {
 
     if (nightAlpha > 0) {
       this.ctx.fillStyle = `rgba(5, 5, 20, ${nightAlpha * 0.4})`;
-      this.ctx.fillRect(-2000, 0, GAME_W + 4000, gY);
+      this.ctx.fillRect(0, 0, GAME_W, gY);
     }
 
     this.ctx.save();
@@ -1455,7 +1435,7 @@ export default class Game {
     this.ctx.restore();
 
     this.ctx.fillStyle = env.ground;
-    this.ctx.fillRect(-2000, gY, GAME_W + 4000, GAME_H - gY);
+    this.ctx.fillRect(0, gY, GAME_W, GAME_H - gY);
   }
 
   loop(time) {
@@ -1604,9 +1584,8 @@ export default class Game {
         if (dead) this.atmosEffects.splice(i, 1);
       }
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
       this.ctx.save();
       this.applyViewport(dt);
@@ -1720,6 +1699,8 @@ export default class Game {
              if (randRarity < rareThreshold) { rarity = 'rare'; color = '#f1c40f'; numAffixes = 3; }
              else if (randRarity < magicThreshold) { rarity = 'magic'; color = '#3498db'; numAffixes = 2; }
              
+             const categories = ['Weapon', 'Armor', 'Ring']; 
+             const category = categories[Math.floor(Math.random() * categories.length)];
              
              const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
              const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
@@ -1727,43 +1708,25 @@ export default class Game {
              const finalStat = Math.floor(baseStat * (1 - variance + Math.random() * variance * 2));
              
              let stats = {}; let icon = '💎';
-             let category = 'Ring'; let itemName = 'Unknown Item';
+             if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
+             else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
+             else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
              
-             if (ConfigModule.ITEMS_DB && ConfigModule.ITEMS_DB.length > 0) {
-                 const template = ConfigModule.ITEMS_DB[Math.floor(Math.random() * ConfigModule.ITEMS_DB.length)];
-                 category = template.gearType;
-                 itemName = template.name;
-                 icon = template.icon;
-                 rarity = template.rarity || rarity;
-                 color = template.color || color;
-                 // Scale custom base stats by finalStat/10 (so an atk:10 item scales up linearly)
-                 let scale = finalStat / 10;
-                 if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
-                 if (template.stats.maxHp) stats.maxHp = Math.max(1, Math.floor(template.stats.maxHp * scale));
-                 if (template.stats.spd) stats.spd = Math.max(0.01, template.stats.spd * scale);
-             } else {
-                 const categories = ['Weapon', 'Armor', 'Ring']; 
-                 category = categories[Math.floor(Math.random() * categories.length)];
-                 if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
-                 else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
-                 else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
-                 
-                 const possibleAffixes = ['atk', 'maxHp', 'spd'];
-                 let affixesAdded = 1; let sanity = 0;
-                 while (affixesAdded < numAffixes && sanity < 10) {
-                     sanity++;
-                     let randAffix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
-                     if (!stats[randAffix]) {
-                         if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
-                         if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
-                         if (randAffix === 'spd') stats.spd = Math.max(0.05, finalStat * 0.05);
-                         affixesAdded++;
-                     }
+             const possibleAffixes = ['atk', 'maxHp', 'spd'];
+             let affixesAdded = 1; let sanity = 0;
+             while (affixesAdded < numAffixes && sanity < 10) {
+                 sanity++;
+                 let randAffix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
+                 if (!stats[randAffix]) {
+                     if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
+                     if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
+                     if (randAffix === 'spd') stats.spd = Math.max(0.05, finalStat * 0.05);
+                     affixesAdded++;
                  }
-                 const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
-                 itemName = `${prefixes[Math.floor(Math.random()*prefixes.length)]} ${category}`;
              }
-
+             
+             const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
+             const itemName = `${prefixes[Math.floor(Math.random()*prefixes.length)]} ${category}`;
 
              const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
              this.items.push({ 

@@ -4,11 +4,11 @@ import * as ConfigModule from './config.js';
 export default class UI {
     constructor(gameInstance) {
         this.game = gameInstance;
-        this.classes = Object.keys(CLASS_DATA);
+        this.classes = ['warrior', 'mage', 'archer', 'magicgladiator'];
         const savedClass = localStorage.getItem('night-vibe-online_selected-class');
         const savedIdx = savedClass ? this.classes.indexOf(savedClass) : -1;
         this.currentCarouselIndex = savedIdx !== -1 ? savedIdx : 0;
-        this.selectedClass = this.classes[this.currentCarouselIndex] || 'warrior';
+        this.selectedClass = this.classes[this.currentCarouselIndex];
         this.recentLogs = [];
         this.MAX_LOGS = 12;
         this.logHoldTimer = null;
@@ -252,30 +252,6 @@ export default class UI {
         const btnConfigImport = document.getElementById('btn-config-import');
         const importFileInput = document.getElementById('config-import-file');
 
-        const tabBtns = document.querySelectorAll('.config-tab-btn');
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.config-tab-btn').forEach(b => {
-                    b.classList.remove('active');
-                    b.style.background = '#2c3e50';
-                    b.style.color = '#bdc3c7';
-                });
-                document.querySelectorAll('.config-tab-content').forEach(c => {
-                    c.style.display = 'none';
-                    c.classList.remove('active');
-                });
-                btn.classList.add('active');
-                btn.style.background = '#3498db';
-                btn.style.color = '#fff';
-                const tabId = btn.getAttribute('data-tab');
-                const content = document.getElementById(tabId);
-                if (content) {
-                    content.style.display = 'flex';
-                    content.classList.add('active');
-                }
-            });
-        });
-
         const buildConfigFields = () => {
             const container = document.getElementById('config-fields-container');
             if (!container) return;
@@ -322,7 +298,6 @@ export default class UI {
             const categoriesMap = new Map();
             for (const key in CONFIG_METADATA) {
                 const meta = CONFIG_METADATA[key];
-                if (key === 'CLASS_DATA' || key === 'ENEMY_TYPES' || key === 'SKILL_DESC' || key === 'ITEMS_DB') continue;
                 const cat = meta.category || 'General';
                 if (!categoriesMap.has(cat)) {
                     const catObj = { name: cat, fields: [] };
@@ -373,14 +348,6 @@ export default class UI {
                             <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
                             <input type="text" id="cfg-${meta.key}" value="${currentValue}" ${isPlaying ? 'disabled' : ''} style="width:100%; box-sizing:border-box; padding:8px 12px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14.5px; opacity:${isPlaying ? '0.6' : '1'}; cursor:${isPlaying ? 'not-allowed' : 'text'};">
                         `;
-                    } else if (meta.type === 'json') {
-                        let jsonStr = '';
-                        try { jsonStr = JSON.stringify(currentValue, null, 2); } catch (e) {}
-                        fieldDiv.innerHTML = `
-                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
-                            <textarea id="cfg-${meta.key}" ${isPlaying ? 'disabled' : ''} style="width:100%; height:150px; box-sizing:border-box; padding:8px; background:#2c3e50; border:1px solid #34495e; color:#2ecc71; border-radius:5px; font-family:monospace; font-size:13px; resize:vertical; outline:none;">${jsonStr}</textarea>
-                            <div style="font-size:0.75em; color:#e74c3c; margin-top:4px;" id="cfg-error-${meta.key}"></div>
-                        `;
                     } else {
                         fieldDiv.innerHTML = `
                             <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
@@ -396,238 +363,145 @@ export default class UI {
                 container.appendChild(catEl);
             });
 
-            // --- VISUAL BUILDERS ---
-            window.tempClassData = JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA));
-            window.tempSkillDesc = JSON.parse(JSON.stringify(ConfigModule.SKILL_DESC));
-            window.tempEnemyTypes = JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES));
-            window.tempItemsDB = JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB || []));
-            if (window.tempItemsDB.length === 0) {
-                window.tempItemsDB = [
-                    { name: 'Epic Weapon', icon: '🗡️', gearType: 'Weapon', stats: { atk: 15, spd: 0 }, rarity: 'rare', color: '#f1c40f' },
-                    { name: 'Legendary Armor', icon: '🛡️', gearType: 'Armor', stats: { maxHp: 150, atk: 2 }, rarity: 'rare', color: '#f1c40f' },
-                    { name: 'Mystic Ring', icon: '💍', gearType: 'Ring', stats: { spd: 0.2, atk: 5 }, rarity: 'magic', color: '#3498db' },
-                    { name: 'Basic Sword', icon: '🗡️', gearType: 'Weapon', stats: { atk: 5, spd: 0 }, rarity: 'normal', color: '#ffffff' }
-                ];
-            }
-            
-            // Expose render functions for inline HTML event handlers
-            window.renderClasses = () => {
-                const cContainer = document.getElementById('visual-classes-container');
-                if (!cContainer) return;
-                cContainer.innerHTML = '';
-                const term = (document.getElementById('config-search-input')?.value || '').toLowerCase();
-                for (const classKey in window.tempClassData) {
-                    const c = window.tempClassData[classKey];
-                    if (term && !c.name.toLowerCase().includes(term) && !classKey.toLowerCase().includes(term)) continue;
-                    const s = window.tempSkillDesc[classKey] || { s1:{name:'',desc:'',ctrl:''}, s2:{name:'',desc:'',ctrl:''} };
-                    const card = document.createElement('div');
-                    card.className = 'visual-card class-card-item';
-                    card.style.background = '#2c3e50'; card.style.padding = '15px'; card.style.marginBottom = '15px'; card.style.borderRadius = '8px'; card.style.border = '1px solid #34495e'; card.style.position = 'relative';
-                    card.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #34495e; padding-bottom:8px;">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span style="font-size:1.5em; width:30px; text-align:center;">${c.icon && c.icon.startsWith('http') ? `<img src="${c.icon}" style="width:100%; height:auto;">` : (c.icon || '❓')}</span>
-                                <input type="text" value="${c.name}" style="background:#1e272e; color:#2ecc71; border:1px solid #34495e; padding:6px; font-weight:bold; font-size:1.1em; width:180px; border-radius:4px;" onchange="window.tempClassData['${classKey}'].name = this.value; window.renderClasses();" placeholder="Class Name">
-                            </div>
-                            <button style="background:#c0392b; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;" onclick="delete window.tempClassData['${classKey}']; delete window.tempSkillDesc['${classKey}']; window.renderClasses();">🗑️ Delete</button>
-                        </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:0.9em; margin-bottom:10px;">
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#bdc3c7; font-size:0.85em;">Key (ID)</label>
-                                <input type="text" value="${classKey}" disabled style="background:#1e272e; color:#7f8c8d; border:1px solid #2c3e50; padding:5px; border-radius:3px;">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#bdc3c7; font-size:0.85em;">Icon (Emoji / URL)</label>
-                                <input type="text" value="${c.icon || ''}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempClassData['${classKey}'].icon = this.value; window.renderClasses();">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#bdc3c7; font-size:0.85em;">Theme Color</label>
-                                <input type="color" value="${c.color || '#ffffff'}" style="width:100%; height:30px; padding:0; border:none; border-radius:3px; cursor:pointer;" onchange="window.tempClassData['${classKey}'].color = this.value">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#e74c3c; font-size:0.85em;">❤️ HP</label>
-                                <input type="number" value="${c.hp}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempClassData['${classKey}'].hp = parseFloat(this.value)">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#f39c12; font-size:0.85em;">⚔️ ATK</label>
-                                <input type="number" value="${c.atk}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempClassData['${classKey}'].atk = parseFloat(this.value)">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#3498db; font-size:0.85em;">⚡ SPD</label>
-                                <input type="number" value="${c.spd}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" step="0.1" onchange="window.tempClassData['${classKey}'].spd = parseFloat(this.value)">
-                            </div>
-                        </div>
-                        <div style="display:flex; gap:10px; background:#1e272e; padding:10px; border-radius:5px; border:1px solid #34495e;">
-                            <div style="flex:1;">
-                                <div style="color:#2ecc71; font-weight:bold; margin-bottom:5px; font-size:0.9em;">Skill 1 (Auto-Attack)</div>
-                                <input type="text" value="${s.s1.name}" placeholder="Skill Name" style="width:100%; background:#2c3e50; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px; margin-bottom:5px;" onchange="window.tempSkillDesc['${classKey}'].s1.name = this.value">
-                                <input type="text" value="${s.s1.desc}" placeholder="Description" style="width:100%; background:#2c3e50; color:#aaa; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempSkillDesc['${classKey}'].s1.desc = this.value">
-                            </div>
-                            <div style="flex:1;">
-                                <div style="color:#e74c3c; font-weight:bold; margin-bottom:5px; font-size:0.9em;">Skill 2 (Special)</div>
-                                <input type="text" value="${s.s2.name}" placeholder="Skill Name" style="width:100%; background:#2c3e50; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px; margin-bottom:5px;" onchange="window.tempSkillDesc['${classKey}'].s2.name = this.value">
-                                <input type="text" value="${s.s2.desc}" placeholder="Description" style="width:100%; background:#2c3e50; color:#aaa; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempSkillDesc['${classKey}'].s2.desc = this.value">
-                            </div>
-                        </div>
-                    `;
-                    cContainer.appendChild(card);
+            // Bind bidirectional synchronization for range sliders and input boxes
+            for (const key in CONFIG_METADATA) {
+                const meta = CONFIG_METADATA[key];
+                if (meta.type === 'number') {
+                    const rangeEl = document.getElementById(`cfg-range-${key}`);
+                    const numEl = document.getElementById(`cfg-${key}`);
+                    if (rangeEl && numEl) {
+                        rangeEl.addEventListener('input', (e) => {
+                            numEl.value = e.target.value;
+                        });
+                        numEl.addEventListener('input', (e) => {
+                            let val = parseFloat(e.target.value);
+                            if (isNaN(val)) return;
+                            // Clamp value typed manually to prevent out of bounds
+                            if (val < meta.min) val = meta.min;
+                            if (val > meta.max) val = meta.max;
+                            rangeEl.value = val;
+                        });
+                    }
                 }
-            };
-            
-            const btnAddClass = document.getElementById('btn-add-class');
-            if (btnAddClass) btnAddClass.onclick = () => {
-                const newKey = 'class_' + Math.floor(Math.random()*10000);
-                window.tempClassData[newKey] = { name: 'New Class', icon: '❓', hp: 100, mp: 50, atk: 10, spd: 5, color: '#ffffff', accent: '#cccccc' };
-                window.tempSkillDesc[newKey] = { s1: {name:'Basic', desc:'Attack', ctrl:'L-Click'}, s2: {name:'Special', desc:'Attack', ctrl:'R-Click'} };
-                window.renderClasses();
-            };
+            }
 
-            window.renderMonsters = () => {
-                const mContainer = document.getElementById('visual-monsters-container');
-                if (!mContainer) return;
-                mContainer.innerHTML = '';
-                const term = (document.getElementById('config-search-input')?.value || '').toLowerCase();
-                window.tempEnemyTypes.forEach((m, idx) => {
-                    if (term && !m.name.toLowerCase().includes(term)) return;
-                    const card = document.createElement('div');
-                    card.className = 'visual-card monster-card-item';
-                    card.style.background = '#2c3e50'; card.style.padding = '15px'; card.style.marginBottom = '15px'; card.style.borderRadius = '8px'; card.style.border = '1px solid #34495e';
-                    card.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #34495e; padding-bottom:8px;">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span style="font-size:1.5em; width:30px; text-align:center;">${m.icon && m.icon.startsWith('http') ? `<img src="${m.icon}" style="width:100%; height:auto;">` : (m.icon || '❓')}</span>
-                                <input type="text" value="${m.name}" style="background:#1e272e; color:#e74c3c; border:1px solid #34495e; padding:6px; font-weight:bold; font-size:1.1em; width:180px; border-radius:4px;" onchange="window.tempEnemyTypes[${idx}].name = this.value; window.renderMonsters();" placeholder="Monster Name">
-                            </div>
-                            <button style="background:#c0392b; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;" onclick="window.tempEnemyTypes.splice(${idx}, 1); window.renderMonsters();">🗑️ Delete</button>
-                        </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:0.9em;">
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#bdc3c7; font-size:0.85em;">Icon (Emoji / URL)</label>
-                                <input type="text" value="${m.icon || ''}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempEnemyTypes[${idx}].icon = this.value; window.renderMonsters();">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#bdc3c7; font-size:0.85em;">Theme Color</label>
-                                <input type="color" value="${m.color || '#ffffff'}" style="width:100%; height:30px; padding:0; border:none; border-radius:3px; cursor:pointer;" onchange="window.tempEnemyTypes[${idx}].color = this.value">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#e74c3c; font-size:0.85em;">❤️ Base HP</label>
-                                <input type="number" value="${m.hp}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempEnemyTypes[${idx}].hp = parseFloat(this.value)">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#f39c12; font-size:0.85em;">⚔️ Base ATK</label>
-                                <input type="number" value="${m.atk}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempEnemyTypes[${idx}].atk = parseFloat(this.value)">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#3498db; font-size:0.85em;">⚡ Base SPD</label>
-                                <input type="number" value="${m.speed}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" step="0.1" onchange="window.tempEnemyTypes[${idx}].speed = parseFloat(this.value)">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#9b59b6; font-size:0.85em;">📏 Size (Radius)</label>
-                                <input type="number" value="${m.size}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempEnemyTypes[${idx}].size = parseFloat(this.value)">
-                            </div>
-                        </div>
-                    `;
-                    mContainer.appendChild(card);
-                });
-            };
-            
-            const btnAddMonster = document.getElementById('btn-add-monster');
-            if (btnAddMonster) btnAddMonster.onclick = () => {
-                window.tempEnemyTypes.push({ name: 'New Monster', icon: '❓', hp: 50, atk: 5, color: '#ffffff', speed: 0.5, size: 20 });
-                window.renderMonsters();
-            };
+            // Bind instant saving upon any interaction with the inputs (only if not playing)
+            if (!isPlaying) {
+                for (const key in CONFIG_METADATA) {
+                    const meta = CONFIG_METADATA[key];
+                    const inputEl = document.getElementById(`cfg-${key}`);
+                    const rangeEl = document.getElementById(`cfg-range-${key}`);
 
-            window.renderItems = () => {
-                const iContainer = document.getElementById('visual-items-container');
-                if (!iContainer) return;
-                iContainer.innerHTML = '';
-                const term = (document.getElementById('config-search-input')?.value || '').toLowerCase();
-                window.tempItemsDB.forEach((item, idx) => {
-                    if (term && !item.name.toLowerCase().includes(term) && !item.gearType.toLowerCase().includes(term)) return;
-                    const card = document.createElement('div');
-                    card.className = 'visual-card item-card-item';
-                    card.style.background = '#2c3e50'; card.style.padding = '15px'; card.style.marginBottom = '15px'; card.style.borderRadius = '8px'; card.style.border = '1px solid #34495e';
-                    card.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid #34495e; padding-bottom:8px;">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span style="font-size:1.5em; width:30px; text-align:center;">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}" style="width:100%; height:auto;">` : (item.icon || '❓')}</span>
-                                <input type="text" value="${item.name}" style="background:#1e272e; color:#f1c40f; border:1px solid #34495e; padding:6px; font-weight:bold; font-size:1.1em; width:180px; border-radius:4px;" onchange="window.tempItemsDB[${idx}].name = this.value; window.renderItems();" placeholder="Gear Name">
-                            </div>
-                            <button style="background:#c0392b; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;" onclick="window.tempItemsDB.splice(${idx}, 1); window.renderItems();">🗑️ Delete</button>
-                        </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:0.9em;">
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#bdc3c7; font-size:0.85em;">Slot Type</label>
-                                <select style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].gearType = this.value">
-                                    <option value="Weapon" ${item.gearType==='Weapon'?'selected':''}>Weapon</option>
-                                    <option value="Armor" ${item.gearType==='Armor'?'selected':''}>Armor</option>
-                                    <option value="Ring" ${item.gearType==='Ring'?'selected':''}>Ring</option>
-                                    <option value="Ring 1" ${item.gearType==='Ring 1'?'selected':''}>Ring 1</option>
-                                    <option value="Ring 2" ${item.gearType==='Ring 2'?'selected':''}>Ring 2</option>
-                                    <option value="Amulet" ${item.gearType==='Amulet'?'selected':''}>Amulet</option>
-                                </select>
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#bdc3c7; font-size:0.85em;">Icon (Emoji / URL)</label>
-                                <input type="text" value="${item.icon || ''}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].icon = this.value; window.renderItems();">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#bdc3c7; font-size:0.85em;">Rarity</label>
-                                <select style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].rarity = this.value; window.renderItems();">
-                                    <option value="normal" ${item.rarity==='normal'?'selected':''}>Normal (White)</option>
-                                    <option value="magic" ${item.rarity==='magic'?'selected':''}>Magic (Blue)</option>
-                                    <option value="rare" ${item.rarity==='rare'?'selected':''}>Rare (Gold)</option>
-                                </select>
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#e74c3c; font-size:0.85em;">❤️ Base HP</label>
-                                <input type="number" value="${item.stats.maxHp || 0}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].stats.maxHp = parseFloat(this.value)">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#f39c12; font-size:0.85em;">⚔️ Base ATK</label>
-                                <input type="number" value="${item.stats.atk || 0}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" onchange="window.tempItemsDB[${idx}].stats.atk = parseFloat(this.value)">
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:4px;">
-                                <label style="color:#3498db; font-size:0.85em;">⚡ Base SPD</label>
-                                <input type="number" value="${item.stats.spd || 0}" style="background:#1e272e; color:#fff; border:1px solid #34495e; padding:5px; border-radius:3px;" step="0.1" onchange="window.tempItemsDB[${idx}].stats.spd = parseFloat(this.value)">
-                            </div>
-                        </div>
-                    `;
-                    iContainer.appendChild(card);
-                });
-            };
-            
-            const btnAddItem = document.getElementById('btn-add-item');
-            if (btnAddItem) btnAddItem.onclick = () => {
-                window.tempItemsDB.push({ name: 'New Item', icon: '❓', gearType: 'Ring', stats: { atk: 1, maxHp: 10, spd: 0 }, rarity: 'normal', color: '#ffffff' });
-                window.renderItems();
-            };
+                    if (inputEl) {
+                        const eventType = (meta.type === 'boolean' || meta.type === 'color') ? 'change' : 'input';
+                        inputEl.addEventListener(eventType, () => {
+                            saveConfigFromUI();
+                        });
+                    }
+                    if (rangeEl) {
+                        rangeEl.addEventListener('input', () => {
+                            saveConfigFromUI();
+                        });
+                    }
+                }
+            }
 
-            window.renderClasses();
-            window.renderMonsters();
-            window.renderItems();
+            // Bind search filtering
             const searchInput = document.getElementById('config-search-input');
             if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                    const term = e.target.value.toLowerCase();
-                    // Filter General settings
-                    document.querySelectorAll('.config-group').forEach(group => {
-                        const labelText = group.querySelector('.config-label').textContent.toLowerCase();
-                        if (labelText.includes(term)) {
-                            group.style.display = 'flex';
-                        } else {
-                            group.style.display = 'none';
-                        }
-                    });
+                searchInput.value = '';
+                searchInput.oninput = () => {
+                    const query = searchInput.value.toLowerCase().trim();
+                    const container = document.getElementById('config-fields-container');
+                    if (!container) return;
                     
-                    // Filter Classes, Monsters, Items dynamically
-                    if (window.renderClasses) window.renderClasses();
-                    if (window.renderMonsters) window.renderMonsters();
-                    if (window.renderItems) window.renderItems();
-                });
+                    const categories = container.children;
+                    for (let i = 0; i < categories.length; i++) {
+                        const cat = categories[i];
+                        if (cat.tagName !== 'DIV' || !cat.style.borderLeft) continue; // Skip warn banner
+                        
+                        const catHeader = cat.children[0];
+                        const catName = catHeader ? catHeader.textContent.toLowerCase() : '';
+                        const catMatches = query === '' || catName.includes(query);
+                        
+                        let hasVisibleChild = catMatches;
+                        const fields = cat.children;
+                        for (let j = 1; j < fields.length; j++) { // Skip header at index 0
+                            const field = fields[j];
+                            const label = field.textContent.toLowerCase();
+                            if (query === '' || catMatches || label.includes(query)) {
+                                field.style.display = '';
+                            } else {
+                                field.style.display = 'none';
+                                hasVisibleChild = false;
+                            }
+                        }
+                        
+                        cat.style.display = hasVisibleChild ? 'block' : 'none';
+                    }
+                };
             }
         };
 
+        const saveConfigFromUI = () => {
+            const newValues = {};
+            for (const key in CONFIG_METADATA) {
+                const input = document.getElementById(`cfg-${key}`);
+                if (!input) continue;
+
+                const meta = CONFIG_METADATA[key];
+                if (meta.type === 'boolean') {
+                    newValues[key] = input.checked;
+                } else if (meta.type === 'color') {
+                    newValues[key] = input.value;
+                } else if (meta.type === 'string') {
+                    newValues[key] = input.value;
+                } else {
+                    newValues[key] = parseFloat(input.value);
+                }
+            }
+
+            // Save to localStorage & dynamic live-binding exports
+            updateConfig(newValues);
+
+            // Re-apply configurations onto active game components
+            if (this.game) {
+                if (this.game.updateLayout) {
+                    this.game.updateLayout();
+                }
+
+                if (this.game.player) {
+                    this.game.player.moveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.game.player.classType] || ConfigModule.PLAYER_MOVE_SPEEDS.default;
+                    if (this.game.player.classType === 'warrior') {
+                        this.game.player.atkRange = ConfigModule.WARRIOR_MELEE_RANGE;
+                    } else if (this.game.player.classType === 'magicgladiator') {
+                        this.game.player.atkRange = ConfigModule.MAGICGLADIATOR_MELEE_RANGE;
+                    } else {
+                        this.game.player.atkRange = ConfigModule.RANGED_MAX_RANGE;
+                    }
+                    this.updateHUD(this.game.player);
+                }
+
+                // Scenery depth ratio refresh
+                if (this.game.generateScenery) {
+                    this.game.generateScenery(this.game.selectedEnv);
+                }
+                if (this.game.broadcastState) {
+                    this.game.broadcastState();
+                }
+            }
+
+            this.updateLobbyRulesText();
+            this.updateClassCarousel();
+        };
+
+        if (btnOpenConfigEditor) {
+            btnOpenConfigEditor.addEventListener('click', () => {
+                settingsModal.style.display = 'none';
+                configEditorModal.style.display = 'flex';
+                buildConfigFields();
+            });
+        }
 
         if (btnConfigEditorCloseIcon) {
             btnConfigEditorCloseIcon.addEventListener('click', () => {
@@ -1050,17 +924,14 @@ export default class UI {
         document.getElementById('stat-mp').innerHTML = `<strong style="color:#9b59b6">SPD (Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Increases movement speed, S2 AOE size, and reduces S2 cooldown — higher SPD = faster and bigger attacks.</span>`;
         document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies. Scales with level and stat upgrades.</span>`;
 
-        const sk = SKILL_DESC[this.selectedClass] || {
-            s1: { name: 'Basic Attack', desc: 'Standard attack.', ctrl: 'Left-click enemy' },
-            s2: { name: 'Special Ability', desc: 'Powerful ability.', ctrl: 'Right-click / long-press' }
-        };
+        const sk = SKILL_DESC[this.selectedClass];
 
         // Calculate derived stats from HP/MP/ATK
         const baseMoveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.selectedClass] || 2.5;
         const baseS2Cooldown = 5000;
         const s1Scale = 1.0;
         const aoeScale = 1.0;
-        const armor = Math.floor((cd.hp || 100) / 10);
+        const armor = Math.floor(cd.hp / 10);
         const dmgReduction = (armor * 0.5).toFixed(1);
 
         document.getElementById('controls-section').innerHTML =
@@ -1283,26 +1154,15 @@ export default class UI {
     updateCooldownRing(s2Cooldown, s2MaxCooldown) {
         const c = document.getElementById('cd-circle');
         const t = document.getElementById('cd-text');
-        const ring = document.getElementById('cd-ring');
-        if (!c || !t || !ring) return;
         const circ = 2 * Math.PI * 26;
         if (s2Cooldown > 0) {
             const p = s2Cooldown / s2MaxCooldown;
             c.style.strokeDasharray = circ;
             c.style.strokeDashoffset = circ * p;
-            c.style.stroke = '#e74c3c';
             t.textContent = (s2Cooldown / 1000).toFixed(1);
-            t.style.color = '#fff';
-            t.style.fontSize = '14px';
         } else {
-            c.style.strokeDasharray = circ;
             c.style.strokeDashoffset = 0;
-            c.style.stroke = '#f1c40f';
-            const icon = (CLASS_DATA && CLASS_DATA[this.selectedClass]) ? CLASS_DATA[this.selectedClass].icon : '💥';
-            t.textContent = icon;
-            t.style.color = '#fff';
-            t.style.fontSize = '24px';
-            t.style.fontWeight = 'normal';
+            t.textContent = '✓';
         }
     }
 
