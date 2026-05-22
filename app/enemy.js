@@ -167,14 +167,17 @@ export default class Enemy {
       }
     }
 
+    const groundY = getGroundY(this.game.selectedEnv);
+    const speedMultiplier = (this.y < groundY) ? 2.0 : 1.0;
+
     if (this.name === 'MISSILE') {
         // Missile just goes straight
         this.x += (this.vx || 0) * dt;
         this.y += (this.vy || 0) * dt;
         // Don't home in!
     } else if (closestDist > 50) {
-      this.x += (dx / closestDist) * this.speed * dt;
-      this.y += (dy / closestDist) * this.speed * dt;
+      this.x += (dx / closestDist) * this.speed * speedMultiplier * dt;
+      this.y += (dy / closestDist) * this.speed * speedMultiplier * dt;
     }
 
     if (closestDist < 55) {

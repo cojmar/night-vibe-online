@@ -183,7 +183,13 @@ export default class Game {
   }
 
   checkHost() {
-    if (!this.net.room || !this.net.room.users) return;
+    if (!this.net || !this.net.room || !this.net.room.users || !this.net.me || !this.net.me.info) {
+      if (!this.isHost) {
+        this.isHost = true;
+        this.ui.addLog('👑 You are the Host!', 'reward');
+      }
+      return;
+    }
     const users = Object.keys(this.net.room.users);
     if (this.net.me && this.net.me.info) users.push(this.net.me.info.user);
     const uniqueUsers = [...new Set(users)];
@@ -556,6 +562,8 @@ export default class Game {
 
     this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, GAME_H - 45);
 
+    this.checkHost();
+
     this.restoreWebsocketStats(this.player, myData, selectedClass);
 
     const nickInput = document.getElementById('nick-input');
@@ -608,6 +616,12 @@ export default class Game {
 
     this.ui.updateHUD(this.player);
     this.broadcastState();
+    if (this.net && this.net.me && this.net.me.info) {
+      this.net.send_cmd('set_data', {
+        statPoints: this.player.statPoints,
+        bonusStatPoints: this.player.statPoints
+      });
+    }
     this.saveLocalProgression();
   }
 
@@ -631,13 +645,8 @@ export default class Game {
 
     const newResets = (this.player.resets || 0) + 1;
 
-    let oldBonusStats = parseInt(localStorage.getItem('nightvibe-statpoints') || '0', 10);
-    if (this.net && this.net.room && this.net.me && this.net.me.info) {
-      const myData = this.net.room.users[this.net.me.info.user]?.data;
-      if (myData && myData.bonusStatPoints) {
-        oldBonusStats = Math.max(oldBonusStats, myData.bonusStatPoints);
-      }
-    }
+    // The old bonus stats are the actual current unallocated stat points of the player
+    const oldBonusStats = this.player.statPoints || 0;
 
     const extraPoints = this.player.level * 5;
     const newBonusStats = oldBonusStats + extraPoints;
@@ -1802,8 +1811,7 @@ export default class Game {
 
       if (this.isHost && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
         this.enemySpawnTimer += 16.67 * dt;
-        const nonBossCount = this.enemies.filter(e => e.alive && e.name !== 'BOSS').length;
-        if (this.enemySpawnTimer >= this.enemySpawnInterval && nonBossCount < (4 + Math.floor(this.wave / 2))) {
+        if (this.enemySpawnTimer >= this.enemySpawnInterval) {
           this.enemySpawnTimer = 0;
           const spawnIndex = this.waveTotalEnemies - this.waveEnemiesToSpawn;
           const newEnemy = new Enemy(this, this.bossActive, false, spawnIndex);
@@ -1817,6 +1825,7 @@ export default class Game {
       this.syncTimer += 16.67 * dt;
       if (this.syncTimer >= 100) {
         this.syncTimer = 0;
+        this.checkHost();
         this.broadcastState();
       }
 
