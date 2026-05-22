@@ -64,11 +64,13 @@ const FALLBACK_DEFAULTS = {
   BOSS_ATTACK_COOLDOWN: 120,
   BOSS_WAVE_INTERVAL: 5,
   BOSS_SPAWN_INCREMENT: 1,
+  BOSS_LASER_CHANNEL_TIME: 90,
+  BOSS_LASER_DAMAGE_INTERVAL: 300,
+  BOSS_LASER_DAMAGE_PER_SEC: 30,
+  BOSS_LASER_DAMAGE_LEVEL_SCALE: 5,
   BOSS_PROJECTILE_SPEED: 4.0,
   BOSS_PROJECTILE_HOMING: false,
   BOSS_PROJECTILE_LIFETIME: 0,
-  BOSS_LASER_CHANNEL_TIME: 90,
-   BOSS_LASER_DAMAGE_INTERVAL: 300,
 
   // 9. Projectile Collision Size
   PROJ_HIT_RADIUS_ARROW: 12,
@@ -170,10 +172,12 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   BOSS_ATTACK_COOLDOWN: { label: "Boss Attack Delay (frames)", type: "number", min: 20, max: 300, step: 10, category: "Boss Battles" },
   BOSS_WAVE_INTERVAL: { label: "Boss Spawn Wave Interval", type: "number", min: 1, max: 20, step: 1, category: "Boss Battles" },
   BOSS_SPAWN_INCREMENT: { label: "Additional Bosses per Boss Wave", type: "number", min: 0, max: 10, step: 1, category: "Boss Battles" },
+  BOSS_LASER_CHANNEL_TIME: { label: "Boss Laser Channel Time (frames)", type: "number", min: 30, max: 300, step: 10, category: "Boss Battles" },
+  BOSS_LASER_DAMAGE_INTERVAL: { label: "Boss Laser Damage Interval (ms)", type: "number", min: 50, max: 2000, step: 50, category: "Boss Battles" },
+  BOSS_LASER_DAMAGE_PER_SEC: { label: "Boss Laser Damage Per Sec", type: "number", min: 1, max: 200, step: 5, category: "Boss Battles" },
+  BOSS_LASER_DAMAGE_LEVEL_SCALE: { label: "Boss Laser Lvl Scale Factor", type: "number", min: 0, max: 50, step: 1, category: "Boss Battles" },
   BOSS_PROJECTILE_SPEED: { label: "Boss Projectile Speed", type: "number", min: 1.0, max: 15.0, step: 0.5, category: "Boss Battles" },
   BOSS_PROJECTILE_HOMING: { label: "Boss Projectiles Homing", type: "boolean", category: "Boss Battles" },
-  BOSS_LASER_CHANNEL_TIME: { label: "Boss Laser Channel Time (frames)", type: "number", min: 30, max: 300, step: 10, category: "Boss Battles" },
-   BOSS_LASER_DAMAGE_INTERVAL: { label: "Boss Laser Damage Interval (ms)", type: "number", min: 50, max: 2000, step: 50, category: "Boss Battles" },
   BOSS_PROJECTILE_LIFETIME: { label: "Boss Projectile Lifetime (ms, 0=infinite)", type: "number", min: 0, max: 30000, step: 500, category: "Boss Battles" },
 
   // 8. Projectiles & Hitboxes
@@ -261,10 +265,12 @@ export let BOSS_BASE_COLOR = activeConfig.BOSS_BASE_COLOR;
 export let BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
 export let BOSS_WAVE_INTERVAL = activeConfig.BOSS_WAVE_INTERVAL;
 export let BOSS_SPAWN_INCREMENT = activeConfig.BOSS_SPAWN_INCREMENT;
-export let BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
-export let BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
 export let BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
 export let BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
+export let BOSS_LASER_DAMAGE_PER_SEC = activeConfig.BOSS_LASER_DAMAGE_PER_SEC;
+export let BOSS_LASER_DAMAGE_LEVEL_SCALE = activeConfig.BOSS_LASER_DAMAGE_LEVEL_SCALE;
+export let BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
+export let BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
 export let BOSS_PROJECTILE_LIFETIME = activeConfig.BOSS_PROJECTILE_LIFETIME;
 export let ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
 export let ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
@@ -354,7 +360,6 @@ export const SKILL_DESC = {
 
 // ==========================================
 // E. DYNAMIC SETTINGS CONTROLS FUNCTIONS
-// ==========================================
 export function updateConfig(newValues) {
   for (const key in newValues) {
     if (DEFAULTS[key] !== undefined) {
@@ -403,6 +408,8 @@ export function updateConfig(newValues) {
   ENEMY_SCALE_WAVE_MULT = activeConfig.ENEMY_SCALE_WAVE_MULT;
   ENEMY_SCALE_LVL_MULT = activeConfig.ENEMY_SCALE_LVL_MULT;
   ENEMY_SKY_SPEED_MULTIPLIER = activeConfig.ENEMY_SKY_SPEED_MULTIPLIER;
+  ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
+  ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
 
   BOSS_BASE_HP = activeConfig.BOSS_BASE_HP;
   BOSS_BASE_ATK = activeConfig.BOSS_BASE_ATK;
@@ -412,13 +419,13 @@ export function updateConfig(newValues) {
   BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
   BOSS_WAVE_INTERVAL = activeConfig.BOSS_WAVE_INTERVAL;
   BOSS_SPAWN_INCREMENT = activeConfig.BOSS_SPAWN_INCREMENT;
+  BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
+  BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
+  BOSS_LASER_DAMAGE_PER_SEC = activeConfig.BOSS_LASER_DAMAGE_PER_SEC;
+  BOSS_LASER_DAMAGE_LEVEL_SCALE = activeConfig.BOSS_LASER_DAMAGE_LEVEL_SCALE;
   BOSS_PROJECTILE_SPEED = activeConfig.BOSS_PROJECTILE_SPEED;
   BOSS_PROJECTILE_HOMING = activeConfig.BOSS_PROJECTILE_HOMING;
-BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
-    BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
-    BOSS_PROJECTILE_LIFETIME = activeConfig.BOSS_PROJECTILE_LIFETIME;
-   ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
-  ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
+  BOSS_PROJECTILE_LIFETIME = activeConfig.BOSS_PROJECTILE_LIFETIME;
 
   POTION_BUFF_DURATION = activeConfig.POTION_BUFF_DURATION;
   POTION_LIFESTEAL_PERCENT = activeConfig.POTION_LIFESTEAL_PERCENT;
@@ -439,13 +446,12 @@ BOSS_LASER_CHANNEL_TIME = activeConfig.BOSS_LASER_CHANNEL_TIME;
   GEAR_RARITY_MAGIC = activeConfig.GEAR_RARITY_MAGIC;
   GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
   GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
- GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
-   GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
-   CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
-   POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
-   POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
-   BOSS_LASER_DAMAGE_INTERVAL = activeConfig.BOSS_LASER_DAMAGE_INTERVAL;
- }
+  GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
+  GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
+  CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
+  POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
+  POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
+}
 
 export function resetConfig() {
   localStorage.removeItem('nightvibe-custom-config');

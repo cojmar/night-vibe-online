@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_PROJECTILE_LIFETIME } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_LASER_DAMAGE_PER_SEC, BOSS_LASER_DAMAGE_LEVEL_SCALE, BOSS_PROJECTILE_LIFETIME } from './utils.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -31,6 +31,7 @@ export default class Enemy {
       const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
       const baseMonster = available[available.length - 1]; // Pick strongest current monster
       this.name = 'BOSS';
+      this.level = Math.ceil(wave);
       this.icon = baseMonster.icon;
       this.hp = Math.round(BOSS_BASE_HP * scale);
       this.maxHp = this.hp;
@@ -177,7 +178,9 @@ export default class Enemy {
                     const projY = ly + t * dy2;
                     if (Math.hypot(p.x - projX, p.y - projY) < this.size * 0.5 + (p.size || 15)) {
                         if (this.game.isHost) {
-                            p.hp -= this.atk * 1.5;
+                            const dps = BOSS_LASER_DAMAGE_PER_SEC + ((this.level || Math.ceil(this.game.wave) || 1) * BOSS_LASER_DAMAGE_LEVEL_SCALE);
+                            const damagePerTick = (dps * BOSS_LASER_DAMAGE_INTERVAL) / 1000;
+                            p.hp -= damagePerTick;
                             if (p.hp <= 0) { p.hp = 0; p.alive = false; }
                         }
                     }

@@ -13,6 +13,7 @@ export default class UI {
         this.MAX_LOGS = 12;
         this.logHoldTimer = null;
         this.statMultiplier = 1; // Default allocation multiplier
+        this.configSearchQuery = ''; // Persisted search filter
 
         this.bindEvents();
         this.updateClassCarousel();
@@ -409,11 +410,15 @@ export default class UI {
             // Bind search filtering
             const searchInput = document.getElementById('config-search-input');
             if (searchInput) {
-                searchInput.value = '';
-                searchInput.oninput = () => {
+                searchInput.value = this.configSearchQuery || '';
+                
+                const applyFilter = () => {
                     const query = searchInput.value.toLowerCase().trim();
+                    this.configSearchQuery = searchInput.value; // Persist search query in UI class instance
                     const container = document.getElementById('config-fields-container');
                     if (!container) return;
+                    
+                    const queryTokens = query.split(/\s+/).filter(token => token.length > 0);
                     
                     const categories = container.children;
                     for (let i = 0; i < categories.length; i++) {
@@ -422,24 +427,37 @@ export default class UI {
                         
                         const catHeader = cat.children[0];
                         const catName = catHeader ? catHeader.textContent.toLowerCase() : '';
-                        const catMatches = query === '' || catName.includes(query);
                         
-                        let hasVisibleChild = catMatches;
+                        // Check if the entire category name matches all query tokens
+                        const catMatches = queryTokens.every(token => catName.includes(token));
+                        
+                        let hasVisibleChild = false;
                         const fields = cat.children;
                         for (let j = 1; j < fields.length; j++) { // Skip header at index 0
                             const field = fields[j];
                             const label = field.textContent.toLowerCase();
-                            if (query === '' || catMatches || label.includes(query)) {
+                            
+                            // A field matches if query is empty, category matches, or field text contains ALL search tokens
+                            const fieldMatches = queryTokens.length === 0 || catMatches || queryTokens.every(token => label.includes(token));
+                            
+                            if (fieldMatches) {
                                 field.style.display = '';
+                                hasVisibleChild = true;
                             } else {
                                 field.style.display = 'none';
-                                hasVisibleChild = false;
                             }
                         }
                         
-                        cat.style.display = hasVisibleChild ? 'block' : 'none';
+                        cat.style.display = (queryTokens.length === 0 || catMatches || hasVisibleChild) ? 'block' : 'none';
                     }
                 };
+
+                searchInput.oninput = applyFilter;
+                
+                // If there's an existing query, apply the filter immediately upon rebuilding fields!
+                if (this.configSearchQuery) {
+                    applyFilter();
+                }
             }
         };
 
