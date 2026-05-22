@@ -659,11 +659,11 @@ export default class Game {
     this.player.statPoints--;
 
     if (statType === 'atk') {
-      this.player.atk += 1.0;
+      this.player._atk += 1.0;
     } else if (statType === 'spd') {
-      this.player.spd += 1.0;
+      this.player._spd += 1.0;
     } else if (statType === 'hp') {
-      this.player.maxHp += 1;
+      this.player._maxHp += 1;
       this.player.hp += 1;
     }
 
@@ -1093,7 +1093,9 @@ export default class Game {
       x: this.player.x,
       y: this.player.y,
       hp: this.player.hp,
-      maxHp: this.player.maxHp,
+      maxHp: this.player._maxHp,
+      atk: this.player._atk,
+      spd: this.player._spd,
       level: this.player.level,
       resets: this.player.resets,
       kills: this.player.kills,

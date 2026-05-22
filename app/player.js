@@ -47,11 +47,7 @@ export default class Player {
     this.inventory = []; // Unlimited grid items
     this.equipment = {}; // Key-value for equipped gear (key = slot name)
     if (isLocal) {
-      this.inventory = [
-        { id: 'item_1', name: 'Rusty Sword', type: 'Weapon', icon: '🗡️' },
-        { id: 'item_2', name: 'Leather Tunic', type: 'Armor', icon: '🛡️' },
-        { id: 'item_3', name: 'Magic Ring', type: 'Ring', icon: '💍' }
-      ];
+      this.inventory = [];
     }
 
     // Smooth movement for remote players - stores target position
