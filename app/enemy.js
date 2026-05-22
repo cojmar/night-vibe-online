@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, GAME_H, GAME_W, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER } from './utils.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -25,20 +25,20 @@ export default class Enemy {
     const avgLevel = playerCount > 0 ? (totalLevel / playerCount) : 1;
     
     // Scale dynamically by Wave and Player Level
-    const scale = 1 + (wave - 1) * 0.15 + (avgLevel - 1) * 0.12;
+    const scale = 1 + (wave - 1) * ENEMY_SCALE_WAVE_MULT + (avgLevel - 1) * ENEMY_SCALE_LVL_MULT;
     
     if (isBoss) {
       this.name = 'BOSS';
       this.icon = '👑';
-      this.hp = Math.round(250 * scale);
+      this.hp = Math.round(BOSS_BASE_HP * scale);
       this.maxHp = this.hp;
-      this.atk = Math.round(18 * scale);
-      this.speed = 0.2;
-      this.size = 48;
-      this.color = '#8e44ad';
+      this.atk = Math.round(BOSS_BASE_ATK * scale);
+      this.speed = BOSS_BASE_SPEED;
+      this.size = BOSS_BASE_SIZE;
+      this.color = BOSS_BASE_COLOR;
       this.x = GAME_W * 0.15 + localPrng.nextFloat() * GAME_W * 0.7;
       const groundY = getGroundY(gameInstance.selectedEnv);
-      this.y = groundY - 48;
+      this.y = groundY - BOSS_BASE_SIZE;
     } else {
       const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
       const type = available[Math.floor(localPrng.nextFloat() * available.length)];
@@ -59,7 +59,7 @@ export default class Enemy {
     this.alive = true;
     this.hitFlash = 0;
     this.attackTimer = 0;
-    this.attackCooldown = isBoss ? 120 : 60 + Math.floor(localPrng.nextFloat() * 40);
+    this.attackCooldown = isBoss ? BOSS_ATTACK_COOLDOWN : ENEMY_ATTACK_COOLDOWN_BASE + Math.floor(localPrng.nextFloat() * ENEMY_ATTACK_COOLDOWN_RAND);
   }
 
   getSafeSpawnPosition(localPrng) {
@@ -168,7 +168,7 @@ export default class Enemy {
     }
 
     const groundY = getGroundY(this.game.selectedEnv);
-    const speedMultiplier = (this.y < groundY) ? 2.0 : 1.0;
+    const speedMultiplier = (this.y < groundY) ? ENEMY_SKY_SPEED_MULTIPLIER : 1.0;
 
     if (this.name === 'MISSILE') {
         // Missile just goes straight

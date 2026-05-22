@@ -1,4 +1,4 @@
-import { GAME_W, GAME_H, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, POTION_BUFF_DURATION } from './utils.js';
+import { GAME_W, GAME_H, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, POTION_BUFF_DURATION, POTION_LIFESTEAL_PERCENT, GAME_INITIAL_WAVE, GAME_INITIAL_KILLS, GAME_INITIAL_WAVE_ENEMIES, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP } from './utils.js';
 import Player from './player.js';
 import Enemy from './enemy.js';
 import Projectile from './projectile.js';
@@ -518,11 +518,11 @@ export default class Game {
   startGame(selectedClass) {
     this.state = 'PLAYING';
     this.selectedEnv = ENV_LIST[0];
-    this.kills = 0;
-    this.wave = 1;
-    this.waveTotalEnemies = 10;
+    this.kills = GAME_INITIAL_KILLS;
+    this.wave = GAME_INITIAL_WAVE;
+    this.waveTotalEnemies = GAME_INITIAL_WAVE_ENEMIES;
     this.waveEnemiesKilled = 0;
-    this.waveEnemiesToSpawn = 10;
+    this.waveEnemiesToSpawn = GAME_INITIAL_WAVE_ENEMIES;
     this.bossActive = false;
     this.waveTransitionTimer = 0;
     this.emptyWaveTimer = 0;
@@ -541,10 +541,10 @@ export default class Game {
       for (const u in this.net.room.users) {
         const userData = this.net.room.users[u].data;
         if (userData && userData.isHost && userData.hostData) {
-          this.wave = userData.hostData.wave || 1;
-          this.waveTotalEnemies = userData.hostData.waveTotal || 10;
+          this.wave = userData.hostData.wave || GAME_INITIAL_WAVE;
+          this.waveTotalEnemies = userData.hostData.waveTotal || GAME_INITIAL_WAVE_ENEMIES;
           this.waveEnemiesKilled = userData.hostData.waveKilled || 0;
-          this.waveEnemiesToSpawn = userData.hostData.waveSpawn || 10;
+          this.waveEnemiesToSpawn = userData.hostData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
           this.bossActive = userData.hostData.bossActive || false;
           this.selectedEnv = userData.hostData.env || ENV_LIST[0];
           this.prng = new PRNG(userData.hostData.seed || (this.wave * 12345));
@@ -654,14 +654,28 @@ export default class Game {
     localStorage.setItem('nightvibe-resets', newResets);
     localStorage.setItem('nightvibe-statpoints', newBonusStats);
 
+    const base = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
+
+    // Reset local player object state so that quitToMenu()'s broadcastState() broadcasts the clean LEVEL 1 state
+    this.player.level = 1;
+    this.player.kills = 0;
+    this.player.resets = newResets;
+    this.player.statPoints = newBonusStats;
+    this.player.atk = base.atk;
+    this.player.spd = base.spd;
+    this.player.maxHp = base.hp;
+    this.player.hp = base.hp;
+    this.player.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(1, REQ_KILLS_EXPONENT) + Math.sin(1) * REQ_KILLS_SIN_AMP);
+
     this.net.send_cmd('set_data', {
       resets: newResets,
       bonusStatPoints: newBonusStats,
       level: 1,
       kills: 0,
-      atk: undefined,
-      spd: undefined,
-      maxHp: undefined,
+      atk: base.atk,
+      spd: base.spd,
+      maxHp: base.hp,
+      hp: base.hp,
       statPoints: newBonusStats
     });
 
@@ -1022,7 +1036,7 @@ export default class Game {
 
     // Local Vampirism healing (heals 75% of damage dealt)
     if (this.player && this.player.buffHpTimer > 0 && this.player.hp > 0) {
-      const healAmount = Math.floor(damage * 0.75);
+      const healAmount = Math.floor(damage * POTION_LIFESTEAL_PERCENT);
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
       if (healAmount > 0) {
         this.floatingTexts.push({ x: this.player.x, y: this.player.y - 60, text: '+' + healAmount, color: '#2ecc71', life: 40, maxLife: 40, isCrit: false });

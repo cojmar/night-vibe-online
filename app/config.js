@@ -1,33 +1,108 @@
-// Night Vibe Online Arena Combat Sandbox - Game Configurations & Tuning
+// Night Vibe Online Arena Combat Sandbox - Centralized Game Configurations
 
-// Viewport / Rendering Sizes
+// ==========================================
+// 1. VIEWPORT & RENDERING CONFIGURATIONS
+// ==========================================
 export const GAME_W = 1440;
 export const GAME_H = 1024;
 
-// Perspective and Rendering Depth
+// Perspective and Y-Sorting Boundaries
 export const DEPTH_GROUND_TOP = 0.45;
 export const DEPTH_GROUND_BOTTOM = 1.0;
 export const GROUND_TOLERANCE = 30;
 
-// Movement and Physics Values
-export const MOVE_SPEED = 2.5;
-export const MOVE_STOP_DIST = 3;
-
 // Entity Lifetimes (in milliseconds)
 export const DEAD_BODY_LIFETIME = 2000;
 
-// Rebirth & Character Progression Settings
+// ==========================================
+// 2. PLAYER MOVEMENT SPEED CONFIGURATIONS
+// ==========================================
+export const MOVE_SPEED = 2.5; // Global fallback speed
+export const MOVE_STOP_DIST = 3;
+
+export const PLAYER_MOVE_SPEEDS = {
+  warrior: 2.5,
+  magicgladiator: 2.3,
+  archer: 2.0,
+  mage: 1.7,
+  default: 2.5
+};
+
+// ==========================================
+// 3. PLAYER ATTACK & RANGE CONFIGURATIONS
+// ==========================================
+export const RANGED_MAX_RANGE = 450;
+export const WARRIOR_MELEE_RANGE = 90;
+export const MAGICGLADIATOR_MELEE_RANGE = 80;
+export const MELEE_RANGE_LVL_SCALE_MULT = 0.8;
+
+// ==========================================
+// 4. PLAYER PROGRESSION & REBIRTH SETTINGS
+// ==========================================
+export const LEVEL_UP_STAT_POINTS = 5;
+export const REQ_KILLS_BASE_MULT = 5;
+export const REQ_KILLS_EXPONENT = 1.4;
+export const REQ_KILLS_SIN_AMP = 2;
+
 export const REBIRTH_BASE_LEVEL = 4;
 export const REBIRTH_LEVEL_STEP = 5;
 export const REBIRTH_POINTS_PER_LEVEL = 5;
 
-// Spawning Settings
+// ==========================================
+// 5. PLAYER INITIAL STATE CONFIGURATION
+// ==========================================
+export const PLAYER_INITIAL_LEVEL = 1;
+export const PLAYER_INITIAL_KILLS = 0;
+export const PLAYER_INITIAL_STAT_POINTS = 0;
+export const PLAYER_INITIAL_RESETS = 0;
+
+// ==========================================
+// 6. INITIAL GAME STATE CONFIGURATION
+// ==========================================
+export const GAME_INITIAL_WAVE = 1;
+export const GAME_INITIAL_KILLS = 0;
+export const GAME_INITIAL_WAVE_ENEMIES = 10;
+
+// ==========================================
+// 7. ENEMY & BOSS SPAWNING & DIFFICULTY SCALING
+// ==========================================
 export const ENEMY_SPAWN_INTERVAL = 800;
 
-// Potion Buff Durations (in milliseconds)
-export const POTION_BUFF_DURATION = 10000;
+// Scaling factors per wave and average player level
+export const ENEMY_SCALE_WAVE_MULT = 0.15;
+export const ENEMY_SCALE_LVL_MULT = 0.12;
 
-// Class Configuration & Base Stats
+// Sky Spawn descent speed multiplier
+export const ENEMY_SKY_SPEED_MULTIPLIER = 2.0;
+
+// Boss Default Specifications
+export const BOSS_BASE_HP = 250;
+export const BOSS_BASE_ATK = 18;
+export const BOSS_BASE_SPEED = 0.2;
+export const BOSS_BASE_SIZE = 48;
+export const BOSS_BASE_COLOR = '#8e44ad';
+
+// Attack Cooldowns (in frames/ticks, where 60 ticks ~= 1 second)
+export const BOSS_ATTACK_COOLDOWN = 120;
+export const ENEMY_ATTACK_COOLDOWN_BASE = 60;
+export const ENEMY_ATTACK_COOLDOWN_RAND = 40;
+
+// ==========================================
+// 8. POTION & BUFF CONFIGURATIONS
+// ==========================================
+export const POTION_BUFF_DURATION = 10000; // in milliseconds (10 seconds)
+export const POTION_LIFESTEAL_PERCENT = 0.75; // Vampirism heals 75% of dealt damage
+
+// ==========================================
+// 9. PROJECTILE COLLISION CONFIGURATIONS
+// ==========================================
+export const PROJ_HIT_RADIUS_ARROW = 12;
+export const PROJ_HIT_RADIUS_BOLT = 10;
+export const PROJ_HIT_RADIUS_DEFAULT = 15;
+
+// ==========================================
+// 10. CLASS DATA & SKILLS DEFINITIONS
+// ==========================================
 export const CLASS_DATA = {
   warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700' },
   mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22' },

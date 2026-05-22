@@ -1,4 +1,4 @@
-import { circleOverlapsCrescentArc, pointInSweepArc, GAME_W, GAME_H } from './utils.js';
+import { circleOverlapsCrescentArc, pointInSweepArc, GAME_W, GAME_H, PROJ_HIT_RADIUS_ARROW, PROJ_HIT_RADIUS_BOLT, PROJ_HIT_RADIUS_DEFAULT } from './utils.js';
 
 export default class Projectile {
   constructor(props) {
@@ -95,7 +95,7 @@ export default class Projectile {
       
       for (let e of gameInstance.enemies) {
         if (!e.alive) continue;
-        const projHitRadius = (this.type === 'arrow') ? 12 : (this.type === 'bolt' ? 10 : (this.radius || 15));
+        const projHitRadius = (this.type === 'arrow') ? PROJ_HIT_RADIUS_ARROW : (this.type === 'bolt' ? PROJ_HIT_RADIUS_BOLT : (this.radius || PROJ_HIT_RADIUS_DEFAULT));
         if (Math.hypot(this.x - e.x, this.y - e.y) < e.size + projHitRadius) {
           gameInstance.dealDamage(e, this.damage, this.critChance);
           gameInstance.spawnParticles(this.x, this.y, this.color, 8, 4);

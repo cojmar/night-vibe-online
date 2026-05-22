@@ -1,4 +1,4 @@
-import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA } from './utils.js';
+import { getGroundY, getArmAnim, GAME_W, GAME_H, CLASS_DATA, PLAYER_MOVE_SPEEDS, LEVEL_UP_STAT_POINTS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, RANGED_MAX_RANGE, WARRIOR_MELEE_RANGE, MAGICGLADIATOR_MELEE_RANGE, MELEE_RANGE_LVL_SCALE_MULT, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS } from './utils.js';
 
 export default class Player {
   constructor(id, isLocal, classType, x, y) {
@@ -16,9 +16,11 @@ export default class Player {
     this.color = cd.color;
     this.accent = cd.accent;
 
-    this.level = 1;
-    this.kills = 0;
-    this.reqKills = 5;
+    this.level = PLAYER_INITIAL_LEVEL;
+    this.kills = PLAYER_INITIAL_KILLS;
+    this.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(PLAYER_INITIAL_LEVEL, REQ_KILLS_EXPONENT) + Math.sin(PLAYER_INITIAL_LEVEL) * REQ_KILLS_SIN_AMP);
+    this.resets = PLAYER_INITIAL_RESETS;
+    this.statPoints = PLAYER_INITIAL_STAT_POINTS;
 
     this.animTimer = 0;
     this.hitFlash = 0;
@@ -28,13 +30,7 @@ export default class Player {
     this.moveTargetX = 0;
     this.moveTargetY = 0;
 
-    switch (this.classType) {
-      case 'warrior': this.moveSpeed = 2.5; break;
-      case 'magicgladiator': this.moveSpeed = 2.3; break;
-      case 'archer': this.moveSpeed = 2.0; break;
-      case 'mage': this.moveSpeed = 1.7; break;
-      default: this.moveSpeed = 2.5;
-    }
+    this.moveSpeed = PLAYER_MOVE_SPEEDS[this.classType] || PLAYER_MOVE_SPEEDS.default;
     this.action = 'idle';
     this.mouseX = x;
     this.mouseY = y;
@@ -58,9 +54,9 @@ export default class Player {
 
   addKill() {
     this.kills++;
-    this.reqKills = Math.floor(5 * Math.pow(this.level, 1.4) + Math.sin(this.level) * 2);
+    this.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(this.level, REQ_KILLS_EXPONENT) + Math.sin(this.level) * REQ_KILLS_SIN_AMP);
     if (this.kills >= this.reqKills) {
-      const reqLevel = 4 + (this.resets || 0) * 5;
+      const reqLevel = REBIRTH_BASE_LEVEL + (this.resets || 0) * REBIRTH_LEVEL_STEP;
       if (this.level < reqLevel) {
         this.kills -= this.reqKills;
         this.level++;
@@ -74,7 +70,7 @@ export default class Player {
   }
 
   levelUp() {
-    this.statPoints = (this.statPoints || 0) + 5;
+    this.statPoints = (this.statPoints || 0) + LEVEL_UP_STAT_POINTS;
     this.hp = this.maxHp;
   }
 
@@ -175,12 +171,12 @@ export default class Player {
         const e = this.autoAttackTarget;
         const cd = CLASS_DATA[this.classType];
         const wScale = 1 + (this.atk - cd.atk) * 0.005;
-        const reqLevel = 4 + (this.resets || 0) * 5;
+        const reqLevel = REBIRTH_BASE_LEVEL + (this.resets || 0) * REBIRTH_LEVEL_STEP;
         const lvlScale = 0.5 + 0.5 * ((this.level - 1) / Math.max(1, reqLevel - 1));
 
-        let maxRange = 450; // default for ranged
-        if (this.classType === 'warrior') maxRange = 90 * wScale * lvlScale * 0.8;
-        else if (this.classType === 'magicgladiator') maxRange = 80 * wScale * lvlScale * 0.8;
+        let maxRange = RANGED_MAX_RANGE; // default for ranged
+        if (this.classType === 'warrior') maxRange = WARRIOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
+        else if (this.classType === 'magicgladiator') maxRange = MAGICGLADIATOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
 
         const weaponY = this.y - 40 * lvlScale;
         const distToE = Math.hypot(e.x - this.x, e.y - weaponY);
