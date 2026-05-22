@@ -165,7 +165,7 @@ export default class UI {
 
         if (btnSettings) btnSettings.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
         const btnMenuSettings = document.getElementById('btn-menu-settings');
-        if (btnMenuSettings) btnMenuSettings.addEventListener('click', () => { settingsModal.style.display = 'flex'; });
+        if (btnMenuSettings) btnMenuSettings.addEventListener('click', () => { document.getElementById('config-editor-modal').style.display = 'flex'; buildConfigFields(); });
         if (btnSettingsClose) btnSettingsClose.addEventListener('click', () => { settingsModal.style.display = 'none'; });
 
         if (partSlider) {
