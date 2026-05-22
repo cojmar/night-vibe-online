@@ -361,17 +361,29 @@ export default class Enemy {
         }
     }
 
-    ctx.font = `${this.size}px serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(this.icon, this.x, drawY);
+    
+    if (this.icon && (this.icon.startsWith('http') || this.icon.startsWith('data:'))) {
+        if (!this.img) {
+            this.img = new Image();
+            this.img.src = this.icon;
+        }
+        if (this.img.complete) {
+            ctx.drawImage(this.img, this.x - this.size, drawY - this.size, this.size * 2, this.size * 2);
+        }
+    } else {
+        ctx.font = `${this.size}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.icon, this.x, drawY);
+        ctx.textBaseline = 'alphabetic';
+    }
+
     if (this.name === 'BOSS') {
         const originalFont = ctx.font;
         ctx.font = `${Math.floor(this.size * 0.7)}px sans-serif`;
         ctx.fillText('👑', this.x, drawY - this.size * 0.75);
         ctx.font = originalFont;
     }
-    ctx.textBaseline = 'alphabetic';
 
     // HP Bar
     const displayHp = this.alive ? this.hp : 0;

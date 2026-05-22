@@ -1720,8 +1720,6 @@ export default class Game {
              if (randRarity < rareThreshold) { rarity = 'rare'; color = '#f1c40f'; numAffixes = 3; }
              else if (randRarity < magicThreshold) { rarity = 'magic'; color = '#3498db'; numAffixes = 2; }
              
-             const categories = ['Weapon', 'Armor', 'Ring']; 
-             const category = categories[Math.floor(Math.random() * categories.length)];
              
              const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
              const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
@@ -1729,25 +1727,43 @@ export default class Game {
              const finalStat = Math.floor(baseStat * (1 - variance + Math.random() * variance * 2));
              
              let stats = {}; let icon = '💎';
-             if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
-             else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
-             else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
+             let category = 'Ring'; let itemName = 'Unknown Item';
              
-             const possibleAffixes = ['atk', 'maxHp', 'spd'];
-             let affixesAdded = 1; let sanity = 0;
-             while (affixesAdded < numAffixes && sanity < 10) {
-                 sanity++;
-                 let randAffix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
-                 if (!stats[randAffix]) {
-                     if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
-                     if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
-                     if (randAffix === 'spd') stats.spd = Math.max(0.05, finalStat * 0.05);
-                     affixesAdded++;
+             if (ConfigModule.ITEMS_DB && ConfigModule.ITEMS_DB.length > 0) {
+                 const template = ConfigModule.ITEMS_DB[Math.floor(Math.random() * ConfigModule.ITEMS_DB.length)];
+                 category = template.gearType;
+                 itemName = template.name;
+                 icon = template.icon;
+                 rarity = template.rarity || rarity;
+                 color = template.color || color;
+                 // Scale custom base stats by finalStat/10 (so an atk:10 item scales up linearly)
+                 let scale = finalStat / 10;
+                 if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
+                 if (template.stats.maxHp) stats.maxHp = Math.max(1, Math.floor(template.stats.maxHp * scale));
+                 if (template.stats.spd) stats.spd = Math.max(0.01, template.stats.spd * scale);
+             } else {
+                 const categories = ['Weapon', 'Armor', 'Ring']; 
+                 category = categories[Math.floor(Math.random() * categories.length)];
+                 if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
+                 else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
+                 else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
+                 
+                 const possibleAffixes = ['atk', 'maxHp', 'spd'];
+                 let affixesAdded = 1; let sanity = 0;
+                 while (affixesAdded < numAffixes && sanity < 10) {
+                     sanity++;
+                     let randAffix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
+                     if (!stats[randAffix]) {
+                         if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
+                         if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
+                         if (randAffix === 'spd') stats.spd = Math.max(0.05, finalStat * 0.05);
+                         affixesAdded++;
+                     }
                  }
+                 const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
+                 itemName = `${prefixes[Math.floor(Math.random()*prefixes.length)]} ${category}`;
              }
-             
-             const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
-             const itemName = `${prefixes[Math.floor(Math.random()*prefixes.length)]} ${category}`;
+
 
              const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
              this.items.push({ 

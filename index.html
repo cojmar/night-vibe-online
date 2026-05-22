@@ -1410,17 +1410,41 @@
           onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#95a5a6'">×</span>
       </div>
 
-      <!-- Search Input -->
-      <div style="margin-bottom: 15px; width: 100%;">
-        <input type="text" id="config-search-input" placeholder="🔍 Search configuration options..." 
-               style="width:100%; padding:10px; border-radius:5px; border:1px solid #34495e; background:#2c3e50; color:#fff; font-size:1em; box-sizing:border-box; transition:0.2s; outline:none;"
-               onfocus="this.style.borderColor='#2ecc71';" onblur="this.style.borderColor='#34495e';">
+      <!-- Tab Navigation -->
+      <div id="config-tabs" style="display:flex; gap:10px; margin-bottom:15px;">
+          <button class="config-tab-btn active" data-tab="tab-general" style="flex:1; background:#3498db; color:#fff; border:none; padding:8px; border-radius:5px; cursor:pointer; font-weight:bold;">⚙️ General</button>
+          <button class="config-tab-btn" data-tab="tab-classes" style="flex:1; background:#2c3e50; color:#bdc3c7; border:none; padding:8px; border-radius:5px; cursor:pointer; font-weight:bold;">⚔️ Classes</button>
+          <button class="config-tab-btn" data-tab="tab-items" style="flex:1; background:#2c3e50; color:#bdc3c7; border:none; padding:8px; border-radius:5px; cursor:pointer; font-weight:bold;">🎒 Items</button>
+          <button class="config-tab-btn" data-tab="tab-monsters" style="flex:1; background:#2c3e50; color:#bdc3c7; border:none; padding:8px; border-radius:5px; cursor:pointer; font-weight:bold;">👹 Monsters</button>
       </div>
 
-      <!-- Config categories and fields container (scrollable) -->
-      <div id="config-fields-container"
-        style="flex:1; overflow-y:auto; text-align:left; padding-right:10px; margin-bottom:20px;">
-        <!-- Categories and inputs will be injected dynamically here -->
+      <div id="tab-general" class="config-tab-content active" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+          <!-- Search Input -->
+          <div style="margin-bottom: 15px; width: 100%;">
+            <input type="text" id="config-search-input" placeholder="🔍 Search configuration options..." 
+                   style="width:100%; padding:10px; border-radius:5px; border:1px solid #34495e; background:#2c3e50; color:#fff; font-size:1em; box-sizing:border-box; transition:0.2s; outline:none;"
+                   onfocus="this.style.borderColor='#2ecc71';" onblur="this.style.borderColor='#34495e';">
+          </div>
+
+          <!-- Config categories and fields container (scrollable) -->
+          <div id="config-fields-container"
+            style="flex:1; overflow-y:auto; text-align:left; background:rgba(0,0,0,0.4); padding:15px; border-radius:8px; border:1px inset #34495e;">
+          </div>
+      </div>
+      
+      <div id="tab-classes" class="config-tab-content" style="display:none; flex-direction:column; flex:1; overflow-y:auto; text-align:left; background:rgba(0,0,0,0.4); padding:15px; border-radius:8px; border:1px inset #34495e;">
+          <div id="visual-classes-container"></div>
+          <button id="btn-add-class" style="margin-top:10px; background:#2ecc71; color:#fff; border:none; padding:8px; border-radius:5px; cursor:pointer; font-weight:bold;">+ Add Class</button>
+      </div>
+
+      <div id="tab-items" class="config-tab-content" style="display:none; flex-direction:column; flex:1; overflow-y:auto; text-align:left; background:rgba(0,0,0,0.4); padding:15px; border-radius:8px; border:1px inset #34495e;">
+          <div id="visual-items-container"></div>
+          <button id="btn-add-item" style="margin-top:10px; background:#2ecc71; color:#fff; border:none; padding:8px; border-radius:5px; cursor:pointer; font-weight:bold;">+ Add Item</button>
+      </div>
+
+      <div id="tab-monsters" class="config-tab-content" style="display:none; flex-direction:column; flex:1; overflow-y:auto; text-align:left; background:rgba(0,0,0,0.4); padding:15px; border-radius:8px; border:1px inset #34495e;">
+          <div id="visual-monsters-container"></div>
+          <button id="btn-add-monster" style="margin-top:10px; background:#2ecc71; color:#fff; border:none; padding:8px; border-radius:5px; cursor:pointer; font-weight:bold;">+ Add Monster</button>
       </div>
 
       <!-- Controls & Actions -->
@@ -1437,8 +1461,11 @@
             style="background:#3498db; color:#fff; border:none; padding:10px 15px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s;">Import
             JSON</button>
         </div>
-        <button id="btn-config-editor-close-btn"
-          style="background:#3498db; color:#fff; border:none; padding:10px 25px; font-weight:bold; cursor:pointer; border-radius:5px; font-size:1.1em; transition:0.2s;">Done</button>
+        <div style="display:flex; gap:10px;">
+          <button id="btn-config-save" style="background:#2ecc71; color:#fff; border:none; padding:10px 25px; font-weight:bold; cursor:pointer; border-radius:5px; font-size:1.1em; transition:0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);" onmouseover="this.style.background='#27ae60'" onmouseout="this.style.background='#2ecc71'">💾 SAVE</button>
+          <button id="btn-config-editor-close-btn"
+            style="background:#3498db; color:#fff; border:none; padding:10px 25px; font-weight:bold; cursor:pointer; border-radius:5px; font-size:1.1em; transition:0.2s;" onmouseover="this.style.background='#2980b9'" onmouseout="this.style.background='#3498db'">Done</button>
+        </div>
       </div>
 
       <!-- Hidden file input for import -->

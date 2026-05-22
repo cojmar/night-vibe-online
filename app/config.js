@@ -112,6 +112,10 @@ const FALLBACK_DEFAULTS = {
   { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
   { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
 ],
+  ITEMS_DB: [
+    { name: 'Excalibur', icon: '🗡️', gearType: 'Weapon', stats: { atk: 10, spd: 1 }, rarity: 'rare', color: '#f1c40f' },
+    { name: 'Dragon Mail', icon: '🛡️', gearType: 'Armor', stats: { maxHp: 100, atk: 2 }, rarity: 'rare', color: '#f1c40f' }
+  ],
   SKILL_DESC: {
   warrior: {
     s1: { name: 'Bash', desc: 'Wide arc strike. 100% ATK + knockback.', ctrl: 'Left-click enemy' },
@@ -237,7 +241,12 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   // 12. Game Data Entities (JSON)
   CLASS_DATA: { label: "Classes & Characters", type: "json", category: "Game Data Entities" },
   ENEMY_TYPES: { label: "Enemy Types & Stats", type: "json", category: "Game Data Entities" },
-  SKILL_DESC: { label: "Skills Descriptions & Names", type: "json", category: "Game Data Entities" }
+  ITEMS_DB: [
+    { name: 'Excalibur', icon: '🗡️', gearType: 'Weapon', stats: { atk: 10, spd: 1 }, rarity: 'rare', color: '#f1c40f' },
+    { name: 'Dragon Mail', icon: '🛡️', gearType: 'Armor', stats: { maxHp: 100, atk: 2 }, rarity: 'rare', color: '#f1c40f' }
+  ],
+  SKILL_DESC: { label: "Skills Descriptions & Names", type: "json", category: "Game Data Entities" },
+  ITEMS_DB: { label: "Custom Gear Templates", type: "json", category: "Game Data Entities" }
 };
 
 // ==========================================
@@ -335,6 +344,7 @@ export let GEAR_DROP_RATE = activeConfig.GEAR_DROP_RATE;
 
 export let CLASS_DATA = activeConfig.CLASS_DATA;
 export let ENEMY_TYPES = activeConfig.ENEMY_TYPES;
+export let ITEMS_DB = activeConfig.ITEMS_DB;
 export let SKILL_DESC = activeConfig.SKILL_DESC;
 
 // Static-structure configurations
@@ -374,6 +384,7 @@ export function updateConfig(newValues) {
   // Dynamically update the live bindings
   CLASS_DATA = activeConfig.CLASS_DATA;
   ENEMY_TYPES = activeConfig.ENEMY_TYPES;
+  ITEMS_DB = activeConfig.ITEMS_DB;
   SKILL_DESC = activeConfig.SKILL_DESC;
 
   // Dynamically update the live bindings so that all other game source modules receive the fresh settings immediately!

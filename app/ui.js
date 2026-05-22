@@ -4,11 +4,11 @@ import * as ConfigModule from './config.js';
 export default class UI {
     constructor(gameInstance) {
         this.game = gameInstance;
-        this.classes = ['warrior', 'mage', 'archer', 'magicgladiator'];
+        this.classes = Object.keys(CLASS_DATA);
         const savedClass = localStorage.getItem('night-vibe-online_selected-class');
         const savedIdx = savedClass ? this.classes.indexOf(savedClass) : -1;
         this.currentCarouselIndex = savedIdx !== -1 ? savedIdx : 0;
-        this.selectedClass = this.classes[this.currentCarouselIndex];
+        this.selectedClass = this.classes[this.currentCarouselIndex] || 'warrior';
         this.recentLogs = [];
         this.MAX_LOGS = 12;
         this.logHoldTimer = null;
@@ -252,6 +252,30 @@ export default class UI {
         const btnConfigImport = document.getElementById('btn-config-import');
         const importFileInput = document.getElementById('config-import-file');
 
+        const tabBtns = document.querySelectorAll('.config-tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.config-tab-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = '#2c3e50';
+                    b.style.color = '#bdc3c7';
+                });
+                document.querySelectorAll('.config-tab-content').forEach(c => {
+                    c.style.display = 'none';
+                    c.classList.remove('active');
+                });
+                btn.classList.add('active');
+                btn.style.background = '#3498db';
+                btn.style.color = '#fff';
+                const tabId = btn.getAttribute('data-tab');
+                const content = document.getElementById(tabId);
+                if (content) {
+                    content.style.display = 'flex';
+                    content.classList.add('active');
+                }
+            });
+        });
+
         const buildConfigFields = () => {
             const container = document.getElementById('config-fields-container');
             if (!container) return;
@@ -298,6 +322,7 @@ export default class UI {
             const categoriesMap = new Map();
             for (const key in CONFIG_METADATA) {
                 const meta = CONFIG_METADATA[key];
+                if (key === 'CLASS_DATA' || key === 'ENEMY_TYPES' || key === 'SKILL_DESC' || key === 'ITEMS_DB') continue;
                 const cat = meta.category || 'General';
                 if (!categoriesMap.has(cat)) {
                     const catObj = { name: cat, fields: [] };
@@ -370,6 +395,89 @@ export default class UI {
 
                 container.appendChild(catEl);
             });
+
+            // --- VISUAL BUILDERS ---
+            window.tempClassData = JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA));
+            window.tempSkillDesc = JSON.parse(JSON.stringify(ConfigModule.SKILL_DESC));
+            window.tempEnemyTypes = JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES));
+
+            const renderClasses = () => {
+                const cContainer = document.getElementById('visual-classes-container');
+                if (!cContainer) return;
+                cContainer.innerHTML = '';
+                for (const classKey in window.tempClassData) {
+                    const c = window.tempClassData[classKey];
+                    const s = window.tempSkillDesc[classKey] || { s1:{name:'',desc:'',ctrl:''}, s2:{name:'',desc:'',ctrl:''} };
+                    const card = document.createElement('div');
+                    card.style.background = '#2c3e50'; card.style.padding = '10px'; card.style.marginBottom = '10px'; card.style.borderRadius = '5px';
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <input type="text" value="${c.name}" style="background:#34495e; color:#fff; border:none; padding:4px; font-weight:bold; width:150px;" onchange="window.tempClassData['${classKey}'].name = this.value">
+                            <button style="background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;" onclick="delete window.tempClassData['${classKey}']; delete window.tempSkillDesc['${classKey}']; renderClasses();">Del</button>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:0.85em;">
+                            <div>Key (ID): <input type="text" value="${classKey}" disabled style="width:80px; background:#1e272e; color:#bdc3c7; border:none;"></div>
+                            <div>Icon/URL: <input type="text" value="${c.icon || ''}" style="width:100px; background:#1e272e; color:#fff; border:none;" onchange="window.tempClassData['${classKey}'].icon = this.value"></div>
+                            <div>HP: <input type="number" value="${c.hp}" style="width:60px;" onchange="window.tempClassData['${classKey}'].hp = parseFloat(this.value)"></div>
+                            <div>ATK: <input type="number" value="${c.atk}" style="width:60px;" onchange="window.tempClassData['${classKey}'].atk = parseFloat(this.value)"></div>
+                            <div>SPD: <input type="number" value="${c.spd}" style="width:60px;" onchange="window.tempClassData['${classKey}'].spd = parseFloat(this.value)"></div>
+                            <div>Color: <input type="color" value="${c.color}" style="width:50px; height:20px; padding:0; border:none;" onchange="window.tempClassData['${classKey}'].color = this.value"></div>
+                        </div>
+                        <div style="margin-top:8px; border-top:1px solid #7f8c8d; padding-top:5px; font-size:0.85em;">
+                            <b>Skill 1:</b> <input type="text" value="${s.s1.name}" placeholder="Name" onchange="window.tempSkillDesc['${classKey}'].s1.name = this.value"><br>
+                            Desc: <input type="text" value="${s.s1.desc}" style="width:90%;" onchange="window.tempSkillDesc['${classKey}'].s1.desc = this.value">
+                        </div>
+                        <div style="margin-top:5px; font-size:0.85em;">
+                            <b>Skill 2:</b> <input type="text" value="${s.s2.name}" placeholder="Name" onchange="window.tempSkillDesc['${classKey}'].s2.name = this.value"><br>
+                            Desc: <input type="text" value="${s.s2.desc}" style="width:90%;" onchange="window.tempSkillDesc['${classKey}'].s2.desc = this.value">
+                        </div>
+                    `;
+                    cContainer.appendChild(card);
+                }
+            };
+            
+            const btnAddClass = document.getElementById('btn-add-class');
+            if (btnAddClass) btnAddClass.onclick = () => {
+                const newKey = 'class_' + Math.floor(Math.random()*10000);
+                window.tempClassData[newKey] = { name: 'New Class', icon: '❓', hp: 100, mp: 50, atk: 10, spd: 5, color: '#ffffff', accent: '#cccccc' };
+                window.tempSkillDesc[newKey] = { s1: {name:'Basic', desc:'Attack', ctrl:'L-Click'}, s2: {name:'Special', desc:'Attack', ctrl:'R-Click'} };
+                renderClasses();
+            };
+
+            const renderMonsters = () => {
+                const mContainer = document.getElementById('visual-monsters-container');
+                if (!mContainer) return;
+                mContainer.innerHTML = '';
+                window.tempEnemyTypes.forEach((m, idx) => {
+                    const card = document.createElement('div');
+                    card.style.background = '#2c3e50'; card.style.padding = '10px'; card.style.marginBottom = '10px'; card.style.borderRadius = '5px';
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <input type="text" value="${m.name}" style="background:#34495e; color:#fff; border:none; padding:4px; font-weight:bold; width:150px;" onchange="window.tempEnemyTypes[${idx}].name = this.value">
+                            <button style="background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;" onclick="window.tempEnemyTypes.splice(${idx}, 1); renderMonsters();">Del</button>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:0.85em;">
+                            <div>Icon/URL: <input type="text" value="${m.icon || ''}" style="width:100px; background:#1e272e; color:#fff; border:none;" onchange="window.tempEnemyTypes[${idx}].icon = this.value"></div>
+                            <div>HP: <input type="number" value="${m.hp}" style="width:60px;" onchange="window.tempEnemyTypes[${idx}].hp = parseFloat(this.value)"></div>
+                            <div>ATK: <input type="number" value="${m.atk}" style="width:60px;" onchange="window.tempEnemyTypes[${idx}].atk = parseFloat(this.value)"></div>
+                            <div>SPD: <input type="number" value="${m.speed}" style="width:60px;" step="0.1" onchange="window.tempEnemyTypes[${idx}].speed = parseFloat(this.value)"></div>
+                            <div>Size: <input type="number" value="${m.size}" style="width:60px;" onchange="window.tempEnemyTypes[${idx}].size = parseFloat(this.value)"></div>
+                            <div>Color: <input type="color" value="${m.color}" style="width:50px; height:20px; padding:0; border:none;" onchange="window.tempEnemyTypes[${idx}].color = this.value"></div>
+                        </div>
+                    `;
+                    mContainer.appendChild(card);
+                });
+            };
+            
+            const btnAddMonster = document.getElementById('btn-add-monster');
+            if (btnAddMonster) btnAddMonster.onclick = () => {
+                window.tempEnemyTypes.push({ name: 'New Monster', icon: '❓', hp: 50, atk: 5, color: '#ffffff', speed: 0.5, size: 20 });
+                renderMonsters();
+            };
+
+            renderClasses();
+            renderMonsters();
+
 
             // Bind bidirectional synchronization for range sliders and input boxes
             for (const key in CONFIG_METADATA) {
@@ -478,10 +586,24 @@ export default class UI {
             }
 
             // Save to localStorage & dynamic live-binding exports
+            
+            newValues['CLASS_DATA'] = window.tempClassData;
+            newValues['SKILL_DESC'] = window.tempSkillDesc;
+            newValues['ENEMY_TYPES'] = window.tempEnemyTypes;
+            newValues['ITEMS_DB'] = window.tempItemsDB;
+
             updateConfig(newValues);
 
             // Re-apply configurations onto active game components
             if (this.game) {
+                this.classes = Object.keys(CLASS_DATA);
+                if (!this.classes.includes(this.selectedClass)) {
+                    this.selectedClass = this.classes[0] || 'warrior';
+                    this.currentCarouselIndex = 0;
+                } else {
+                    this.currentCarouselIndex = this.classes.indexOf(this.selectedClass);
+                }
+                this.updateClassCarousel();
                 if (this.game.updateLayout) {
                     this.game.updateLayout();
                 }
@@ -940,14 +1062,17 @@ export default class UI {
         document.getElementById('stat-mp').innerHTML = `<strong style="color:#9b59b6">SPD (Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Increases movement speed, S2 AOE size, and reduces S2 cooldown — higher SPD = faster and bigger attacks.</span>`;
         document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies. Scales with level and stat upgrades.</span>`;
 
-        const sk = SKILL_DESC[this.selectedClass];
+        const sk = SKILL_DESC[this.selectedClass] || {
+            s1: { name: 'Basic Attack', desc: 'Standard attack.', ctrl: 'Left-click enemy' },
+            s2: { name: 'Special Ability', desc: 'Powerful ability.', ctrl: 'Right-click / long-press' }
+        };
 
         // Calculate derived stats from HP/MP/ATK
         const baseMoveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.selectedClass] || 2.5;
         const baseS2Cooldown = 5000;
         const s1Scale = 1.0;
         const aoeScale = 1.0;
-        const armor = Math.floor(cd.hp / 10);
+        const armor = Math.floor((cd.hp || 100) / 10);
         const dmgReduction = (armor * 0.5).toFixed(1);
 
         document.getElementById('controls-section').innerHTML =
