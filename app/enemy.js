@@ -150,39 +150,37 @@ export default class Enemy {
             if (this.bossChannelTimer <= 0) {
                 this.bossState = 'FIRING_LASER';
                 this.bossLaserTimer = 120; // Laser lasts 120 frames (2 seconds)
-                this.bossLaserDmgTimer = 0; // Reset damage timer
             }
             return; // Don't move while channeling
         } else if (this.bossState === 'FIRING_LASER') {
             this.bossLaserTimer -= dt;
             
-            // Deal damage continuously every BOSS_LASER_DAMAGE_INTERVAL ms while player is in laser
-            this.bossLaserDmgTimer = (this.bossLaserDmgTimer || 0) + dt * 16.67;
-            if (this.bossLaserDmgTimer >= BOSS_LASER_DAMAGE_INTERVAL) {
-                this.bossLaserDmgTimer = 0;
-                const lx = this.x;
-                const ly = this.y - this.size * 0.5;
-                const tx = this.targetLaserPos.x - lx;
-                const ty = this.targetLaserPos.y - ly;
-                const len = Math.hypot(tx, ty) || 1;
-                const endX = lx + (tx / len) * 3000;
-                const endY = ly + (ty / len) * 3000;
+            // Deal damage continuously every frame while player is standing inside the laser path
+            const lx = this.x;
+            const ly = this.y - this.size * 0.75; // Laser originates from the boss's crown
+            const tx = this.targetLaserPos.x - lx;
+            const ty = this.targetLaserPos.y - ly;
+            const len = Math.hypot(tx, ty) || 1;
+            const endX = lx + (tx / len) * 3000;
+            const endY = ly + (ty / len) * 3000;
+            
+            const dps = BOSS_LASER_DAMAGE_PER_SEC + ((this.level || Math.ceil(this.game.wave) || 1) * BOSS_LASER_DAMAGE_LEVEL_SCALE);
+            const damageThisFrame = dps * (dt * 16.67) / 1000;
+            
+            for (let p of players) {
+                if (p.invulnerable || !p.alive) continue;
+                const dx2 = endX - lx;
+                const dy2 = endY - ly;
+                const lenSq = dx2 * dx2 + dy2 * dy2;
+                const t = Math.max(0, Math.min(1, ((p.x - lx) * dx2 + (p.y - ly) * dy2) / lenSq));
+                const projX = lx + t * dx2;
+                const projY = ly + t * dy2;
                 
-                for (let p of players) {
-                    if (p.invulnerable || !p.alive) continue;
-                    const dx2 = endX - lx;
-                    const dy2 = endY - ly;
-                    const lenSq = dx2 * dx2 + dy2 * dy2;
-                    const t = Math.max(0, Math.min(1, ((p.x - lx) * dx2 + (p.y - ly) * dy2) / lenSq));
-                    const projX = lx + t * dx2;
-                    const projY = ly + t * dy2;
-                    if (Math.hypot(p.x - projX, p.y - projY) < this.size * 0.5 + (p.size || 15)) {
-                        if (this.game.isHost) {
-                            const dps = BOSS_LASER_DAMAGE_PER_SEC + ((this.level || Math.ceil(this.game.wave) || 1) * BOSS_LASER_DAMAGE_LEVEL_SCALE);
-                            const damagePerTick = (dps * BOSS_LASER_DAMAGE_INTERVAL) / 1000;
-                            p.hp -= damagePerTick;
-                            if (p.hp <= 0) { p.hp = 0; p.alive = false; }
-                        }
+                // Collision radius is now exactly this.size * 0.125 + player radius
+                if (Math.hypot(p.x - projX, p.y - projY) < this.size * 0.125 + (p.size || 15)) {
+                    if (this.game.isHost) {
+                        p.hp -= damageThisFrame;
+                        if (p.hp <= 0) { p.hp = 0; p.alive = false; }
                     }
                 }
             }
@@ -329,26 +327,27 @@ export default class Enemy {
             ctx.lineWidth = 2;
             ctx.setLineDash([15, 15]);
             ctx.beginPath();
-            ctx.moveTo(this.x, drawY - this.size * 0.5);
+            ctx.moveTo(this.x, drawY - this.size * 0.75); // Start at the crown 👑
             ctx.lineTo(this.targetLaserPos.x, this.targetLaserPos.y);
             ctx.stroke();
             ctx.setLineDash([]);
         } else if (this.bossState === 'FIRING_LASER') {
             const lx = this.x;
-            const ly = drawY - this.size * 0.5;
+            const ly = drawY - this.size * 0.75; // Start at the crown 👑
             const tx = this.targetLaserPos.x - lx;
             const ty = this.targetLaserPos.y - ly;
             const len = Math.hypot(tx, ty) || 1;
+            
             ctx.strokeStyle = 'red';
-             ctx.lineWidth = this.size;
+            ctx.lineWidth = this.size * 0.25; // Adjusted thickness (25% of body size)
             ctx.beginPath();
             ctx.moveTo(lx, ly);
             ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
             ctx.stroke();
             
             // Add a bright core to the laser
-             ctx.strokeStyle = 'white';
-             ctx.lineWidth = this.size * 0.33;
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = this.size * 0.08; // Core thickness (approx. 1/3 of laser width)
             ctx.beginPath();
             ctx.moveTo(lx, ly);
             ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
