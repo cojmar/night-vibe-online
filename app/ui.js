@@ -398,16 +398,20 @@ export default class UI {
                         const cat = categories[i];
                         if (cat.tagName !== 'DIV' || !cat.style.borderLeft) continue; // Skip warn banner
                         
-                        let hasVisibleChild = false;
+                        const catHeader = cat.children[0];
+                        const catName = catHeader ? catHeader.textContent.toLowerCase() : '';
+                        const catMatches = query === '' || catName.includes(query);
+                        
+                        let hasVisibleChild = catMatches;
                         const fields = cat.children;
                         for (let j = 1; j < fields.length; j++) { // Skip header at index 0
                             const field = fields[j];
                             const label = field.textContent.toLowerCase();
-                            if (query === '' || label.includes(query)) {
+                            if (query === '' || catMatches || label.includes(query)) {
                                 field.style.display = '';
-                                hasVisibleChild = true;
                             } else {
                                 field.style.display = 'none';
+                                hasVisibleChild = false;
                             }
                         }
                         
