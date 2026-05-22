@@ -591,6 +591,26 @@ export default class UI {
                     if (itemData) {
                         p.inventory.push(itemData);
                         delete p.equipment[slotName];
+                        this.game.saveLocalProgression();
+                        this.game.broadcastState();
+                        this.renderInventory();
+                    }
+                });
+
+                // Right-click to drop
+                slotDiv.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (itemData && confirm(`Drop ${itemData.name}?`)) {
+                        delete p.equipment[slotName];
+                        itemData.x = p.x;
+                        itemData.y = p.y;
+                        itemData.life = 60000;
+                        if (this.game.isHost) {
+                            this.game.items.push(itemData);
+                        } else {
+                            this.game.net.send_cmd('set_data', { spawnItem: itemData });
+                        }
+                        this.game.saveLocalProgression();
                         this.game.broadcastState();
                         this.renderInventory();
                     }
@@ -636,6 +656,26 @@ export default class UI {
                         }
                         p.equipment[targetSlot] = item;
                         p.inventory.splice(index, 1); // remove from inventory
+                        this.game.saveLocalProgression();
+                        this.game.broadcastState();
+                        this.renderInventory();
+                    }
+                });
+
+                // Right-click to drop
+                cell.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (confirm(`Drop ${item.name}?`)) {
+                        p.inventory.splice(index, 1);
+                        item.x = p.x;
+                        item.y = p.y;
+                        item.life = 60000;
+                        if (this.game.isHost) {
+                            this.game.items.push(item);
+                        } else {
+                            this.game.net.send_cmd('set_data', { spawnItem: item });
+                        }
+                        this.game.saveLocalProgression();
                         this.game.broadcastState();
                         this.renderInventory();
                     }

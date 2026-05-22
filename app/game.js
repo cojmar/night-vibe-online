@@ -175,6 +175,10 @@ export default class Game {
           this.quitToMenu();
         }
 
+        if (this.isHost && data.data.spawnItem) {
+          this.items.push(data.data.spawnItem);
+        }
+
         // Handle Host Sync
         if (data.data.hostData && !this.isHost) {
           this.syncHostData(data.data.hostData);
@@ -749,6 +753,15 @@ export default class Game {
     target.resets = savedResets;
     target.sessionStatPoints = savedStatPoints;
     target.levelUpStatPoints = 0;
+    
+    try {
+      const savedInv = localStorage.getItem('nightvibe-inventory');
+      if (savedInv) target.inventory = JSON.parse(savedInv);
+      const savedEq = localStorage.getItem('nightvibe-equipment');
+      if (savedEq) target.equipment = JSON.parse(savedEq);
+    } catch (e) {
+      console.error('Failed to parse saved items', e);
+    }
 
     if (!myData) return;
 
@@ -784,6 +797,8 @@ export default class Game {
   saveLocalProgression() {
     if (!this.player) return;
     localStorage.setItem('nightvibe-resets', this.player.resets || 0);
+    localStorage.setItem('nightvibe-inventory', JSON.stringify(this.player.inventory || []));
+    localStorage.setItem('nightvibe-equipment', JSON.stringify(this.player.equipment || {}));
   }
 
   quitToMenu() {
@@ -1862,6 +1877,7 @@ export default class Game {
                         this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🎒 Looted: ${item.name}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
                         this.ui.addLog(`🎒 You picked up a ${item.name}!`, 'reward');
                         if (this.ui) this.ui.renderInventory();
+                        this.saveLocalProgression();
                         this.broadcastState();
                       } else {
                         this.net.send_cmd('set_data', { giveItem: { item: item, target: p.id, id: Math.random() } });
@@ -1929,6 +1945,7 @@ export default class Game {
                    this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${gi.item.name}!`, color: gi.item.color, life: 60, maxLife: 60, isCrit: false });
                    this.ui.addLog(`🎒 You picked up a ${gi.item.name}!`, 'reward');
                    if (this.ui) this.ui.renderInventory();
+                   this.saveLocalProgression();
                    this.broadcastState();
                 }
               }
