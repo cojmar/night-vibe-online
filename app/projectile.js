@@ -95,6 +95,7 @@ export default class Projectile {
       
       for (let e of gameInstance.enemies) {
         if (!e.alive) continue;
+        if (e.name === 'MISSILE' || e.name === 'BOMB') continue;
         const projHitRadius = (this.type === 'arrow') ? PROJ_HIT_RADIUS_ARROW : (this.type === 'bolt' ? PROJ_HIT_RADIUS_BOLT : (this.radius || PROJ_HIT_RADIUS_DEFAULT));
         if (Math.hypot(this.x - e.x, this.y - e.y) < e.size + projHitRadius) {
           gameInstance.dealDamage(e, this.damage, this.critChance);
@@ -109,6 +110,7 @@ export default class Projectile {
         const explosionRadius = (this.radius || 15) * 4;
         for (let e of gameInstance.enemies) {
           if (!e.alive) continue;
+          if (e.name === 'MISSILE' || e.name === 'BOMB') continue;
           const d = Math.hypot(this.x - e.x, this.y - e.y);
           if (d < explosionRadius) gameInstance.dealDamage(e, this.damage * (1 - d / explosionRadius), this.critChance);
         }

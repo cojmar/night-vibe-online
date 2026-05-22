@@ -175,7 +175,7 @@ export default class Enemy {
                     const t = Math.max(0, Math.min(1, ((p.x - lx) * dx2 + (p.y - ly) * dy2) / lenSq));
                     const projX = lx + t * dx2;
                     const projY = ly + t * dy2;
-                    if (Math.hypot(p.x - projX, p.y - projY) < 30 + (p.size || 15)) {
+                    if (Math.hypot(p.x - projX, p.y - projY) < this.size * 0.5 + (p.size || 15)) {
                         if (this.game.isHost) {
                             p.hp -= this.atk * 1.5;
                             if (p.hp <= 0) { p.hp = 0; p.alive = false; }
@@ -337,15 +337,15 @@ export default class Enemy {
             const ty = this.targetLaserPos.y - ly;
             const len = Math.hypot(tx, ty) || 1;
             ctx.strokeStyle = 'red';
-            ctx.lineWidth = 60;
+             ctx.lineWidth = this.size;
             ctx.beginPath();
             ctx.moveTo(lx, ly);
             ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
             ctx.stroke();
             
             // Add a bright core to the laser
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 20;
+             ctx.strokeStyle = 'white';
+             ctx.lineWidth = this.size * 0.33;
             ctx.beginPath();
             ctx.moveTo(lx, ly);
             ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
