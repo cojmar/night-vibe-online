@@ -1215,7 +1215,20 @@ export default class UI {
                 this.saveMonstersToStorage();
                 this.buildMonstersTab();
                 
-                this.addLog("🛠️ Custom configurations, classes and monsters reset to defaults.");
+                // Also reset items config to defaults!
+                localStorage.removeItem('nightvibe-custom-items');
+                const defaultItems = [
+                  { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
+                  { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
+                  { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
+                ];
+                ConfigModule.ITEMS_DB.length = 0;
+                ConfigModule.ITEMS_DB.push(...defaultItems);
+                
+                this.saveItemsToStorage();
+                this.buildItemsTab();
+                
+                this.addLog("🛠️ Custom configurations, classes, monsters and gear reset to defaults.");
             });
         }
 
@@ -1228,7 +1241,8 @@ export default class UI {
                 const exportData = {
                     values: activeConfigValues,
                     classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
-                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
+                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES)),
+                    items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB))
                 };
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
                 
@@ -1276,13 +1290,15 @@ export default class UI {
                         const mergedValues = Object.assign({}, ConfigModule.DEFAULTS, imported.values || imported);
                         const importedClasses = imported.classes || null;
                         const importedMonsters = imported.monsters || null;
+                        const importedItems = imported.items || null;
                         
                         customPresets[newId] = {
                             id: newId,
                             name: name.trim(),
                             values: mergedValues,
                             classes: importedClasses,
-                            monsters: importedMonsters
+                            monsters: importedMonsters,
+                            items: importedItems
                         };
                         
                         ConfigModule.saveCustomPresets(customPresets);
