@@ -6,6 +6,8 @@ import Projectile from './projectile.js';
 
 export default class Game {
   constructor(app) {
+    this.gameW = ConfigModule.activeConfig.GAME_W || 2560;
+    this.gameH = ConfigModule.activeConfig.GAME_H || 1024;
     this.app = app;
     this.ui = app.ui;
     this.net = app.net;
