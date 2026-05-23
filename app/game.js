@@ -86,9 +86,7 @@ export default class Game {
           this.s2Cooldown = 0;
           this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
           this.ui.updateHUD(this.player);
-          this.spawnParticles(this.player.x, this.player.y - 20, '#ffd700', 60, 10);
-          this.spawnParticles(this.player.x, this.player.y - 20, '#fff', 40, 15);
-          this.spawnParticles(this.player.x, this.player.y - 20, '#f1c40f', 50, 5);
+          this.triggerLevelUpAnimation(this.player);
           this.broadcastState();
           this.saveLocalProgression();
         }
@@ -130,9 +128,7 @@ export default class Game {
         if (data.data.level !== undefined) {
           const oldLevel = this.otherPlayers[data.user].level || 1;
           if (data.data.level > oldLevel) {
-            this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 20, '#ffd700', 60, 10);
-            this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 20, '#fff', 40, 15);
-            this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 20, '#f1c40f', 50, 5);
+            this.triggerLevelUpAnimation(this.otherPlayers[data.user]);
             this.ui.addLog(`🌟 ${data.user.substring(0, 8)} Leveled Up! (Lv.${data.data.level})`, 'reward');
           }
         }
@@ -1401,6 +1397,57 @@ export default class Game {
     });
   }
 
+  triggerLevelUpAnimation(p) {
+    const size = p.level ? Math.max(30, 30 * (0.5 + 0.5 * (p.level / 10))) : 35;
+    
+    // 1. Massive Expanding Golden Halo (Sun crown wave) at player's feet
+    this.particles.push({
+      x: p.x, y: p.y + 10,
+      vx: 0, vy: -1.0,
+      life: 45, maxLife: 45,
+      color: 'rgba(255, 215, 0, 0.7)',
+      size: size * 2.2, // Huge halo!
+      isHalo: true
+    });
+
+    // 2. Rising sunburst rays radiating 360 degrees outward up to 4x player size!
+    const rayCount = 36;
+    for (let i = 0; i < rayCount; i++) {
+      const angle = (i / rayCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.1;
+      const spd = 1.8 + Math.random() * 3.2;
+      const length = size * 3.5 + Math.random() * size * 1.5; // up to 5x player size!
+      
+      this.particles.push({
+        x: p.x,
+        y: p.y - size * 0.4, // radiate from player's chest center
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        life: 40 + Math.floor(Math.random() * 20),
+        maxLife: 60,
+        color: i % 2 === 0 ? '#ffd700' : '#fffae0',
+        size: 3.5 + Math.random() * 3.5, // thick, ultra-visible rays!
+        length: length,
+        isRay: true
+      });
+    }
+
+    // 3. Dense rising sparkling light stars all over the character's body
+    const sparkleCount = 50;
+    for (let i = 0; i < sparkleCount; i++) {
+      this.particles.push({
+        x: p.x + (Math.random() - 0.5) * 32,
+        y: p.y + (Math.random() - 0.5) * 45 - 20,
+        vx: (Math.random() - 0.5) * 1.0,
+        vy: -2.5 - Math.random() * 4.0,
+        life: 30 + Math.floor(Math.random() * 25),
+        maxLife: 55,
+        color: '#fffbe0',
+        size: 1.8 + Math.random() * 2.5,
+        isSparkle: true
+      });
+    }
+  }
+
   initBgParticles() {
     this.bgParticles = [];
     const groundY = getGroundY(this.selectedEnv);
@@ -2278,10 +2325,13 @@ export default class Game {
 
       // Effects
       for (let p of this.particles) {
-        if (!p.isShockwave) {
+        if (!p.isShockwave && !p.isHalo && !p.isRay && !p.isSparkle) {
           p.x += p.vx * dt;
           p.y += p.vy * dt;
           p.vy += 0.05 * dt;
+        } else if (p.isHalo || p.isRay || p.isSparkle) {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
         }
         p.life -= dt;
         const progress = Math.max(0, p.life / p.maxLife);
@@ -2297,6 +2347,45 @@ export default class Game {
           this.ctx.beginPath();
           this.ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
           this.ctx.fill();
+        } else if (p.isHalo) {
+          const currentSize = p.size * (1 + (1 - progress) * 1.85);
+          this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.85)';
+          this.ctx.shadowColor = '#ffd700';
+          this.ctx.shadowBlur = 15;
+          this.ctx.lineWidth = 4 * progress;
+          this.ctx.beginPath();
+          this.ctx.ellipse(p.x, p.y, currentSize, currentSize * 0.45, 0, 0, Math.PI * 2);
+          this.ctx.stroke();
+          this.ctx.shadowBlur = 0;
+        } else if (p.isRay) {
+          this.ctx.strokeStyle = p.color;
+          this.ctx.shadowColor = '#ffd700';
+          this.ctx.shadowBlur = 8 * progress;
+          this.ctx.lineWidth = p.size * progress;
+          this.ctx.beginPath();
+          this.ctx.moveTo(p.x, p.y);
+          const len = p.length * progress;
+          const vdist = Math.hypot(p.vx, p.vy) || 1;
+          this.ctx.lineTo(p.x + (p.vx / vdist) * len, p.y + (p.vy / vdist) * len);
+          this.ctx.stroke();
+          this.ctx.shadowBlur = 0;
+        } else if (p.isSparkle) {
+          this.ctx.fillStyle = p.color;
+          this.ctx.shadowColor = '#ffd700';
+          this.ctx.shadowBlur = 5 * progress;
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.size * progress, 0, Math.PI * 2);
+          this.ctx.fill();
+          
+          if (Math.random() < 0.20) {
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.lineWidth = 0.8;
+            this.ctx.beginPath();
+            this.ctx.moveTo(p.x - p.size * 2, p.y); this.ctx.lineTo(p.x + p.size * 2, p.y);
+            this.ctx.moveTo(p.x, p.y - p.size * 2); this.ctx.lineTo(p.x, p.y + p.size * 2);
+            this.ctx.stroke();
+          }
+          this.ctx.shadowBlur = 0;
         } else {
           this.ctx.fillStyle = p.color;
           this.ctx.beginPath();
