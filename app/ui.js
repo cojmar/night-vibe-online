@@ -1015,24 +1015,22 @@ export default class UI {
                     });
                 });
                 
-                if (classId.startsWith('custom_')) {
-                    const btnDelete = document.createElement('button');
-                    btnDelete.innerText = '🗑️ Delete Class';
-                    btnDelete.style.background = '#e74c3c';
-                    btnDelete.style.color = '#fff';
-                    btnDelete.style.border = 'none';
-                    btnDelete.style.padding = '8px';
-                    btnDelete.style.borderRadius = '5px';
-                    btnDelete.style.marginTop = '10px';
-                    btnDelete.style.cursor = 'pointer';
-                    btnDelete.style.fontWeight = 'bold';
-                    btnDelete.onclick = () => {
-                        delete ConfigModule.CLASS_DATA[classId];
-                        this.saveClassesToStorage();
-                        this.buildClassesTab();
-                    };
-                    classCard.appendChild(btnDelete);
-                }
+                const btnDelete = document.createElement('button');
+                btnDelete.innerText = '🗑️ Delete Class';
+                btnDelete.style.background = '#e74c3c';
+                btnDelete.style.color = '#fff';
+                btnDelete.style.border = 'none';
+                btnDelete.style.padding = '8px';
+                btnDelete.style.borderRadius = '5px';
+                btnDelete.style.marginTop = '10px';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontWeight = 'bold';
+                btnDelete.onclick = () => {
+                    delete ConfigModule.CLASS_DATA[classId];
+                    this.saveClassesToStorage();
+                    this.buildClassesTab();
+                };
+                classCard.appendChild(btnDelete);
             }
             
             container.appendChild(classCard);

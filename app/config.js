@@ -320,6 +320,9 @@ export const CLASS_DATA = {
 try {
   const customClasses = JSON.parse(localStorage.getItem('nightvibe-custom-classes'));
   if (customClasses) {
+    for (const key in CLASS_DATA) {
+      delete CLASS_DATA[key];
+    }
     Object.assign(CLASS_DATA, customClasses);
   }
 } catch (e) {
