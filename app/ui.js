@@ -4,7 +4,7 @@ import * as ConfigModule from './config.js';
 export default class UI {
     constructor(gameInstance) {
         this.game = gameInstance;
-        this.classes = ['warrior', 'mage', 'archer', 'magicgladiator'];
+        this.classes = Object.keys(ConfigModule.CLASS_DATA);
         const savedClass = localStorage.getItem('night-vibe-online_selected-class');
         const savedIdx = savedClass ? this.classes.indexOf(savedClass) : -1;
         this.currentCarouselIndex = savedIdx !== -1 ? savedIdx : 0;
@@ -248,6 +248,17 @@ export default class UI {
         const configEditorModal = document.getElementById('config-editor-modal');
         const btnConfigEditorCloseIcon = document.getElementById('btn-config-editor-close-icon');
         const btnConfigSave = document.getElementById('btn-config-save');
+        if (btnConfigSave) {
+            btnConfigSave.addEventListener('click', () => {
+                const originalText = btnConfigSave.innerText;
+                btnConfigSave.innerText = '✔️ SAVED!';
+                btnConfigSave.style.background = '#27ae60';
+                setTimeout(() => {
+                    btnConfigSave.innerText = originalText;
+                    btnConfigSave.style.background = '#2ecc71';
+                }, 1000);
+            });
+        }
         const btnConfigReset = document.getElementById('btn-config-reset');
         const btnConfigExport = document.getElementById('btn-config-export');
         const btnConfigImport = document.getElementById('btn-config-import');
@@ -583,8 +594,192 @@ export default class UI {
                 e.target.value = '';
             });
         }
+        // Bind Config Tabs
+        const tabBtns = document.querySelectorAll('.config-tab-btn');
+        const tabContents = document.querySelectorAll('.config-tab-content');
+        
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                tabBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = '#2c3e50';
+                    b.style.color = '#bdc3c7';
+                });
+                e.currentTarget.classList.add('active');
+                e.currentTarget.style.background = '#3498db';
+                e.currentTarget.style.color = '#fff';
+                
+                const targetId = e.currentTarget.getAttribute('data-tab');
+                tabContents.forEach(tc => {
+                    tc.style.display = tc.id === targetId ? 'flex' : 'none';
+                });
+                
+                if (targetId === 'tab-classes') {
+                    this.buildClassesTab();
+                }
+            });
+        });
+
+        // Add new class button binding
+        const btnAddClass = document.getElementById('btn-add-class');
+        if (btnAddClass) {
+            btnAddClass.addEventListener('click', () => {
+                const isPlaying = this.game && this.game.state === 'PLAYING';
+                if (isPlaying) {
+                    alert("Cannot add classes while a game session is active.");
+                    return;
+                }
+                const newId = 'custom_' + Date.now();
+                ConfigModule.CLASS_DATA[newId] = {
+                    name: 'New Class', icon: '👤', hp: 100, mp: 50, atk: 20, spd: 10,
+                    color: '#95a5a6', accent: '#7f8c8d', s1Name: 'Basic Attack', s1Color: '#bdc3c7', s2Name: 'Special Attack', s2Color: '#ecf0f1'
+                };
+                this.saveClassesToStorage();
+                this.buildClassesTab();
+            });
+        }
+
         this.updateLobbyRulesText();
         this.initInventory();
+    }
+
+    saveClassesToStorage() {
+        // Extract only the classes that differ from default or are completely new? 
+        // For simplicity, we can just save all classes.
+        localStorage.setItem('nightvibe-custom-classes', JSON.stringify(ConfigModule.CLASS_DATA));
+        this.updateClassCarousel(); // Refresh main menu UI classes
+    }
+
+    buildClassesTab() {
+        const container = document.getElementById('visual-classes-container');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const isPlaying = this.game && this.game.state === 'PLAYING';
+
+        if (isPlaying) {
+            const warnBanner = document.createElement('div');
+            warnBanner.style.background = 'rgba(231, 76, 60, 0.15)';
+            warnBanner.style.border = '1px solid #e74c3c';
+            warnBanner.style.padding = '10px 15px';
+            warnBanner.style.borderRadius = '6px';
+            warnBanner.style.marginBottom = '15px';
+            warnBanner.style.color = '#ff6b6b';
+            warnBanner.style.fontWeight = 'bold';
+            warnBanner.style.textAlign = 'center';
+            warnBanner.style.fontSize = '0.9em';
+            warnBanner.innerHTML = '⚠️ Active Session: Settings are read-only and locked to the Host\'s gameplay configuration.';
+            container.appendChild(warnBanner);
+        }
+
+        for (const [classId, classData] of Object.entries(ConfigModule.CLASS_DATA)) {
+            const classCard = document.createElement('div');
+            classCard.style.background = 'rgba(0,0,0,0.3)';
+            classCard.style.border = `2px solid ${classData.color || '#3498db'}`;
+            classCard.style.borderRadius = '8px';
+            classCard.style.padding = '15px';
+            classCard.style.marginBottom = '15px';
+            classCard.style.display = 'flex';
+            classCard.style.flexDirection = 'column';
+            classCard.style.gap = '10px';
+            
+            const headerRow = document.createElement('div');
+            headerRow.style.display = 'flex';
+            headerRow.style.justifyContent = 'space-between';
+            headerRow.style.alignItems = 'center';
+            headerRow.style.borderBottom = '1px solid #34495e';
+            headerRow.style.paddingBottom = '8px';
+            
+            const titleHtml = `<div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.8em;">${classData.icon}</span>
+                <h3 style="margin:0; color:${classData.color}; font-size:1.3em;">${classData.name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(${classId})</span></h3>
+            </div>`;
+            
+            headerRow.innerHTML = titleHtml;
+            classCard.appendChild(headerRow);
+            
+            const grid = document.createElement('div');
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = '1fr 1fr';
+            grid.style.gap = '10px';
+            
+            const addField = (label, key, type, step = 1) => {
+                const wrapper = document.createElement('div');
+                const disabledAttr = isPlaying ? 'disabled' : '';
+                const opacityStyle = isPlaying ? 'opacity: 0.6; cursor: not-allowed;' : '';
+                
+                let inputHtml = '';
+                if (type === 'color') {
+                    inputHtml = `<div style="display:flex; gap:10px; align-items:center;">
+                        <input type="color" data-key="${key}" value="${classData[key]}" ${disabledAttr} style="border:none; background:none; width:40px; height:30px; padding:0; ${opacityStyle}">
+                    </div>`;
+                } else if (type === 'number') {
+                    inputHtml = `<input type="number" data-key="${key}" value="${classData[key]}" step="${step}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-family:monospace; ${opacityStyle}">`;
+                } else {
+                    inputHtml = `<input type="text" data-key="${key}" value="${classData[key]}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">`;
+                }
+                
+                wrapper.innerHTML = `<label style="display:block; font-size:0.85em; color:#bdc3c7; margin-bottom:4px;">${label}</label>${inputHtml}`;
+                grid.appendChild(wrapper);
+            };
+
+            addField('Class Name', 'name', 'text');
+            addField('Icon Emoji', 'icon', 'text');
+            addField('Base HP', 'hp', 'number', 10);
+            addField('Base MP', 'mp', 'number', 10);
+            addField('Base Attack', 'atk', 'number', 2);
+            addField('Base Speed', 'spd', 'number', 1);
+            addField('Primary Color', 'color', 'color');
+            addField('Accent Color', 'accent', 'color');
+            addField('Skill 1 Name', 's1Name', 'text');
+            addField('Skill 1 Color', 's1Color', 'color');
+            addField('Skill 2 Name', 's2Name', 'text');
+            addField('Skill 2 Color', 's2Color', 'color');
+
+            classCard.appendChild(grid);
+            
+            if (!isPlaying) {
+                // Event listener to save dynamically
+                const inputs = classCard.querySelectorAll('input');
+                inputs.forEach(input => {
+                    const eventType = input.type === 'color' || input.type === 'number' ? 'change' : 'input';
+                    input.addEventListener(eventType, (e) => {
+                        const key = e.target.getAttribute('data-key');
+                        let val = e.target.value;
+                        if (e.target.type === 'number') val = parseFloat(val) || 0;
+                        ConfigModule.CLASS_DATA[classId][key] = val;
+                        classCard.style.borderColor = ConfigModule.CLASS_DATA[classId].color || '#3498db';
+                        headerRow.querySelector('h3').style.color = ConfigModule.CLASS_DATA[classId].color || '#3498db';
+                        headerRow.querySelector('h3').innerHTML = `${ConfigModule.CLASS_DATA[classId].name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(${classId})</span>`;
+                        headerRow.querySelector('span').innerText = ConfigModule.CLASS_DATA[classId].icon;
+                        this.saveClassesToStorage();
+                    });
+                });
+                
+                if (classId.startsWith('custom_')) {
+                    const btnDelete = document.createElement('button');
+                    btnDelete.innerText = '🗑️ Delete Class';
+                    btnDelete.style.background = '#e74c3c';
+                    btnDelete.style.color = '#fff';
+                    btnDelete.style.border = 'none';
+                    btnDelete.style.padding = '8px';
+                    btnDelete.style.borderRadius = '5px';
+                    btnDelete.style.marginTop = '10px';
+                    btnDelete.style.cursor = 'pointer';
+                    btnDelete.style.fontWeight = 'bold';
+                    btnDelete.onclick = () => {
+                        if (confirm(`Are you sure you want to delete ${classData.name}?`)) {
+                            delete ConfigModule.CLASS_DATA[classId];
+                            this.saveClassesToStorage();
+                            this.buildClassesTab();
+                        }
+                    };
+                    classCard.appendChild(btnDelete);
+                }
+            }
+            
+            container.appendChild(classCard);
+        }
     }
 
     initInventory() {
@@ -933,16 +1128,22 @@ export default class UI {
     }
 
     updateClassCarousel() {
+        this.classes = Object.keys(ConfigModule.CLASS_DATA);
+        if (this.currentCarouselIndex >= this.classes.length) this.currentCarouselIndex = 0;
+        
         this.selectedClass = this.classes[this.currentCarouselIndex];
         localStorage.setItem('night-vibe-online_selected-class', this.selectedClass);
-        const cd = CLASS_DATA[this.selectedClass];
+        const cd = ConfigModule.CLASS_DATA[this.selectedClass];
         document.getElementById('current-class-name').textContent = cd.name;
         document.getElementById('class-icon').textContent = cd.icon;
         document.getElementById('stat-hp').innerHTML = `<strong style="color:#e74c3c">HP (Health Points): ${cd.hp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Maximum life capacity. If it reaches 0, you die.</span>`;
         document.getElementById('stat-mp').innerHTML = `<strong style="color:#9b59b6">SPD (Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Increases movement speed, S2 AOE size, and reduces S2 cooldown — higher SPD = faster and bigger attacks.</span>`;
         document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies. Scales with level and stat upgrades.</span>`;
 
-        const sk = SKILL_DESC[this.selectedClass];
+        const sk = ConfigModule.SKILL_DESC[this.selectedClass] || {
+            s1: { name: cd.s1Name || 'Basic Attack', desc: 'Standard attack', ctrl: 'Left-click enemy' },
+            s2: { name: cd.s2Name || 'Special Attack', desc: 'Special ability', ctrl: 'Right-click / long-press' }
+        };
 
         // Calculate derived stats from HP/MP/ATK
         const baseMoveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.selectedClass] || 2.5;

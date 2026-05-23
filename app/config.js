@@ -317,6 +317,15 @@ export const CLASS_DATA = {
   magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700' }
 };
 
+try {
+  const customClasses = JSON.parse(localStorage.getItem('nightvibe-custom-classes'));
+  if (customClasses) {
+    Object.assign(CLASS_DATA, customClasses);
+  }
+} catch (e) {
+  console.error("Failed loading custom classes", e);
+}
+
 export const ENEMY_TYPES = [
   { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
   { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
