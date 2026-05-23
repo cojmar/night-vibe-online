@@ -243,21 +243,22 @@ export default class Player {
         this.stopWalking(gameInstance);
       } else {
         const e = this.autoAttackTarget;
-        const cd = CLASS_DATA[this.classType];
+        const cd = CLASS_DATA[this.classType] || CLASS_DATA.warrior;
         const wScale = 1 + (this.atk - cd.atk) * 0.005;
         const reqLevel = REBIRTH_BASE_LEVEL + (this.resets || 0) * REBIRTH_LEVEL_STEP;
         const lvlScale = 0.5 + 0.5 * ((this.level - 1) / Math.max(1, reqLevel - 1));
 
         let maxRange = RANGED_MAX_RANGE; // default for other classes
-        if (this.classType === 'warrior') {
+        const skill1 = cd.s1Name;
+        if (skill1 === 'Bash' || this.classType === 'warrior') {
           maxRange = WARRIOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
-        } else if (this.classType === 'magicgladiator') {
+        } else if (skill1 === 'Psionic Slash' || this.classType === 'magicgladiator') {
           maxRange = MAGICGLADIATOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
-        } else if (this.classType === 'mage') {
+        } else if (skill1 === 'Magic Bolt' || this.classType === 'mage') {
           const mageBaseAtk = cd.atk;
           const mageRangeMult = Math.pow(this.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
           maxRange = 8 * 60 * mageRangeMult;
-        } else if (this.classType === 'archer') {
+        } else if (skill1 === 'Quick Shot' || this.classType === 'archer') {
           const archerBaseAtk = cd.atk;
           const archerRangeMult = Math.pow(this.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
           maxRange = 10 * 50 * archerRangeMult;
@@ -334,7 +335,8 @@ export default class Player {
     }
     ctx.globalAlpha = baseAlpha;
 
-    const cd = CLASS_DATA[this.classType];
+    const cd = CLASS_DATA[this.classType] || CLASS_DATA.warrior;
+    const renderType = cd.bodyType || (['warrior', 'mage', 'archer', 'magicgladiator'].includes(this.classType) ? this.classType : 'warrior');
     const walkBob = (this.isMoving || this.action === 'walk') ? Math.sin(Date.now() / 100) * 2 : 0;
     const groundY = getGroundY(gameInstance.selectedEnv);
 
@@ -376,14 +378,14 @@ export default class Player {
     let armAnim = getArmAnim(this.animTimer);
 
     if (this.isChargingS2) {
-      if (this.classType === 'archer') {
+      if (renderType === 'archer') {
         armAnim = 0; // Archer just aims steadily
       } else {
         armAnim = (Date.now() % 400) / 400 * Math.PI * 2;
       }
     }
 
-    if (this.classType === 'warrior') {
+    if (renderType === 'warrior') {
       ctx.fillStyle = cd.color; ctx.fillRect(-18, -55, 36, 60);
       ctx.fillStyle = cd.accent; ctx.fillRect(-5, -45, 10, 40);
       ctx.fillStyle = '#8b6914'; ctx.fillRect(-16, -10, 32, 6);
@@ -440,7 +442,7 @@ export default class Player {
       ctx.fillRect(0, 30, 16, 8);
     }
     // Implement other classes (mage, archer, magicgladiator) exactly as they were
-    else if (this.classType === 'mage') {
+    else if (renderType === 'mage') {
       ctx.fillStyle = '#5a5a6a'; ctx.beginPath();
       ctx.moveTo(-20, -55); ctx.quadraticCurveTo(-24, 0, -22, 42);
       ctx.lineTo(22, 42); ctx.quadraticCurveTo(24, 0, 20, -55);
@@ -557,7 +559,7 @@ export default class Player {
       ctx.fillStyle = '#2a1a0a'; ctx.fillRect(-16, 28, 14, 8);
       ctx.fillRect(0, 28, 14, 8);
     }
-    else if (this.classType === 'archer') {
+    else if (renderType === 'archer') {
       ctx.fillStyle = cd.color; ctx.fillRect(-16, -52, 32, 55);
       ctx.fillStyle = cd.accent; ctx.fillRect(-4, -44, 8, 45);
       ctx.fillStyle = '#8b6914'; ctx.fillRect(-16, -8, 32, 5);
@@ -612,7 +614,7 @@ export default class Player {
       ctx.fillStyle = '#a07828'; ctx.fillRect(-17, -48, 2, 16);
       ctx.fillRect(-14, -47, 2, 15); ctx.fillRect(-11, -49, 2, 17);
     }
-    else if (this.classType === 'magicgladiator') {
+    else if (renderType === 'magicgladiator') {
       ctx.fillStyle = cd.color; ctx.fillRect(-18, -55, 36, 60);
       ctx.fillStyle = cd.accent; ctx.fillRect(-10, -50, 20, 8);
       ctx.fillRect(-10, -38, 20, 8); ctx.fillRect(-10, -26, 20, 8);

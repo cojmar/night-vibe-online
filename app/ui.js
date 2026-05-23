@@ -632,7 +632,8 @@ export default class UI {
                 const newId = 'custom_' + Date.now();
                 ConfigModule.CLASS_DATA[newId] = {
                     name: 'New Class', icon: '👤', hp: 100, mp: 50, atk: 20, spd: 10,
-                    color: '#95a5a6', accent: '#7f8c8d', s1Name: 'Basic Attack', s1Color: '#bdc3c7', s2Name: 'Special Attack', s2Color: '#ecf0f1'
+                    color: '#95a5a6', accent: '#7f8c8d', s1Name: 'Bash', s1Color: '#bdc3c7', s2Name: 'Sword Slash', s2Color: '#ecf0f1',
+                    bodyType: 'warrior'
                 };
                 this.saveClassesToStorage();
                 this.buildClassesTab();
@@ -717,8 +718,12 @@ export default class UI {
                     inputHtml = `<input type="number" data-key="${key}" value="${classData[key] || 0}" step="${step}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-family:monospace; ${opacityStyle}">`;
                 } else if (type === 'select' && options) {
                     let optionsHtml = '';
+                    let currentValue = classData[key];
+                    if (!currentValue && key === 'bodyType') {
+                        currentValue = classData.bodyType || (['warrior', 'mage', 'archer', 'magicgladiator'].includes(classId) ? classId : 'warrior');
+                    }
                     options.forEach(opt => {
-                        const selectedAttr = classData[key] === opt ? 'selected' : '';
+                        const selectedAttr = currentValue === opt ? 'selected' : '';
                         optionsHtml += `<option value="${opt}" ${selectedAttr}>${opt}</option>`;
                     });
                     inputHtml = `<select data-key="${key}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">${optionsHtml}</select>`;
@@ -738,6 +743,7 @@ export default class UI {
             addField('Base Speed', 'spd', 'number', 1);
             addField('Primary Color', 'color', 'color');
             addField('Accent Color', 'accent', 'color');
+            addField('Body Type', 'bodyType', 'select', 1, ['warrior', 'mage', 'archer', 'magicgladiator']);
             addField('Skill 1 Name', 's1Name', 'select', 1, ['Bash', 'Magic Bolt', 'Quick Shot', 'Psionic Slash']);
             addField('Skill 1 Color', 's1Color', 'color');
             addField('Skill 2 Name', 's2Name', 'select', 1, ['Sword Slash', 'Fireball', 'Arrow Barrage', 'Cross Slash']);
