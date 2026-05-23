@@ -703,7 +703,7 @@ export default class UI {
             grid.style.gridTemplateColumns = '1fr 1fr';
             grid.style.gap = '10px';
             
-            const addField = (label, key, type, step = 1) => {
+            const addField = (label, key, type, step = 1, options = null) => {
                 const wrapper = document.createElement('div');
                 const disabledAttr = isPlaying ? 'disabled' : '';
                 const opacityStyle = isPlaying ? 'opacity: 0.6; cursor: not-allowed;' : '';
@@ -711,12 +711,19 @@ export default class UI {
                 let inputHtml = '';
                 if (type === 'color') {
                     inputHtml = `<div style="display:flex; gap:10px; align-items:center;">
-                        <input type="color" data-key="${key}" value="${classData[key]}" ${disabledAttr} style="border:none; background:none; width:40px; height:30px; padding:0; ${opacityStyle}">
+                        <input type="color" data-key="${key}" value="${classData[key] || '#ffffff'}" ${disabledAttr} style="border:none; background:none; width:40px; height:30px; padding:0; ${opacityStyle}">
                     </div>`;
                 } else if (type === 'number') {
-                    inputHtml = `<input type="number" data-key="${key}" value="${classData[key]}" step="${step}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-family:monospace; ${opacityStyle}">`;
+                    inputHtml = `<input type="number" data-key="${key}" value="${classData[key] || 0}" step="${step}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-family:monospace; ${opacityStyle}">`;
+                } else if (type === 'select' && options) {
+                    let optionsHtml = '';
+                    options.forEach(opt => {
+                        const selectedAttr = classData[key] === opt ? 'selected' : '';
+                        optionsHtml += `<option value="${opt}" ${selectedAttr}>${opt}</option>`;
+                    });
+                    inputHtml = `<select data-key="${key}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">${optionsHtml}</select>`;
                 } else {
-                    inputHtml = `<input type="text" data-key="${key}" value="${classData[key]}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">`;
+                    inputHtml = `<input type="text" data-key="${key}" value="${classData[key] || ''}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">`;
                 }
                 
                 wrapper.innerHTML = `<label style="display:block; font-size:0.85em; color:#bdc3c7; margin-bottom:4px;">${label}</label>${inputHtml}`;
@@ -731,18 +738,18 @@ export default class UI {
             addField('Base Speed', 'spd', 'number', 1);
             addField('Primary Color', 'color', 'color');
             addField('Accent Color', 'accent', 'color');
-            addField('Skill 1 Name', 's1Name', 'text');
+            addField('Skill 1 Name', 's1Name', 'select', 1, ['Bash', 'Magic Bolt', 'Quick Shot', 'Psionic Slash']);
             addField('Skill 1 Color', 's1Color', 'color');
-            addField('Skill 2 Name', 's2Name', 'text');
+            addField('Skill 2 Name', 's2Name', 'select', 1, ['Sword Slash', 'Fireball', 'Arrow Barrage', 'Cross Slash']);
             addField('Skill 2 Color', 's2Color', 'color');
 
             classCard.appendChild(grid);
             
             if (!isPlaying) {
                 // Event listener to save dynamically
-                const inputs = classCard.querySelectorAll('input');
+                const inputs = classCard.querySelectorAll('input, select');
                 inputs.forEach(input => {
-                    const eventType = input.type === 'color' || input.type === 'number' ? 'change' : 'input';
+                    const eventType = input.type === 'color' || input.type === 'number' || input.tagName === 'SELECT' ? 'change' : 'input';
                     input.addEventListener(eventType, (e) => {
                         const key = e.target.getAttribute('data-key');
                         let val = e.target.value;

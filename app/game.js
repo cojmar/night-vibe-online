@@ -1056,7 +1056,7 @@ export default class Game {
 
   doSkill1(tx, ty) {
     this.player.stopWalking(this);
-    const cd = CLASS_DATA[this.player.classType];
+    const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
     const reqLevel = 4 + (this.player.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
     const weaponY = this.player.y - 40 * lvlScale;
@@ -1069,34 +1069,33 @@ export default class Game {
 
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing, damage: this.player.atk, critChance: 0.1 };
 
-    switch (this.player.classType) {
-      case 'warrior':
-        const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
-        this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color, radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
-        this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color, 5, 3);
-        break;
-      case 'mage': {
-        const mageBaseAtk = cd.atk;
-        const mageRangeMult = Math.pow(this.player.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
-        const mageLife = Math.round(60 * mageRangeMult);
-        this.projectiles.push(new Projectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
-        this.spawnParticles(this.player.x, weaponY, '#3498db', 3, 2);
-        break;
-      }
-      case 'archer': {
-        const archerBaseAtk = cd.atk;
-        const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
-        const archerLife = Math.round(50 * archerRangeMult);
-        const speed = 10;
-        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: '#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale * lvlScale, ...projProps }));
-        this.spawnParticles(this.player.x, weaponY, '#bdc3c7', 4, 3);
-        break;
-      }
-      case 'magicgladiator':
-        const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
-        this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 20, maxLife: 20, color: '#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
-        this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, '#e74c3c', 7, 4);
-        break;
+    const skillType = cd.s1Name;
+    if (skillType === 'Bash' || this.player.classType === 'warrior') {
+      const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
+      this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 5, 3);
+    } else if (skillType === 'Magic Bolt' || this.player.classType === 'mage') {
+      const mageBaseAtk = cd.atk;
+      const mageRangeMult = Math.pow(this.player.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
+      const mageLife = Math.round(60 * mageRangeMult);
+      this.projectiles.push(new Projectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: cd.s1Color || '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
+      this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#3498db', 3, 2);
+    } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
+      const archerBaseAtk = cd.atk;
+      const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
+      const archerLife = Math.round(50 * archerRangeMult);
+      const speed = 10;
+      this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale * lvlScale, ...projProps }));
+      this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
+    } else if (skillType === 'Psionic Slash' || this.player.classType === 'magicgladiator') {
+      const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
+      this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 20, maxLife: 20, color: cd.s1Color || '#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
+      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#e74c3c', 7, 4);
+    } else {
+      // Default fallback is Warrior Bash style
+      const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
+      this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 5, 3);
     }
     this.broadcastState();
   }
@@ -1120,14 +1119,16 @@ export default class Game {
     this.player.lastInputTime = Date.now();
     this.player.isChargingS2 = false;
 
+    const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
+
     // Calculate dynamic cooldown based on SPD. Starts at 5000ms.
-    const baseSpd = CLASS_DATA[this.player.classType].spd;
+    const baseSpd = cd.spd;
     const diff = Math.max(0, this.player.spd - baseSpd);
     this.s2MaxCooldown = Math.max(1000, 5000 - diff * 200);
     this.s2Cooldown = this.s2MaxCooldown;
 
     // SPD controls AOE
-    const aoeScale = 1 + (this.player.spd - CLASS_DATA[this.player.classType].spd) * 0.02;
+    const aoeScale = 1 + (this.player.spd - baseSpd) * 0.02;
     const reqLevel = 4 + (this.player.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
 
@@ -1141,7 +1142,6 @@ export default class Game {
     const areaMulti = 1 + (charges * 0.15);
 
     const tx = this.player.mouseX, ty = this.player.mouseY;
-    const cd = CLASS_DATA[this.player.classType];
     const weaponY = this.player.y - 30 * lvlScale;
     const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
     this.player.facing = tx > this.player.x ? 1 : -1;
@@ -1151,39 +1151,47 @@ export default class Game {
 
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing };
 
-    switch (this.player.classType) {
-      case 'warrior':
-        const waveCount = 1 + charges;
-        const spdDiff = Math.max(0, this.player.spd - CLASS_DATA.warrior.spd);
-        const waveDistance = (120 + spdDiff * 6) * areaMulti;
-        const waveSpread = 0.12 + (aoeScale - 1) * 0.08;
+    const skillType = cd.s2Name;
+    if (skillType === 'Sword Slash' || this.player.classType === 'warrior') {
+      const waveCount = 1 + charges;
+      const spdDiff = Math.max(0, this.player.spd - cd.spd);
+      const waveDistance = (120 + spdDiff * 6) * areaMulti;
+      const waveSpread = 0.12 + (aoeScale - 1) * 0.08;
 
-        for (let i = 0; i < waveCount; i++) {
-          const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
-          this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: '#ffd700', damage: this.player.atk * 2.5 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMulti * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
-        }
-        this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, '#ffd700', 12 + charges * 5, 4);
-        break;
-      case 'mage':
-        const fbRadius = 15 + charges * 15;
-        this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: '#e67e22', damage: this.player.atk * 2.2 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
-        this.spawnParticles(this.player.x, weaponY, '#e67e22', 20 * aoeScale + charges * 10, 5);
-        break;
-      case 'archer':
-        const arrowCount = Math.min(7, 3 + Math.floor((this.player.spd - CLASS_DATA.archer.spd) / 8)) + charges;
-        for (let i = 0; i < arrowCount; i++) {
-          const a = aimAngle + (i - Math.floor(arrowCount / 2)) * (0.2 + (aoeScale - 1) * 0.1);
-          const speed = 11;
-          this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: '#e74c3c', damage: this.player.atk * 1.3 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale }));
-        }
-        this.spawnParticles(this.player.x, weaponY, '#e74c3c', 10 + charges * 5, 4);
-        break;
-      case 'magicgladiator':
-        this.projectiles.push(new Projectile({ type: 'aoe_explosion', x: this.player.x, y: weaponY, radius: 130 * aoeScale * areaMulti * lvlScale, life: 25, maxLife: 25, color: '#ffd700', damage: this.player.atk * 3.0 * dmgMulti, critChance: 0.25, ...projProps }));
-        this.spawnParticles(this.player.x, weaponY, '#ffd700', 30 * aoeScale + charges * 15, 8);
-        this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
-        this.ui.updateHUD(this.player);
-        break;
+      for (let i = 0; i < waveCount; i++) {
+        const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
+        this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.5 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMulti * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
+      }
+      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
+    } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
+      const fbRadius = 15 + charges * 15;
+      this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 2.2 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
+      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 10, 5);
+    } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
+      const arrowCount = Math.min(7, 3 + Math.floor((this.player.spd - cd.spd) / 8)) + charges;
+      for (let i = 0; i < arrowCount; i++) {
+        const a = aimAngle + (i - Math.floor(arrowCount / 2)) * (0.2 + (aoeScale - 1) * 0.1);
+        const speed = 11;
+        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 1.3 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale }));
+      }
+      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
+    } else if (skillType === 'Cross Slash' || this.player.classType === 'magicgladiator') {
+      this.projectiles.push(new Projectile({ type: 'aoe_explosion', x: this.player.x, y: weaponY, radius: 130 * aoeScale * areaMulti * lvlScale, life: 25, maxLife: 25, color: cd.s2Color || '#ffd700', damage: this.player.atk * 3.0 * dmgMulti, critChance: 0.25, ...projProps }));
+      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#ffd700', 30 * aoeScale + charges * 15, 8);
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
+      this.ui.updateHUD(this.player);
+    } else {
+      // Default fallback: Warrior Shockwave style
+      const waveCount = 1 + charges;
+      const spdDiff = Math.max(0, this.player.spd - cd.spd);
+      const waveDistance = (120 + spdDiff * 6) * areaMulti;
+      const waveSpread = 0.12 + (aoeScale - 1) * 0.08;
+
+      for (let i = 0; i < waveCount; i++) {
+        const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
+        this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.5 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMulti * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
+      }
+      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     }
     this.broadcastState();
   }
