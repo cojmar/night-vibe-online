@@ -614,7 +614,7 @@ export default class UI {
                     tc.style.display = tc.id === targetId ? 'flex' : 'none';
                 });
                 
-                if (targetId === 'tab-classes') {
+                if (targetId === 'tab-char-classes') {
                     this.buildClassesTab();
                 }
             });
@@ -651,7 +651,7 @@ export default class UI {
     }
 
     buildClassesTab() {
-        const container = document.getElementById('visual-classes-container');
+        const container = document.getElementById('visual-char-classes-container');
         if (!container) return;
         container.innerHTML = '';
         
