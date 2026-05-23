@@ -614,10 +614,10 @@ export default class UI {
         const btnConfigSave = document.getElementById('btn-config-save');
         
         if (btnConfigSave) {
-            btnConfigSave.addEventListener('click', () => {
+            btnConfigSave.addEventListener('click', async () => {
                 const presetId = ConfigModule.activePresetId;
                 if (presetId && presetId.startsWith('built-in:')) {
-                    alert("This is a built-in read-only preset. Click 'Save As...' to save your modifications as a custom preset!");
+                    await this.showAlert("⚠️ Built-in Preset", "This is a built-in read-only preset. Click 'Save As...' to save your modifications as a custom preset!");
                     const btnSaveAs = document.getElementById('btn-preset-save-as');
                     if (btnSaveAs) btnSaveAs.click();
                     return;
@@ -626,10 +626,12 @@ export default class UI {
                 saveConfigFromUI();
                 const originalText = btnConfigSave.innerText;
                 btnConfigSave.innerText = '✔️ SAVED!';
-                btnConfigSave.style.background = '#27ae60';
+                btnConfigSave.style.background = '#ffd700';
+                btnConfigSave.style.color = '#000';
                 setTimeout(() => {
                     btnConfigSave.innerText = originalText;
-                    btnConfigSave.style.background = '#2ecc71';
+                    btnConfigSave.style.background = '#ffd700';
+                    btnConfigSave.style.color = '#000';
                 }, 1000);
             });
         }
@@ -655,8 +657,8 @@ export default class UI {
         // Preset Manager Bar Action Buttons
         const btnSaveAs = document.getElementById('btn-preset-save-as');
         if (btnSaveAs) {
-            btnSaveAs.addEventListener('click', () => {
-                const name = prompt("Enter a name for the new custom preset:", "My Custom Preset");
+            btnSaveAs.addEventListener('click', async () => {
+                const name = await this.showPrompt("💾 Save Preset As", "Enter a name for the new custom preset:", "My Custom Preset");
                 if (!name || !name.trim()) return;
                 
                 const customPresets = ConfigModule.getCustomPresets();
@@ -685,7 +687,7 @@ export default class UI {
 
         const btnDuplicate = document.getElementById('btn-preset-duplicate');
         if (btnDuplicate) {
-            btnDuplicate.addEventListener('click', () => {
+            btnDuplicate.addEventListener('click', async () => {
                 let currentName = 'Preset';
                 const presetId = ConfigModule.activePresetId;
                 if (presetId.startsWith('built-in:')) {
@@ -697,7 +699,7 @@ export default class UI {
                     if (presets[key]) currentName = presets[key].name;
                 }
                 
-                const name = prompt("Enter name for duplicated preset:", currentName + " (Copy)");
+                const name = await this.showPrompt("📋 Duplicate Preset", "Enter name for duplicated preset:", currentName + " (Copy)");
                 if (!name || !name.trim()) return;
                 
                 const customPresets = ConfigModule.getCustomPresets();
@@ -725,7 +727,7 @@ export default class UI {
 
         const btnDeletePreset = document.getElementById('btn-preset-delete');
         if (btnDeletePreset) {
-            btnDeletePreset.addEventListener('click', () => {
+            btnDeletePreset.addEventListener('click', async () => {
                 const presetId = ConfigModule.activePresetId;
                 if (!presetId.startsWith('custom:')) return;
                 const key = presetId.split('custom:')[1];
@@ -733,7 +735,7 @@ export default class UI {
                 const customPresets = ConfigModule.getCustomPresets();
                 if (customPresets[key]) {
                     const name = customPresets[key].name;
-                    if (confirm(`Are you sure you want to delete the preset "${name}"?`)) {
+                    if (await this.showConfirm("🗑️ Delete Preset", `Are you sure you want to delete the preset "${name}"?`)) {
                         delete customPresets[key];
                         ConfigModule.saveCustomPresets(customPresets);
                         
@@ -750,8 +752,8 @@ export default class UI {
 
         const btnNewPreset = document.getElementById('btn-preset-new');
         if (btnNewPreset) {
-            btnNewPreset.addEventListener('click', () => {
-                const name = prompt("Enter a name for the new custom preset:", "My New Preset");
+            btnNewPreset.addEventListener('click', async () => {
+                const name = await this.showPrompt("➕ New Preset", "Enter a name for the new custom preset:", "My New Preset");
                 if (!name || !name.trim()) return;
                 
                 const customPresets = ConfigModule.getCustomPresets();
@@ -796,8 +798,8 @@ export default class UI {
 
         const btnImportGameSession = document.getElementById('btn-preset-import-game');
         if (btnImportGameSession) {
-            btnImportGameSession.addEventListener('click', () => {
-                const name = prompt("Enter a name for the imported preset:", "Imported Preset");
+            btnImportGameSession.addEventListener('click', async () => {
+                const name = await this.showPrompt("📥 Import Session", "Enter a name for the imported preset:", "Imported Preset");
                 if (!name || !name.trim()) return;
                 
                 const customPresets = ConfigModule.getCustomPresets();
@@ -822,6 +824,7 @@ export default class UI {
                 this.addLog(`📥 Imported session preset as "${name.trim()}"`);
             });
         }
+
         const btnConfigReset = document.getElementById('btn-config-reset');
         const btnConfigExport = document.getElementById('btn-config-export');
         const btnConfigImport = document.getElementById('btn-config-import');
@@ -1199,12 +1202,12 @@ export default class UI {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (event) => {
+                reader.onload = async (event) => {
                     try {
                         const imported = JSON.parse(event.target.result);
                         let defaultName = file.name.replace('.json', '').replace('nightvibe-config-', '');
                         defaultName = defaultName.charAt(0).toUpperCase() + defaultName.slice(1);
-                        const name = prompt("Enter a name for the imported preset:", defaultName);
+                        const name = await this.showPrompt("📥 Import Preset File", "Enter a name for the imported preset:", defaultName);
                         if (!name || !name.trim()) return;
                         
                         const customPresets = ConfigModule.getCustomPresets();
@@ -1231,7 +1234,7 @@ export default class UI {
                         
                         this.addLog(`📤 Imported configuration preset "${name.trim()}" successfully!`);
                     } catch (err) {
-                        alert("Failed to parse configuration JSON: " + err.message);
+                        await this.showAlert("❌ Import Failed", "Failed to parse configuration JSON: " + err.message);
                     }
                 };
                 reader.readAsText(file);
@@ -1269,10 +1272,10 @@ export default class UI {
         // Add new class button binding
         const btnAddClass = document.getElementById('btn-add-class');
         if (btnAddClass) {
-            btnAddClass.addEventListener('click', () => {
+            btnAddClass.addEventListener('click', async () => {
                 const isPlaying = this.game && this.game.state === 'PLAYING';
                 if (isPlaying) {
-                    alert("Cannot add classes while a game session is active.");
+                    await this.showAlert("⚠️ Active Session", "Cannot add classes while a game session is active.");
                     return;
                 }
                 const newId = 'custom_' + Date.now();
@@ -1289,10 +1292,10 @@ export default class UI {
         // Add new monster button binding
         const btnAddMonster = document.getElementById('btn-add-monster');
         if (btnAddMonster) {
-            btnAddMonster.addEventListener('click', () => {
+            btnAddMonster.addEventListener('click', async () => {
                 const isPlaying = this.game && this.game.state === 'PLAYING';
                 if (isPlaying) {
-                    alert("Cannot add monsters while a game session is active.");
+                    await this.showAlert("⚠️ Active Session", "Cannot add monsters while a game session is active.");
                     return;
                 }
                 ConfigModule.ENEMY_TYPES.push({
@@ -2207,9 +2210,9 @@ export default class UI {
                 });
 
                 // Right-click to drop
-                slotDiv.addEventListener('contextmenu', (e) => {
+                slotDiv.addEventListener('contextmenu', async (e) => {
                     e.preventDefault();
-                    if (itemData && confirm(`Drop ${itemData.name}?`)) {
+                    if (itemData && await this.showConfirm("⚠️ Drop Equipment", `Drop ${itemData.name}?`)) {
                         delete p.equipment[slotName];
                         itemData.x = p.x;
                         itemData.y = p.y;
@@ -2325,9 +2328,9 @@ export default class UI {
                 });
 
                 // Right-click to drop
-                cell.addEventListener('contextmenu', (e) => {
+                cell.addEventListener('contextmenu', async (e) => {
                     e.preventDefault();
-                    if (confirm(`Drop ${item.name}?`)) {
+                    if (await this.showConfirm("⚠️ Drop Item", `Drop ${item.name}?`)) {
                         p.inventory.splice(index, 1);
                         item.x = p.x;
                         item.y = p.y;
