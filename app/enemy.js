@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_LASER_DAMAGE_PER_SEC, BOSS_LASER_DAMAGE_LEVEL_SCALE, BOSS_PROJECTILE_LIFETIME } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_LASER_DAMAGE_PER_SEC, BOSS_LASER_DAMAGE_LEVEL_SCALE, BOSS_PROJECTILE_LIFETIME, getCachedImage } from './utils.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -287,14 +287,9 @@ export default class Enemy {
   }
 
   draw(ctx, groundY) {
-    let alpha = 1;
-    if (!this.alive) {
-        if (!this.deathTime || Date.now() - this.deathTime > 2000) return;
-        const progress = (Date.now() - this.deathTime) / 2000;
-        alpha = 1 - progress;
-    }
+    if (!this.alive) return;
     const now = Date.now();
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = 1;
     if (this.hitFlash > 0 && this.alive) ctx.globalAlpha *= 0.5 + Math.sin(this.hitFlash * 3) * 0.5;
 
     // Shadow
@@ -358,7 +353,16 @@ export default class Enemy {
     ctx.font = `${this.size}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(this.icon, this.x, drawY);
+    if (this.icon && typeof this.icon === 'string' && (this.icon.startsWith('data:image/') || this.icon.startsWith('http'))) {
+        const img = getCachedImage(this.icon);
+        if (img) {
+            ctx.drawImage(img, this.x - this.size / 2, drawY - this.size / 2, this.size, this.size);
+        } else {
+            ctx.fillText('👾', this.x, drawY);
+        }
+    } else {
+        ctx.fillText(this.icon || '👾', this.x, drawY);
+    }
     if (this.name === 'BOSS') {
         const originalFont = ctx.font;
         ctx.font = `${Math.floor(this.size * 0.7)}px sans-serif`;

@@ -1,7 +1,7 @@
 import Network from './network.js';
 import Game from './game.js';
 import UI from './ui.js';
-import { CHAT_MESSAGE_DURATION, NETWORK_ROOM_NAME } from './utils.js';
+import { CHAT_MESSAGE_DURATION, NETWORK_ROOM_NAME, CLASS_DATA } from './utils.js';
 
 window.app = new class {
     constructor() {
@@ -81,23 +81,24 @@ window.app = new class {
             const list = document.getElementById('menu-player-list');
             if (list) {
                 let count = Object.keys(this.net.room.users).length + 1; // including self
-                const getIcon = (cls) => {
-                    if (cls === 'warrior') return '⚔️';
-                    if (cls === 'mage') return '🔮';
-                    if (cls === 'archer') return '🏹';
-                    if (cls === 'magicgladiator') return '⚡';
-                    return '👤';
+                const getIconHtml = (cls) => {
+                    const classConfig = CLASS_DATA[cls];
+                    const icon = classConfig ? classConfig.icon : '👤';
+                    if (icon.startsWith('data:image/') || icon.startsWith('http')) {
+                        return `<img src="${icon}" style="width:1.2em; height:1.2em; object-fit:contain; border-radius:3px; vertical-align:middle; display:inline-block;" />`;
+                    }
+                    return `<span style="font-size:1.2em; vertical-align:middle;">${icon}</span>`;
                 };
 
                 const buildCard = (name, statusStr, cls, level, resets, isSelf) => {
-                    const icon = getIcon(cls);
+                    const iconHtml = getIconHtml(cls);
                     const borderColor = statusStr.includes('Game') ? '#e74c3c' : '#2ecc71';
                     const bg = isSelf ? 'rgba(243, 156, 18, 0.15)' : 'rgba(0,0,0,0.4)';
                     return `
                     <div style="background:${bg}; border-left:4px solid ${borderColor}; padding:8px 10px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
                         <div style="display:flex; flex-direction:column;">
                             <span style="font-weight:bold; color:${isSelf ? '#f1c40f' : '#ecf0f1'}; font-size:1.05em;">${name}</span>
-                            <span style="font-size:0.85em; color:#bdc3c7; margin-top:3px;">${icon} Lv.<span style="color:#fff;">${level}</span> ${resets > 0 ? `<span style="color:#9b59b6;">(🔄${resets})</span>` : ''}</span>
+                            <span style="font-size:0.85em; color:#bdc3c7; margin-top:3px;">${iconHtml} Lv.<span style="color:#fff;">${level}</span> ${resets > 0 ? `<span style="color:#9b59b6;">(🔄${resets})</span>` : ''}</span>
                         </div>
                         <div style="font-size:0.85em; text-align:right;">
                             ${statusStr}
