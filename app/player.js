@@ -130,6 +130,8 @@ export default class Player {
         this.kills -= this.reqKills;
         this.level++;
         this.levelUp();
+        // Immediately recalculate required kills for the new level so HUD stays perfectly in sync!
+        this.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(this.level, REQ_KILLS_EXPONENT) + Math.sin(this.level) * REQ_KILLS_SIN_AMP);
         return true; // Leveled up
       } else {
         this.kills = this.reqKills; // cap
