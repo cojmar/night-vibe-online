@@ -42,10 +42,13 @@
       height: 100vh;
       height: 100svh;
       height: 100dvh;
-      padding-top: env(safe-area-inset-top);
-      padding-right: env(safe-area-inset-right);
-      padding-bottom: env(safe-area-inset-bottom);
-      padding-left: env(safe-area-inset-left);
+      /* NOTE: do NOT add safe-area-inset padding here. Some devices
+         (e.g. Samsung S24 FE in landscape with gesture nav) report
+         a non-zero safe-area-inset-right which would shrink the
+         container/canvas and leave a black bar on the right.
+         The game canvas renders full-bleed (viewport-fit=cover);
+         individual HUD elements apply safe-area insets via
+         max() in their own top/right/bottom/left rules. */
     }
 
     .container {
@@ -513,8 +516,8 @@
 
     .party-list {
       position: absolute;
-      top: 10px;
-      left: 10px;
+      top: max(10px, env(safe-area-inset-top));
+      left: max(10px, env(safe-area-inset-left));
       z-index: 5;
       display: flex;
       flex-direction: column;
@@ -737,8 +740,8 @@
 
     .game-btns {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
       z-index: 8;
       display: none;
       gap: 6px;
@@ -760,7 +763,7 @@
 
     .compact-log {
       position: absolute;
-      bottom: 12px;
+      bottom: max(12px, calc(env(safe-area-inset-bottom) + 12px));
       left: 50%;
       transform: translateX(-50%);
       width: 340px;
@@ -872,8 +875,8 @@
 
     .cooldown-ring {
       position: absolute;
-      bottom: 60px;
-      right: 20px;
+      bottom: max(60px, calc(env(safe-area-inset-bottom) + 60px));
+      right: max(20px, calc(env(safe-area-inset-right) + 20px));
       z-index: 6;
       width: 56px;
       height: 56px;
@@ -1192,8 +1195,8 @@
 
       .party-list {
         width: 240px;
-        top: 14px;
-        left: 14px;
+        top: max(14px, env(safe-area-inset-top));
+        left: max(14px, env(safe-area-inset-left));
       }
 
       .hp-container {
@@ -1222,15 +1225,15 @@
       }
 
       .cooldown-ring {
-        bottom: 60px;
-        right: 20px;
+        bottom: max(60px, calc(env(safe-area-inset-bottom) + 60px));
+        right: max(20px, calc(env(safe-area-inset-right) + 20px));
         width: 56px;
         height: 56px;
       }
 
       .compact-log {
         width: 340px;
-        bottom: 12px;
+        bottom: max(12px, calc(env(safe-area-inset-bottom) + 12px));
         padding: 6px 10px;
       }
 
@@ -1265,7 +1268,7 @@
 
       .compact-log {
         width: 400px;
-        bottom: 16px;
+        bottom: max(16px, calc(env(safe-area-inset-bottom) + 16px));
       }
 
       .walk-indicator {
@@ -1276,9 +1279,9 @@
 
     @media (max-width: 650px) {
       .game-btns {
-        top: 10px !important;
+        top: max(10px, env(safe-area-inset-top)) !important;
         bottom: auto !important;
-        right: 10px !important;
+        right: max(10px, env(safe-area-inset-right)) !important;
         flex-direction: column !important;
       }
 
