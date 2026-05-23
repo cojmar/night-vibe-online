@@ -367,8 +367,7 @@ export default class Game {
       if (eData.alive !== undefined) e.alive = eData.alive;
       if (eData.name !== undefined) e.name = eData.name;
       if (eData.size !== undefined) e.size = eData.size;
-      if (eData.color !== undefined) e.color = eData.color;
-      if (eData.icon !== undefined) e.icon = eData.icon;
+      // Icons and colors are locally deterministic or default, no need to sync from network
       if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
     });
     // Remove enemies not in host, but keep dead ones until their death animation finishes
@@ -1235,8 +1234,7 @@ export default class Game {
       chatMsg: this.player.chatMsg,
       buffHpTimer: this.player.buffHpTimer,
       buffManaTimer: this.player.buffManaTimer,
-      inventory: this.player.inventory,
-      equipment: this.player.equipment,
+      // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
       projectiles: this.projectiles.map(p => ({
         type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
         radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions
@@ -1251,9 +1249,12 @@ export default class Game {
         wave: this.wave, kills: this.kills, seed: this.prng.seed, env: this.selectedEnv, time: this.globalTime,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
-          id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, color: e.color, icon: e.icon, deathTime: e.deathTime
+          id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
         })),
-        items: this.items
+        items: this.items.map(i => ({
+          ...i,
+          icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
+        }))
       };
     }
     this.net.send_cmd('set_data', data);

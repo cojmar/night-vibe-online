@@ -1499,7 +1499,8 @@ export default class UI {
                             if (this.game.isHost) {
                                 this.game.items.push(itemData);
                             } else {
-                                this.game.net.send_cmd('set_data', { spawnItem: itemData });
+                                const netItem = { ...itemData, icon: (itemData.icon && typeof itemData.icon === 'string' && itemData.icon.startsWith('data:image/')) ? '📦' : itemData.icon };
+                                this.game.net.send_cmd('set_data', { spawnItem: netItem });
                             }
                             this.game.saveLocalProgression();
                             this.game.broadcastState();
@@ -1549,7 +1550,8 @@ export default class UI {
                         if (this.game.isHost) {
                             this.game.items.push(itemData);
                         } else {
-                            this.game.net.send_cmd('set_data', { spawnItem: itemData });
+                            const netItem = { ...itemData, icon: (itemData.icon && typeof itemData.icon === 'string' && itemData.icon.startsWith('data:image/')) ? '📦' : itemData.icon };
+                            this.game.net.send_cmd('set_data', { spawnItem: netItem });
                         }
                         this.game.saveLocalProgression();
                         this.game.broadcastState();
@@ -1615,7 +1617,8 @@ export default class UI {
                         if (this.game.isHost) {
                             this.game.items.push(item);
                         } else {
-                            this.game.net.send_cmd('set_data', { spawnItem: item });
+                            const netItem = { ...item, icon: (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) ? '📦' : item.icon };
+                            this.game.net.send_cmd('set_data', { spawnItem: netItem });
                         }
                         this.game.saveLocalProgression();
                         this.game.broadcastState();
@@ -1665,7 +1668,8 @@ export default class UI {
                         if (this.game.isHost) {
                             this.game.items.push(item);
                         } else {
-                            this.game.net.send_cmd('set_data', { spawnItem: item });
+                            const netItem = { ...item, icon: (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) ? '📦' : item.icon };
+                            this.game.net.send_cmd('set_data', { spawnItem: netItem });
                         }
                         this.game.saveLocalProgression();
                         this.game.broadcastState();
