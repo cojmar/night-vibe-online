@@ -528,22 +528,32 @@
     }
 
     .hp-container {
-      background: rgba(0, 0, 0, 0.6);
-      border: 2px solid #4a4a6a;
-      border-radius: 0;
+      background: rgba(10, 10, 20, 0.85);
+      border: 2px solid #34495e;
+      border-radius: 6px;
       padding: 6px 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
     }
 
     .hp-text {
-      font-size: 0.78em;
-      color: #ccc;
-      margin-bottom: 4px;
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      top: 0;
+      left: 0;
+      font-size: 9px;
+      line-height: 14px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+      margin-bottom: 0;
     }
 
     .hp-bar-bg {
-      height: 10px;
+      position: relative;
+      height: 14px;
       background: rgba(255, 255, 255, 0.1);
-      border-radius: 0;
+      border-radius: 3px;
       overflow: hidden;
     }
 
@@ -554,11 +564,11 @@
     }
 
     .xp-bar-bg {
-      height: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 1px;
       overflow: hidden;
-      margin-top: 4px;
+      margin-top: 3px;
     }
 
     .xp-bar-fill {
@@ -568,12 +578,7 @@
     }
 
     .score-display {
-      background: rgba(0, 0, 0, 0.7);
-      border: 2px solid #f39c12;
-      border-radius: 6px;
-      padding: 8px 12px;
-      text-align: left;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      display: none !important;
     }
 
     .score-display .kills {
@@ -1640,24 +1645,35 @@
       <canvas id="game-canvas" style="display:none;"></canvas>
       <div class="hud" id="hud">
         <div class="party-list" id="party-list">
-          <div class="hp-container" id="player-hp-container" style="cursor:pointer;">
-            <div class="hp-text" id="hp-text">HP: 100 / 100</div>
+          <div class="hp-container player-hud-box" id="player-hp-container" style="cursor:pointer; display: flex; flex-direction: column; gap: 3px;">
+            <!-- Top row: Level and Kills status -->
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: bold; color: #fff;">
+              <span style="color: #f1c40f;">⭐ Lv.<span id="player-level">1</span></span>
+              <span style="color: #ffd700;">💀 <span id="kill-count">0</span>/<span id="req-kill-count">5</span></span>
+              <span id="level-up-plus">+</span>
+            </div>
+            
+            <!-- HP bar with overlaid text -->
             <div class="hp-bar-bg">
               <div class="hp-bar-fill" id="hp-bar" style="width:100%"></div>
+              <div class="hp-text" id="hp-text">HP: 100 / 100</div>
             </div>
+            
+            <!-- Thin XP bar -->
             <div class="xp-bar-bg">
               <div class="xp-bar-fill" id="xp-bar" style="width:0%"></div>
             </div>
+
+            <!-- Bottom row: Wave and Environment -->
+            <div style="display: flex; justify-content: space-between; font-size: 9px; color: #bdc3c7; font-weight: bold;">
+              <span>📊 Wave <span id="wave-count" style="color: #ffd700;">1</span></span>
+              <span>🌍 <span id="env-name" style="color: #3498db;">Forest</span></span>
+            </div>
           </div>
-          <div id="buffs-container" style="display:flex; gap:10px; margin-top:6px; margin-bottom:2px; height: 24px;">
+          <div id="buffs-container" style="display:flex; gap:10px; margin-top:2px; margin-bottom:2px; height: 24px;">
           </div>
-          <div class="score-display" id="player-score-container" style="cursor:pointer;">
-            <div class="kills"><span class="highlight-level">⭐ Lv.<span id="player-level">1</span></span> <span>| 💀
-                <span style="color:#e74c3c">Kills:</span> <span id="kill-count">0</span>/<span
-                  id="req-kill-count">5</span></span> <span id="level-up-plus">+</span></div>
-            <div class="level">📊 <span style="color:#3498db">Wave:</span> <span id="wave-count"
-                style="color:#ffd700; font-size:1.1em">1</span> | 🌍 Env: <span id="env-name">Forest</span></div>
-          </div>
+          <!-- Hidden score display container to maintain backwards compatibility -->
+          <div id="player-score-container" style="display: none !important;"></div>
           <div class="stats-display" id="stats-display" style="display:none;">
             <div id="stat-pts-row"
               style="display:none; border-bottom: 1px dashed #ffd700; padding-bottom: 4px; margin-bottom: 2px; color: #f1c40f;">

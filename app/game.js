@@ -1398,51 +1398,51 @@ export default class Game {
   }
 
   triggerLevelUpAnimation(p) {
-    const size = p.level ? Math.max(30, 30 * (0.5 + 0.5 * (p.level / 10))) : 35;
+    const size = p.level ? Math.max(24, 24 * (0.5 + 0.5 * (p.level / 10))) : 28;
     
-    // 1. Massive Expanding Golden Halo (Sun crown wave) at player's feet
+    // 1. Moderate Expanding Golden Halo (Sun crown wave) at player's feet
     this.particles.push({
       x: p.x, y: p.y + 10,
-      vx: 0, vy: -1.0,
-      life: 45, maxLife: 45,
+      vx: 0, vy: -0.6,
+      life: 30, maxLife: 30,
       color: 'rgba(255, 215, 0, 0.7)',
-      size: size * 2.2, // Huge halo!
+      size: size * 1.3, // Scaled down halo
       isHalo: true
     });
 
-    // 2. Rising sunburst rays radiating 360 degrees outward up to 4x player size!
-    const rayCount = 36;
+    // 2. Rising sunburst rays radiating 360 degrees outward (optimized count)
+    const rayCount = 12; // Reduced from 36 to 12
     for (let i = 0; i < rayCount; i++) {
       const angle = (i / rayCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.1;
-      const spd = 1.8 + Math.random() * 3.2;
-      const length = size * 3.5 + Math.random() * size * 1.5; // up to 5x player size!
+      const spd = 1.2 + Math.random() * 2.0;
+      const length = size * 1.5 + Math.random() * size * 0.5; // Scaled down ray lengths
       
       this.particles.push({
         x: p.x,
         y: p.y - size * 0.4, // radiate from player's chest center
         vx: Math.cos(angle) * spd,
         vy: Math.sin(angle) * spd,
-        life: 40 + Math.floor(Math.random() * 20),
-        maxLife: 60,
+        life: 25 + Math.floor(Math.random() * 15),
+        maxLife: 40,
         color: i % 2 === 0 ? '#ffd700' : '#fffae0',
-        size: 3.5 + Math.random() * 3.5, // thick, ultra-visible rays!
+        size: 1.2 + Math.random() * 1.2, // thinner rays
         length: length,
         isRay: true
       });
     }
 
-    // 3. Dense rising sparkling light stars all over the character's body
-    const sparkleCount = 50;
+    // 3. Dense rising sparkling light stars all over the character's body (optimized count)
+    const sparkleCount = 18; // Reduced from 50 to 18
     for (let i = 0; i < sparkleCount; i++) {
       this.particles.push({
-        x: p.x + (Math.random() - 0.5) * 32,
-        y: p.y + (Math.random() - 0.5) * 45 - 20,
-        vx: (Math.random() - 0.5) * 1.0,
-        vy: -2.5 - Math.random() * 4.0,
-        life: 30 + Math.floor(Math.random() * 25),
-        maxLife: 55,
+        x: p.x + (Math.random() - 0.5) * 24,
+        y: p.y + (Math.random() - 0.5) * 35 - 15,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: -1.8 - Math.random() * 2.5,
+        life: 20 + Math.floor(Math.random() * 15),
+        maxLife: 35,
         color: '#fffbe0',
-        size: 1.8 + Math.random() * 2.5,
+        size: 1.0 + Math.random() * 1.5, // smaller sparkles
         isSparkle: true
       });
     }
@@ -2351,16 +2351,14 @@ export default class Game {
           const currentSize = p.size * (1 + (1 - progress) * 1.85);
           this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.85)';
           this.ctx.shadowColor = '#ffd700';
-          this.ctx.shadowBlur = 15;
-          this.ctx.lineWidth = 4 * progress;
+          this.ctx.shadowBlur = 6; // Reduced from 15 for better mobile/low-end performance
+          this.ctx.lineWidth = 3 * progress;
           this.ctx.beginPath();
           this.ctx.ellipse(p.x, p.y, currentSize, currentSize * 0.45, 0, 0, Math.PI * 2);
           this.ctx.stroke();
           this.ctx.shadowBlur = 0;
         } else if (p.isRay) {
           this.ctx.strokeStyle = p.color;
-          this.ctx.shadowColor = '#ffd700';
-          this.ctx.shadowBlur = 8 * progress;
           this.ctx.lineWidth = p.size * progress;
           this.ctx.beginPath();
           this.ctx.moveTo(p.x, p.y);
@@ -2368,11 +2366,8 @@ export default class Game {
           const vdist = Math.hypot(p.vx, p.vy) || 1;
           this.ctx.lineTo(p.x + (p.vx / vdist) * len, p.y + (p.vy / vdist) * len);
           this.ctx.stroke();
-          this.ctx.shadowBlur = 0;
         } else if (p.isSparkle) {
           this.ctx.fillStyle = p.color;
-          this.ctx.shadowColor = '#ffd700';
-          this.ctx.shadowBlur = 5 * progress;
           this.ctx.beginPath();
           this.ctx.arc(p.x, p.y, p.size * progress, 0, Math.PI * 2);
           this.ctx.fill();
@@ -2385,7 +2380,6 @@ export default class Game {
             this.ctx.moveTo(p.x, p.y - p.size * 2); this.ctx.lineTo(p.x, p.y + p.size * 2);
             this.ctx.stroke();
           }
-          this.ctx.shadowBlur = 0;
         } else {
           this.ctx.fillStyle = p.color;
           this.ctx.beginPath();
