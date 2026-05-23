@@ -550,7 +550,24 @@ export default class UI {
                 resetConfig();
                 buildConfigFields();
                 saveConfigFromUI();
-                this.addLog("🛠️ Custom configurations reset to defaults.");
+                
+                // Also reset classes config to defaults!
+                localStorage.removeItem('nightvibe-custom-classes');
+                const defaults = {
+                  warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
+                  mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
+                  archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
+                  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
+                };
+                for (const key in ConfigModule.CLASS_DATA) {
+                    delete ConfigModule.CLASS_DATA[key];
+                }
+                Object.assign(ConfigModule.CLASS_DATA, defaults);
+                
+                this.saveClassesToStorage();
+                this.buildClassesTab();
+                
+                this.addLog("🛠️ Custom configurations and classes reset to defaults.");
             });
         }
 
@@ -691,8 +708,11 @@ export default class UI {
             headerRow.style.borderBottom = '1px solid #34495e';
             headerRow.style.paddingBottom = '8px';
             
+            const iconHtml = (classData.icon.startsWith('data:image/') || classData.icon.startsWith('http')) ? 
+                `<img src="${classData.icon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+                `<span style="font-size:1.8em;">${classData.icon}</span>`;
             const titleHtml = `<div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:1.8em;">${classData.icon}</span>
+                <div class="class-icon-preview">${iconHtml}</div>
                 <h3 style="margin:0; color:${classData.color}; font-size:1.3em;">${classData.name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(${classId})</span></h3>
             </div>`;
             
@@ -727,16 +747,236 @@ export default class UI {
                         optionsHtml += `<option value="${opt}" ${selectedAttr}>${opt}</option>`;
                     });
                     inputHtml = `<select data-key="${key}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">${optionsHtml}</select>`;
+                } else if (type === 'custom-icon') {
+                    const currentIcon = classData[key] || '👤';
+                    const displayEmoji = (currentIcon.startsWith('data:image/') || currentIcon.startsWith('http')) ? '👤' : currentIcon;
+                    
+                    inputHtml = `<div class="custom-icon-picker-container" style="position:relative; display:flex; flex-direction:column; gap:6px; ${opacityStyle}">
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <!-- Styled Custom Emoji Toggle Button -->
+                            <button type="button" class="custom-emoji-btn" ${disabledAttr} style="width:60px; height:34px; padding:0; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; cursor:pointer; font-size:1.4em; display:flex; align-items:center; justify-content:center; transition: all 0.2s ease;">
+                                ${displayEmoji}
+                            </button>
+                            
+                            <span style="color:#bdc3c7; font-size:0.9em;">or</span>
+                            
+                            <label style="flex:1; text-align:center; padding:7px 10px; background:#16a085; border:1px solid #1abc9c; color:#fff; border-radius:5px; cursor:pointer; font-weight:bold; font-size:0.85em; display:inline-block; user-select:none; transition: all 0.2s ease; ${disabledAttr ? 'pointer-events:none; opacity:0.6;' : ''}">
+                                📤 Photo
+                                <input type="file" accept="image/*" class="photo-upload" ${disabledAttr} style="display:none;">
+                            </label>
+                        </div>
+                        
+                        <!-- Floating Custom Popover Emoji Picker -->
+                        <div class="custom-emoji-picker-popover" style="display:none; position:absolute; z-index:1000; top:40px; left:0; width:260px; background:rgba(30, 39, 46, 0.98); border:1px solid #34495e; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,0.5); padding:10px; backdrop-filter:blur(10px); flex-direction:column; gap:8px;">
+                            <!-- Search Header -->
+                            <div style="position:relative; display:flex; align-items:center;">
+                                <input type="text" class="emoji-search-input" placeholder="🔍 Search emojis..." style="width:100%; box-sizing:border-box; padding:6px 10px; padding-left:28px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-size:0.85em;">
+                                <span style="position:absolute; left:8px; color:#95a5a6; font-size:0.9em; pointer-events:none;">🔍</span>
+                            </div>
+                            
+                            <!-- Emojis Grid Scrollable -->
+                            <div class="emoji-grid-scroll" style="max-height:160px; overflow-y:auto; display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; padding-right:4px;">
+                                <!-- populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Raw Text Input (hidden) -->
+                        <input type="text" data-key="${key}" value="${classData[key] || ''}" ${disabledAttr} placeholder="Emoji or Image Base64 string" style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-size:0.85em; font-family:monospace; display:none;">
+                    </div>`;
                 } else {
                     inputHtml = `<input type="text" data-key="${key}" value="${classData[key] || ''}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">`;
                 }
                 
                 wrapper.innerHTML = `<label style="display:block; font-size:0.85em; color:#bdc3c7; margin-bottom:4px;">${label}</label>${inputHtml}`;
                 grid.appendChild(wrapper);
+
+                if (type === 'custom-icon') {
+                    const emojiBtn = wrapper.querySelector('.custom-emoji-btn');
+                    const popover = wrapper.querySelector('.custom-emoji-picker-popover');
+                    const searchInput = wrapper.querySelector('.emoji-search-input');
+                    const emojiGrid = wrapper.querySelector('.emoji-grid-scroll');
+                    const fileInput = wrapper.querySelector('.photo-upload');
+                    const textInput = wrapper.querySelector('input[data-key="icon"]');
+
+                    const EMOJI_LIST = [
+                        { char: "⚔️", tags: "sword warrior fight weapon attack clash" },
+                        { char: "🛡️", tags: "shield defense guard armor tank protection" },
+                        { char: "🏹", tags: "bow archer arrow shoot range hunter" },
+                        { char: "🔮", tags: "orb crystal ball mage magic wizard sorcerer" },
+                        { char: "✨", tags: "sparkles gladiator magic star shine light" },
+                        { char: "🔥", tags: "fire flame hot burn red element" },
+                        { char: "❄️", tags: "ice frost snow cold freeze element blue" },
+                        { char: "⚡", tags: "lightning thunder shock electric yellow element" },
+                        { char: "🌀", tags: "vortex swirl wind tempest hurricane element" },
+                        { char: "💀", tags: "skull death dead bones poison necromancer" },
+                        { char: "👑", tags: "king queen crown gold royalty royal" },
+                        { char: "🎒", tags: "backpack bag inventory items gear" },
+                        { char: "🧪", tags: "potion flask chemistry science lab alchemist magic" },
+                        { char: "🏺", tags: "potion urn jar base vase loot" },
+                        { char: "🗝️", tags: "key lock secret dungeon loot chest" },
+                        { char: "💎", tags: "gem crystal diamond jewel sapphire ruby emerald" },
+                        { char: "👤", tags: "player character person avatar shadow human" },
+                        { char: "🥷", tags: "ninja assassin stealth shadow dagger thief" },
+                        { char: "🧙", tags: "wizard mage sorcerer warlock magic old spell" },
+                        { char: "🧚", tags: "fairy elf pixie magic wings green" },
+                        { char: "🧛", tags: "vampire blood fangs dark bite count vampire" },
+                        { char: "🧟", tags: "zombie undead monster dead brain bite walker" },
+                        { char: "🧜", tags: "mermaid siren water sea trident ocean aquaman" },
+                        { char: "🧝", tags: "elf ranger ear legolas archer nature green" },
+                        { char: "👾", tags: "alien space invader retro gamer pixel game" },
+                        { char: "🤖", tags: "robot android cyborg tech metal future machine" },
+                        { char: "🦊", tags: "fox animal red tails clever beast" },
+                        { char: "🦁", tags: "lion cat wild king claws beast gold" },
+                        { char: "🐯", tags: "tiger cat wild stripes claws beast" },
+                        { char: "🐻", tags: "bear grizzly claws beast wild forest" },
+                        { char: "🐼", tags: "panda bear cute bamboo black white beast" },
+                        { char: "🐺", tags: "wolf beast wild dog moon howl forest gray" },
+                        { char: "🍀", tags: "clover leaf lucky luck green nature" },
+                        { char: "🌱", tags: "sprout plant grow nature life leaf wood" },
+                        { char: "🌹", tags: "rose flower red love romantic nature beauty" },
+                        { char: "🍁", tags: "maple leaf autumn fall orange nature wood" },
+                        { char: "🍄", tags: "mushroom fungus poison toadstool nature forest" },
+                        { char: "⭐", tags: "star yellow shine sky space celestial glow" },
+                        { char: "🌙", tags: "moon crescent night sky space dark celestial" },
+                        { char: "☀️", tags: "sun hot day light bright celestial yellow" },
+                        { char: "☁️", tags: "cloud sky white weather sky element" },
+                        { char: "🌊", tags: "wave water sea ocean blue splash element" },
+                        { char: "🌋", tags: "volcano magma lava fire element mountain" },
+                        { char: "☄️", tags: "comet meteor space celestial fire fall star" },
+                        { char: "🪐", tags: "saturn planet space celestial orbit rings" },
+                        { char: "🌍", tags: "earth world planet space map globe green blue" },
+                        { char: "🐾", tags: "paw print track animal steps footprints walk" },
+                        { char: "👁️", tags: "eye vision sight see look watch observe pupil" },
+                        { char: "❤️", tags: "heart red love life hp health blood" },
+                        { char: "🖤", tags: "black heart dark shadow evil death gothic" },
+                        { char: "💚", tags: "green heart nature life health poison recovery" },
+                        { char: "💙", tags: "blue heart mana water magic ice cool" },
+                        { char: "💛", tags: "yellow heart light gold thunder spark joy" },
+                        { char: "💜", tags: "purple heart poison shadow curse mystical amethyst" },
+                        { char: "💥", tags: "explosion boom blast hit collision spark attack" },
+                        { char: "💨", tags: "dash wind speed smoke escape quick move" },
+                        { char: "💤", tags: "sleep tired status slow stun dream rest" },
+                        { char: "💢", tags: "anger mad attack crit critical damage hit rage" },
+                        { char: "☣️", tags: "biohazard toxic poison plague sickness health" },
+                        { char: "☢️", tags: "radiation atomic toxic hazard blast energy green" },
+                        { char: "📢", tags: "megaphone speaker announce chat volume notify talk" },
+                        { char: "⚠️", tags: "warning alert danger caution sign border yellow" },
+                        { char: "🎯", tags: "target aim range center archery hit bullseye focus" },
+                        { char: "🎲", tags: "dice roll gamble luck chance board boardgame" }
+                    ];
+
+                    const renderGrid = (query = '') => {
+                        emojiGrid.innerHTML = '';
+                        const filtered = EMOJI_LIST.filter(item => {
+                            return item.char.includes(query) || item.tags.toLowerCase().includes(query.toLowerCase());
+                        });
+
+                        if (filtered.length === 0) {
+                            emojiGrid.innerHTML = `<div style="grid-column: span 6; text-align:center; padding: 15px; color:#7f8c8d; font-size: 0.85em;">No emojis found</div>`;
+                            return;
+                        }
+
+                        filtered.forEach(item => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.innerText = item.char;
+                            btn.style.width = '32px';
+                            btn.style.height = '32px';
+                            btn.style.padding = '0';
+                            btn.style.background = '#2c3e50';
+                            btn.style.border = '1px solid #34495e';
+                            btn.style.color = '#fff';
+                            btn.style.borderRadius = '4px';
+                            btn.style.cursor = 'pointer';
+                            btn.style.fontSize = '1.3em';
+                            btn.style.display = 'flex';
+                            btn.style.alignItems = 'center';
+                            btn.style.justifyContent = 'center';
+                            btn.style.transition = 'all 0.15s ease';
+                            
+                            btn.onmouseover = () => {
+                                btn.style.background = '#34495e';
+                                btn.style.borderColor = '#1abc9c';
+                            };
+                            btn.onmouseout = () => {
+                                btn.style.background = '#2c3e50';
+                                btn.style.borderColor = '#34495e';
+                            };
+                            
+                            btn.onclick = () => {
+                                textInput.value = item.char;
+                                emojiBtn.innerText = item.char;
+                                textInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                popover.style.display = 'none';
+                            };
+                            emojiGrid.appendChild(btn);
+                        });
+                    };
+
+                    // Initial render
+                    renderGrid();
+
+                    // Toggle Popover
+                    if (emojiBtn) {
+                        emojiBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const isVisible = popover.style.display === 'flex';
+                            
+                            // Close any other open popovers first
+                            document.querySelectorAll('.custom-emoji-picker-popover').forEach(p => {
+                                p.style.display = 'none';
+                            });
+
+                            if (!isVisible) {
+                                popover.style.display = 'flex';
+                                searchInput.value = '';
+                                renderGrid();
+                                searchInput.focus();
+                            }
+                        });
+                    }
+
+                    // Filter search
+                    if (searchInput) {
+                        searchInput.addEventListener('input', (e) => {
+                            renderGrid(e.target.value.trim());
+                        });
+                        searchInput.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                        });
+                    }
+
+                    // Close popover when clicking outside
+                    document.addEventListener('click', () => {
+                        if (popover) popover.style.display = 'none';
+                    });
+
+                    // Avoid popover closure when clicking inside popover container
+                    popover.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                    });
+
+                    // Photo upload
+                    if (fileInput) {
+                        fileInput.addEventListener('change', (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                    textInput.value = event.target.result;
+                                    emojiBtn.innerText = '👤'; // fallback smiley for images
+                                    textInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                    popover.style.display = 'none';
+                                };
+                                reader.readAsDataURL(file);
+                            }
+                        });
+                    }
+                }
             };
 
             addField('Class Name', 'name', 'text');
-            addField('Icon Emoji', 'icon', 'text');
+            addField('Icon / Emoji', 'icon', 'custom-icon');
             addField('Base HP', 'hp', 'number', 10);
             addField('Base MP', 'mp', 'number', 10);
             addField('Base Attack', 'atk', 'number', 2);
@@ -764,7 +1004,13 @@ export default class UI {
                         classCard.style.borderColor = ConfigModule.CLASS_DATA[classId].color || '#3498db';
                         headerRow.querySelector('h3').style.color = ConfigModule.CLASS_DATA[classId].color || '#3498db';
                         headerRow.querySelector('h3').innerHTML = `${ConfigModule.CLASS_DATA[classId].name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(${classId})</span>`;
-                        headerRow.querySelector('span').innerText = ConfigModule.CLASS_DATA[classId].icon;
+                        const iconPreview = headerRow.querySelector('.class-icon-preview');
+                        if (iconPreview) {
+                            const newIcon = ConfigModule.CLASS_DATA[classId].icon;
+                            iconPreview.innerHTML = (newIcon.startsWith('data:image/') || newIcon.startsWith('http')) ? 
+                                `<img src="${newIcon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+                                `<span style="font-size:1.8em;">${newIcon}</span>`;
+                        }
                         this.saveClassesToStorage();
                     });
                 });
@@ -781,11 +1027,9 @@ export default class UI {
                     btnDelete.style.cursor = 'pointer';
                     btnDelete.style.fontWeight = 'bold';
                     btnDelete.onclick = () => {
-                        if (confirm(`Are you sure you want to delete ${classData.name}?`)) {
-                            delete ConfigModule.CLASS_DATA[classId];
-                            this.saveClassesToStorage();
-                            this.buildClassesTab();
-                        }
+                        delete ConfigModule.CLASS_DATA[classId];
+                        this.saveClassesToStorage();
+                        this.buildClassesTab();
                     };
                     classCard.appendChild(btnDelete);
                 }
@@ -1148,7 +1392,14 @@ export default class UI {
         localStorage.setItem('night-vibe-online_selected-class', this.selectedClass);
         const cd = ConfigModule.CLASS_DATA[this.selectedClass];
         document.getElementById('current-class-name').textContent = cd.name;
-        document.getElementById('class-icon').textContent = cd.icon;
+        const classIconEl = document.getElementById('class-icon');
+        if (classIconEl) {
+            if (cd.icon.startsWith('data:image/') || cd.icon.startsWith('http')) {
+                classIconEl.innerHTML = `<img src="${cd.icon}" style="width:1.2em; height:1.2em; object-fit:contain; border-radius:8px; vertical-align:middle; display:inline-block;" />`;
+            } else {
+                classIconEl.textContent = cd.icon;
+            }
+        }
         document.getElementById('stat-hp').innerHTML = `<strong style="color:#e74c3c">HP (Health Points): ${cd.hp}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Maximum life capacity. If it reaches 0, you die.</span>`;
         document.getElementById('stat-mp').innerHTML = `<strong style="color:#9b59b6">SPD (Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Increases movement speed, S2 AOE size, and reduces S2 cooldown — higher SPD = faster and bigger attacks.</span>`;
         document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies. Scales with level and stat upgrades.</span>`;
@@ -1439,8 +1690,16 @@ export default class UI {
 
             const dispName = (p.nick && p.nick.trim() !== '') ? p.nick : key.substring(0, 8);
             const classIcon = (p.classType && CLASS_DATA[p.classType]) ? CLASS_DATA[p.classType].icon : '';
-            const newName = `${classIcon} ${dispName}${aliveText}`.trim();
-            if (nameEl.textContent !== newName) nameEl.textContent = newName;
+            let iconHtml = '';
+            if (classIcon) {
+                if (classIcon.startsWith('data:image/') || classIcon.startsWith('http')) {
+                    iconHtml = `<img src="${classIcon}" style="width:1.2em; height:1.2em; object-fit:contain; border-radius:4px; vertical-align:middle; margin-right:4px;" />`;
+                } else {
+                    iconHtml = `<span style="vertical-align:middle; margin-right:4px;">${classIcon}</span>`;
+                }
+            }
+            const newHtml = `<span style="vertical-align:middle;">${iconHtml}<span style="vertical-align:middle;">${dispName}${aliveText}</span></span>`;
+            if (nameEl.innerHTML !== newHtml) nameEl.innerHTML = newHtml;
 
             const newInfoText = `Lv.${p.level || 1} | Kills: ${p.kills || 0}/${p.reqKills || 5}`;
             if (infoEl.getAttribute('data-text') !== newInfoText) {
