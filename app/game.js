@@ -916,7 +916,24 @@ export default class Game {
       // Reset in-game progression stats so next game starts fresh at level 1
       // while preserving persistent progression (resets, bonusStatPoints) from localStorage
       this._resetSessionData();
-      this.net.send_cmd('set_data', { inGame: false, state: 'MENU' });
+
+      const base = CLASS_DATA.warrior;
+      const savedResets = parseInt(localStorage.getItem('nightvibe-resets'), 10) || 0;
+      const savedStatPoints = parseInt(localStorage.getItem('nightvibe-statpoints'), 10) || 0;
+
+      this.net.send_cmd('set_data', {
+        inGame: false,
+        state: 'MENU',
+        level: 1,
+        kills: 0,
+        resets: savedResets,
+        bonusStatPoints: savedStatPoints,
+        statPoints: savedStatPoints,
+        atk: base.atk,
+        spd: base.spd,
+        maxHp: base.hp,
+        hp: base.hp
+      });
     }
 
     // Restore personal configuration from localStorage
