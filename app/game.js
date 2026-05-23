@@ -53,6 +53,7 @@ export default class Game {
     this.isHost = false;
     this.syncTimer = 0;
     this.pendingHits = [];
+    this.lastProcessedKill = null;
 
     const saved = JSON.parse(localStorage.getItem('nightvibe-settings') || '{}');
     this.settings = {
@@ -81,17 +82,20 @@ export default class Game {
     });
     this.net.on('room.user_data', (data) => {
       // Process enemyKilled for ourselves even if it comes from our own user data broadcast
-      if (data.data && data.data.enemyKilled && this.player && data.data.enemyKilled === this.net.me.info.user) {
-        if (this.player.addKill()) {
-          this.s2Cooldown = 0;
-          this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
-          this.ui.updateHUD(this.player);
-          this.triggerLevelUpAnimation(this.player);
-          this.broadcastState();
-          this.saveLocalProgression();
-        }
-        if (this.state === 'PLAYING') {
-          this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
+      if (data.data && data.data.enemyKilled && this.player && typeof data.data.enemyKilled === 'string') {
+        if (data.data.enemyKilled !== this.lastProcessedKill && data.data.enemyKilled.split('_')[0] === this.net.me.info.user) {
+          this.lastProcessedKill = data.data.enemyKilled;
+          if (this.player.addKill()) {
+            this.s2Cooldown = 0;
+            this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
+            this.ui.updateHUD(this.player);
+            this.triggerLevelUpAnimation(this.player);
+            this.broadcastState();
+            this.saveLocalProgression();
+          }
+          if (this.state === 'PLAYING') {
+            this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
+          }
         }
       }
 
@@ -148,10 +152,10 @@ export default class Game {
               if (e.hp <= 0) {
                 e.alive = false; e.deathTime = Date.now(); e.hp = 0;
                 this.spawnEnemyDeathExplosion(e);
-                if (hit.source) {
-                  this.net.send_cmd('set_data', { enemyKilled: hit.source });
-                }
                 if (this.isHost) {
+                  if (hit.source) {
+                    this.net.send_cmd('set_data', { enemyKilled: hit.source + '_' + Math.random() });
+                  }
                   this.waveEnemiesKilled++;
                   if (this.bossActive && e.name === 'BOSS') {
                     this.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
@@ -1312,7 +1316,7 @@ export default class Game {
         if (e.hp <= 0) {
           e.alive = false; e.deathTime = Date.now(); e.hp = 0;
           this.spawnEnemyDeathExplosion(e);
-          this.net.send_cmd('set_data', { enemyKilled: this.net.me.info.user });
+          this.net.send_cmd('set_data', { enemyKilled: this.net.me.info.user + '_' + Math.random() });
           this.waveEnemiesKilled++;
           if (this.bossActive && e.name === 'BOSS') {
             this.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
