@@ -224,9 +224,18 @@ export default class Game {
 
   checkHost() {
     if (!this.net || !this.net.room || !this.net.room.users || !this.net.me || !this.net.me.info) {
-      if (!this.isHost) {
-        this.isHost = true;
-        this.ui.addLog('👑 You are the Host!', 'reward');
+      if (this.isHost) {
+        this.isHost = false;
+        this.ui.addLog('👥 You are a Client', 'reward');
+      }
+      return;
+    }
+    
+    // Players in the menu cannot be hosts
+    if (this.state !== 'PLAYING') {
+      if (this.isHost) {
+        this.isHost = false;
+        this.ui.addLog('👥 You are a Client', 'reward');
       }
       return;
     }
@@ -292,7 +301,7 @@ export default class Game {
 
     if (currentHost && (now - currentHostInputTime <= 5000)) {
       bestHost = currentHost; // Keep current host if they gave input in last 5s
-    } else {
+    } else if (hostCandidates.length > 0) {
       // Find player with most recent input
       bestHost = hostCandidates.sort((a, b) => {
         let aTime = (a === (this.net.me && this.net.me.info ? this.net.me.info.user : null) && this.player)
@@ -302,6 +311,8 @@ export default class Game {
         if (bTime === aTime) return a.localeCompare(b);
         return bTime - aTime;
       })[0];
+    } else {
+      bestHost = null; // No one is playing
     }
 
     const isHost = bestHost === (this.net.me && this.net.me.info ? this.net.me.info.user : null);

@@ -520,6 +520,10 @@ export default class UI {
                 }
             }
 
+            if (this.game && this.game.isHost && this.game.net) {
+                this.game.net.send_cmd('set_data', { gameplayConfig: ConfigModule.activeConfig });
+            }
+
             this.updateLobbyRulesText();
             this.updateClassCarousel();
         };
@@ -700,10 +704,11 @@ export default class UI {
     }
 
     saveClassesToStorage() {
-        // Extract only the classes that differ from default or are completely new? 
-        // For simplicity, we can just save all classes.
         localStorage.setItem('nightvibe-custom-classes', JSON.stringify(ConfigModule.CLASS_DATA));
         this.updateClassCarousel(); // Refresh main menu UI classes
+        if (this.game && this.game.isHost && this.game.net) {
+            this.game.net.send_cmd('set_data', { classData: ConfigModule.CLASS_DATA });
+        }
     }
 
     buildClassesTab() {
@@ -1092,6 +1097,9 @@ export default class UI {
 
     saveMonstersToStorage() {
         localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ConfigModule.ENEMY_TYPES));
+        if (this.game && this.game.isHost && this.game.net) {
+            this.game.net.send_cmd('set_data', { enemyTypes: ConfigModule.ENEMY_TYPES });
+        }
         if (this.game && this.game.broadcastState) {
             this.game.broadcastState();
         }
