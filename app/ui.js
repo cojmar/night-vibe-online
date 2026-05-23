@@ -566,8 +566,26 @@ export default class UI {
                 
                 this.saveClassesToStorage();
                 this.buildClassesTab();
+
+                // Also reset monsters config to defaults!
+                localStorage.removeItem('nightvibe-custom-monsters');
+                const defaultMonsters = [
+                  { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+                  { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
+                  { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+                  { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
+                  { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+                  { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
+                  { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+                  { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+                ];
+                ConfigModule.ENEMY_TYPES.length = 0;
+                ConfigModule.ENEMY_TYPES.push(...defaultMonsters);
                 
-                this.addLog("🛠️ Custom configurations and classes reset to defaults.");
+                this.saveMonstersToStorage();
+                this.buildMonstersTab();
+                
+                this.addLog("🛠️ Custom configurations, classes and monsters reset to defaults.");
             });
         }
 
@@ -633,6 +651,8 @@ export default class UI {
                 
                 if (targetId === 'tab-char-classes') {
                     this.buildClassesTab();
+                } else if (targetId === 'tab-monsters') {
+                    this.buildMonstersTab();
                 }
             });
         });
@@ -654,6 +674,24 @@ export default class UI {
                 };
                 this.saveClassesToStorage();
                 this.buildClassesTab();
+            });
+        }
+
+        // Add new monster button binding
+        const btnAddMonster = document.getElementById('btn-add-monster');
+        if (btnAddMonster) {
+            btnAddMonster.addEventListener('click', () => {
+                const isPlaying = this.game && this.game.state === 'PLAYING';
+                if (isPlaying) {
+                    alert("Cannot add monsters while a game session is active.");
+                    return;
+                }
+                ConfigModule.ENEMY_TYPES.push({
+                    name: 'New Monster', icon: '👾', hp: 50, atk: 10,
+                    color: '#95a5a6', speed: 0.5, size: 22
+                });
+                this.saveMonstersToStorage();
+                this.buildMonstersTab();
             });
         }
 
@@ -1035,6 +1073,317 @@ export default class UI {
             
             container.appendChild(classCard);
         }
+    }
+
+    saveMonstersToStorage() {
+        localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ConfigModule.ENEMY_TYPES));
+        if (this.game && this.game.broadcastState) {
+            this.game.broadcastState();
+        }
+    }
+
+    buildMonstersTab() {
+        const container = document.getElementById('visual-monsters-container');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const isPlaying = this.game && this.game.state === 'PLAYING';
+
+        if (isPlaying) {
+            const warnBanner = document.createElement('div');
+            warnBanner.style.background = 'rgba(231, 76, 60, 0.15)';
+            warnBanner.style.border = '1px solid #e74c3c';
+            warnBanner.style.padding = '10px 15px';
+            warnBanner.style.borderRadius = '6px';
+            warnBanner.style.marginBottom = '15px';
+            warnBanner.style.color = '#ff6b6b';
+            warnBanner.style.fontWeight = 'bold';
+            warnBanner.style.textAlign = 'center';
+            warnBanner.style.fontSize = '0.9em';
+            warnBanner.innerHTML = '⚠️ Active Session: Settings are read-only and locked to the Host\'s gameplay configuration.';
+            container.appendChild(warnBanner);
+        }
+
+        ConfigModule.ENEMY_TYPES.forEach((monster, index) => {
+            const monsterCard = document.createElement('div');
+            monsterCard.style.background = 'rgba(0,0,0,0.3)';
+            monsterCard.style.border = `2px solid ${monster.color || '#2ecc71'}`;
+            monsterCard.style.borderRadius = '8px';
+            monsterCard.style.padding = '15px';
+            monsterCard.style.marginBottom = '15px';
+            monsterCard.style.display = 'flex';
+            monsterCard.style.flexDirection = 'column';
+            monsterCard.style.gap = '10px';
+            
+            const headerRow = document.createElement('div');
+            headerRow.style.display = 'flex';
+            headerRow.style.justifyContent = 'space-between';
+            headerRow.style.alignItems = 'center';
+            headerRow.style.borderBottom = '1px solid #34495e';
+            headerRow.style.paddingBottom = '8px';
+            
+            const iconHtml = (monster.icon.startsWith('data:image/') || monster.icon.startsWith('http')) ? 
+                `<img src="${monster.icon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+                `<span style="font-size:1.8em;">${monster.icon}</span>`;
+            const titleHtml = `<div style="display:flex; align-items:center; gap:10px;">
+                <div class="monster-icon-preview">${iconHtml}</div>
+                <h3 style="margin:0; color:${monster.color}; font-size:1.3em;">${monster.name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(index: ${index})</span></h3>
+            </div>`;
+            
+            headerRow.innerHTML = titleHtml;
+            monsterCard.appendChild(headerRow);
+            
+            const grid = document.createElement('div');
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = '1fr 1fr';
+            grid.style.gap = '10px';
+            
+            const addField = (label, key, type, step = 1, options = null) => {
+                const wrapper = document.createElement('div');
+                const disabledAttr = isPlaying ? 'disabled' : '';
+                const opacityStyle = isPlaying ? 'opacity: 0.6; cursor: not-allowed;' : '';
+                
+                let inputHtml = '';
+                if (type === 'color') {
+                    inputHtml = `<div style="display:flex; gap:10px; align-items:center;">
+                        <input type="color" data-key="${key}" value="${monster[key] || '#ffffff'}" ${disabledAttr} style="border:none; background:none; width:40px; height:30px; padding:0; ${opacityStyle}">
+                    </div>`;
+                } else if (type === 'number') {
+                    inputHtml = `<input type="number" data-key="${key}" value="${monster[key] || 0}" step="${step}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-family:monospace; ${opacityStyle}">`;
+                } else if (type === 'custom-icon') {
+                    const currentIcon = monster[key] || '👾';
+                    const displayEmoji = (currentIcon.startsWith('data:image/') || currentIcon.startsWith('http')) ? '👾' : currentIcon;
+                    
+                    inputHtml = `<div class="custom-icon-picker-container" style="position:relative; display:flex; flex-direction:column; gap:6px; ${opacityStyle}">
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <!-- Styled Custom Emoji Toggle Button -->
+                            <button type="button" class="custom-emoji-btn" ${disabledAttr} style="width:60px; height:34px; padding:0; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; cursor:pointer; font-size:1.4em; display:flex; align-items:center; justify-content:center; transition: all 0.2s ease;">
+                                ${displayEmoji}
+                            </button>
+                            
+                            <span style="color:#bdc3c7; font-size:0.9em;">or</span>
+                            
+                            <label style="flex:1; text-align:center; padding:7px 10px; background:#16a085; border:1px solid #1abc9c; color:#fff; border-radius:5px; cursor:pointer; font-weight:bold; font-size:0.85em; display:inline-block; user-select:none; transition: all 0.2s ease; ${disabledAttr ? 'pointer-events:none; opacity:0.6;' : ''}">
+                                📤 Photo
+                                <input type="file" accept="image/*" class="photo-upload" ${disabledAttr} style="display:none;">
+                            </label>
+                        </div>
+                        
+                        <!-- Floating Custom Popover Emoji Picker -->
+                        <div class="custom-emoji-picker-popover" style="display:none; position:absolute; z-index:1000; top:40px; left:0; width:260px; background:rgba(30, 39, 46, 0.98); border:1px solid #34495e; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,0.5); padding:10px; backdrop-filter:blur(10px); flex-direction:column; gap:8px;">
+                            <!-- Search Header -->
+                            <div style="position:relative; display:flex; align-items:center;">
+                                <input type="text" class="emoji-search-input" placeholder="🔍 Search emojis..." style="width:100%; box-sizing:border-box; padding:6px 10px; padding-left:28px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-size:0.85em;">
+                                <span style="position:absolute; left:8px; color:#95a5a6; font-size:0.9em; pointer-events:none;">🔍</span>
+                            </div>
+                            
+                            <!-- Emojis Grid Scrollable -->
+                            <div class="emoji-grid-scroll" style="max-height:160px; overflow-y:auto; display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; padding-right:4px;">
+                                <!-- populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Raw Text Input (hidden) -->
+                        <input type="text" data-key="${key}" value="${monster[key] || ''}" ${disabledAttr} placeholder="Emoji or Image Base64 string" style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-size:0.85em; font-family:monospace; display:none;">
+                    </div>`;
+                } else {
+                    inputHtml = `<input type="text" data-key="${key}" value="${monster[key] || ''}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">`;
+                }
+                
+                wrapper.innerHTML = `<label style="display:block; font-size:0.85em; color:#bdc3c7; margin-bottom:4px;">${label}</label>${inputHtml}`;
+                grid.appendChild(wrapper);
+
+                if (type === 'custom-icon') {
+                    const emojiBtn = wrapper.querySelector('.custom-emoji-btn');
+                    const popover = wrapper.querySelector('.custom-emoji-picker-popover');
+                    const searchInput = wrapper.querySelector('.emoji-search-input');
+                    const emojiGrid = wrapper.querySelector('.emoji-grid-scroll');
+                    const fileInput = wrapper.querySelector('.photo-upload');
+                    const textInput = wrapper.querySelector('input[data-key="icon"]');
+
+                    const EMOJI_LIST = [
+                        { char: "🟢", tags: "green slime ball drop monster" },
+                        { char: "👺", tags: "goblin red mask japanese nose mask monster" },
+                        { char: "💀", tags: "skeleton skull death bones poison undead" },
+                        { char: "👹", tags: "orc ogre red demon face teeth horns monster" },
+                        { char: "👻", tags: "ghost phantom spirit floating white monster" },
+                        { char: "🔥", tags: "demon fire flame red lava monster" },
+                        { char: "🐉", tags: "dragon reptile beast orange wings giant lizard monster" },
+                        { char: "🧙", tags: "lich wizard dark mage warlock magic old skull death" },
+                        { char: "👾", tags: "slime alien space retro game monster" },
+                        { char: "🧟", tags: "zombie undead rot bite green monster" },
+                        { char: "🕷️", tags: "spider bug insect venom legs web monster" },
+                        { char: "🦂", tags: "scorpion venom claws tail sting desert monster" },
+                        { char: "🦇", tags: "bat wing flying dark vampire beast monster" },
+                        { char: "🐺", tags: "wolf dog gray moon wild beast monster" },
+                        { char: "🐍", tags: "snake poison venom slither green reptile monster" },
+                        { char: "👁️", tags: "eye beholder watcher evil optical look monster" },
+                        { char: "🦎", tags: "lizard green reptile tail beast monster" },
+                        { char: "🦖", tags: "t-rex dinosaur t-rex giant reptile teeth monster" },
+                        { char: "🦈", tags: "shark teeth fish water sea blue monster" },
+                        { char: "🐙", tags: "octopus kraken sea water red monster" },
+                        { char: "🦀", tags: "crab water sea orange shell claws monster" },
+                        { char: "🐝", tags: "wasp bee yellow sting bug wings monster" },
+                        { char: "🦟", tags: "mosquito sting fly bug vampire blood monster" },
+                        { char: "🍄", tags: "mushroom spore poison cap fungus red monster" }
+                    ];
+
+                    const renderGrid = (query = '') => {
+                        emojiGrid.innerHTML = '';
+                        const filtered = EMOJI_LIST.filter(item => {
+                            return item.char.includes(query) || item.tags.toLowerCase().includes(query.toLowerCase());
+                        });
+
+                        if (filtered.length === 0) {
+                            emojiGrid.innerHTML = `<div style="grid-column: span 6; text-align:center; padding: 15px; color:#7f8c8d; font-size: 0.85em;">No emojis found</div>`;
+                            return;
+                        }
+
+                        filtered.forEach(item => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.innerText = item.char;
+                            btn.style.width = '32px';
+                            btn.style.height = '32px';
+                            btn.style.padding = '0';
+                            btn.style.background = '#2c3e50';
+                            btn.style.border = '1px solid #34495e';
+                            btn.style.color = '#fff';
+                            btn.style.borderRadius = '4px';
+                            btn.style.cursor = 'pointer';
+                            btn.style.fontSize = '1.3em';
+                            btn.style.display = 'flex';
+                            btn.style.alignItems = 'center';
+                            btn.style.justifyContent = 'center';
+                            btn.style.transition = 'all 0.15s ease';
+                            
+                            btn.onmouseover = () => {
+                                btn.style.background = '#34495e';
+                                btn.style.borderColor = '#1abc9c';
+                            };
+                            btn.onmouseout = () => {
+                                btn.style.background = '#2c3e50';
+                                btn.style.borderColor = '#34495e';
+                            };
+                            
+                            btn.onclick = () => {
+                                textInput.value = item.char;
+                                emojiBtn.innerText = item.char;
+                                textInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                popover.style.display = 'none';
+                            };
+                            emojiGrid.appendChild(btn);
+                        });
+                    };
+
+                    renderGrid();
+
+                    if (emojiBtn) {
+                        emojiBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const isVisible = popover.style.display === 'flex';
+                            
+                            document.querySelectorAll('.custom-emoji-picker-popover').forEach(p => {
+                                p.style.display = 'none';
+                            });
+
+                            if (!isVisible) {
+                                popover.style.display = 'flex';
+                                searchInput.value = '';
+                                renderGrid();
+                                searchInput.focus();
+                            }
+                        });
+                    }
+
+                    if (searchInput) {
+                        searchInput.addEventListener('input', (e) => {
+                            renderGrid(e.target.value.trim());
+                        });
+                        searchInput.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                        });
+                    }
+
+                    document.addEventListener('click', () => {
+                        if (popover) popover.style.display = 'none';
+                    });
+
+                    popover.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                    });
+
+                    if (fileInput) {
+                        fileInput.addEventListener('change', (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                    textInput.value = event.target.result;
+                                    emojiBtn.innerText = '👾'; // fallback smiley for images
+                                    textInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                    popover.style.display = 'none';
+                                };
+                                reader.readAsDataURL(file);
+                            }
+                        });
+                    }
+                }
+            };
+
+            addField('Monster Name', 'name', 'text');
+            addField('Icon / Emoji', 'icon', 'custom-icon');
+            addField('Base HP', 'hp', 'number', 5);
+            addField('Base Attack', 'atk', 'number', 1);
+            addField('Accent Color', 'color', 'color');
+            addField('Base Speed', 'speed', 'number', 0.05);
+            addField('Physical Size', 'size', 'number', 1);
+
+            monsterCard.appendChild(grid);
+            
+            if (!isPlaying) {
+                const inputs = monsterCard.querySelectorAll('input');
+                inputs.forEach(input => {
+                    const eventType = input.type === 'color' || input.type === 'number' ? 'change' : 'input';
+                    input.addEventListener(eventType, (e) => {
+                        const key = e.target.getAttribute('data-key');
+                        let val = e.target.value;
+                        if (e.target.type === 'number') val = parseFloat(val) || 0;
+                        ConfigModule.ENEMY_TYPES[index][key] = val;
+                        monsterCard.style.borderColor = ConfigModule.ENEMY_TYPES[index].color || '#2ecc71';
+                        headerRow.querySelector('h3').style.color = ConfigModule.ENEMY_TYPES[index].color || '#2ecc71';
+                        headerRow.querySelector('h3').innerHTML = `${ConfigModule.ENEMY_TYPES[index].name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(index: ${index})</span>`;
+                        const iconPreview = headerRow.querySelector('.monster-icon-preview');
+                        if (iconPreview) {
+                            const newIcon = ConfigModule.ENEMY_TYPES[index].icon;
+                            iconPreview.innerHTML = (newIcon.startsWith('data:image/') || newIcon.startsWith('http')) ? 
+                                `<img src="${newIcon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+                                `<span style="font-size:1.8em;">${newIcon}</span>`;
+                        }
+                        this.saveMonstersToStorage();
+                    });
+                });
+                
+                const btnDelete = document.createElement('button');
+                btnDelete.innerText = '🗑️ Delete Monster';
+                btnDelete.style.background = '#e74c3c';
+                btnDelete.style.color = '#fff';
+                btnDelete.style.border = 'none';
+                btnDelete.style.padding = '8px';
+                btnDelete.style.borderRadius = '5px';
+                btnDelete.style.marginTop = '10px';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontWeight = 'bold';
+                btnDelete.onclick = () => {
+                    ConfigModule.ENEMY_TYPES.splice(index, 1);
+                    this.saveMonstersToStorage();
+                    this.buildMonstersTab();
+                };
+                monsterCard.appendChild(btnDelete);
+            }
+            
+            container.appendChild(monsterCard);
+        });
     }
 
     initInventory() {

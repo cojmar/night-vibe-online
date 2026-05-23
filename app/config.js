@@ -340,6 +340,16 @@ export const ENEMY_TYPES = [
   { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
 ];
 
+try {
+  const customMonsters = JSON.parse(localStorage.getItem('nightvibe-custom-monsters'));
+  if (customMonsters && Array.isArray(customMonsters) && customMonsters.length > 0) {
+    ENEMY_TYPES.length = 0;
+    ENEMY_TYPES.push(...customMonsters);
+  }
+} catch (e) {
+  console.error("Failed loading custom monsters", e);
+}
+
 export const ENV_LIST = ['forest', 'castle', 'volcano', 'beach', 'tundra', 'swamp'];
 export const ENV_DISPLAY = { forest: 'Forest', castle: 'Castle', volcano: 'Volcano', beach: 'Beach', tundra: 'Tundra', swamp: 'Swamp' };
 export const ENV_CONFIG = {
