@@ -318,8 +318,10 @@ export default class UI {
                 const res = await fetch(`configs/${file}`);
                 if (res.ok) {
                     const cfg = await res.json();
+                    let name = key.charAt(0).toUpperCase() + key.slice(1) + ' Mode';
+                    if (key === 'bossrush') name = 'Boss Rush Mode';
                     this.builtInConfigs[key] = {
-                        name: key.charAt(0).toUpperCase() + key.slice(1) + ' Mode',
+                        name: name,
                         values: cfg
                     };
                 }
@@ -389,6 +391,7 @@ export default class UI {
             if (key === 'hardcore') emoji = '👹';
             else if (key === 'rapidfire') emoji = '⚡';
             else if (key === 'sandbox') emoji = '🌿';
+            else if (key === 'bossrush') emoji = '👑';
             opt.textContent = `${emoji} ${this.builtInConfigs[key].name}`;
             groupBuiltin.appendChild(opt);
         }
