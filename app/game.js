@@ -1070,24 +1070,24 @@ export default class Game {
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing, damage: this.player.atk, critChance: 0.1 };
 
     const skillType = cd.s1Name;
-    if (skillType === 'Bash' || this.player.classType === 'warrior') {
+    if (skillType === 'Bash') {
       const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
       this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 5, 3);
-    } else if (skillType === 'Magic Bolt' || this.player.classType === 'mage') {
+    } else if (skillType === 'Magic Bolt') {
       const mageBaseAtk = cd.atk;
       const mageRangeMult = Math.pow(this.player.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
       const mageLife = Math.round(60 * mageRangeMult);
       this.projectiles.push(new Projectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: cd.s1Color || '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#3498db', 3, 2);
-    } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
+    } else if (skillType === 'Quick Shot') {
       const archerBaseAtk = cd.atk;
       const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
       const archerLife = Math.round(50 * archerRangeMult);
       const speed = 10;
       this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale * lvlScale, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
-    } else if (skillType === 'Psionic Slash' || this.player.classType === 'magicgladiator') {
+    } else if (skillType === 'Psionic Slash') {
       const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
       this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 20, maxLife: 20, color: cd.s1Color || '#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#e74c3c', 7, 4);

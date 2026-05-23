@@ -250,15 +250,15 @@ export default class Player {
 
         let maxRange = RANGED_MAX_RANGE; // default for other classes
         const skill1 = cd.s1Name;
-        if (skill1 === 'Bash' || this.classType === 'warrior') {
+        if (skill1 === 'Bash') {
           maxRange = WARRIOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
-        } else if (skill1 === 'Psionic Slash' || this.classType === 'magicgladiator') {
+        } else if (skill1 === 'Psionic Slash') {
           maxRange = MAGICGLADIATOR_MELEE_RANGE * wScale * lvlScale * MELEE_RANGE_LVL_SCALE_MULT;
-        } else if (skill1 === 'Magic Bolt' || this.classType === 'mage') {
+        } else if (skill1 === 'Magic Bolt') {
           const mageBaseAtk = cd.atk;
           const mageRangeMult = Math.pow(this.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
           maxRange = 8 * 60 * mageRangeMult;
-        } else if (skill1 === 'Quick Shot' || this.classType === 'archer') {
+        } else if (skill1 === 'Quick Shot') {
           const archerBaseAtk = cd.atk;
           const archerRangeMult = Math.pow(this.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
           maxRange = 10 * 50 * archerRangeMult;
