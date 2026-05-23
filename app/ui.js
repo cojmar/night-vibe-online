@@ -342,6 +342,12 @@ export default class UI {
             monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
         };
         ConfigModule.saveCustomPresets(customPresets);
+        
+        ConfigModule.setActivePresetId('custom:last_game_config');
+        ConfigModule.setActivePresetName('Last Game Config');
+        
+        this.populateConfigSelector();
+        this.selectPreset('custom:last_game_config');
     }
 
     populateConfigSelector() {
@@ -524,7 +530,7 @@ export default class UI {
             badgeEl.style.color = '#000';
         }
         if (btnDelete) {
-            btnDelete.style.display = isCustom ? 'inline-block' : 'none';
+            btnDelete.style.display = (isCustom && presetId !== 'custom:last_game_config') ? 'inline-block' : 'none';
         }
         
         const sel = document.getElementById('config-preset-selector');
