@@ -708,7 +708,7 @@ export default class Game {
       for (const u in this.net.room.users) {
         if (this.net.me && this.net.me.info && u === this.net.me.info.user) continue;
         const userData = this.net.room.users[u].data;
-        if (userData && userData.isHost) {
+        if (userData && userData.isHost && userData.inGame && userData.state === 'PLAYING') {
           hostFound = true;
           this.isHost = false;
           if (userData.gameplayConfig) {
@@ -984,15 +984,8 @@ export default class Game {
       // Persistent progression (resets, bonusStatPoints) is already saved in localStorage
       // and will be restored by restoreWebsocketStats() on the next game start.
       this._resetSessionData();
-      this.net.send_cmd('set_data', { inGame: false, state: 'MENU' });
-    }
-
-    // Restore personal configuration from localStorage
-    try {
-      const localCustom = JSON.parse(localStorage.getItem('nightvibe-custom-config') || '{}');
-      ConfigModule.updateConfig(localCustom);
-    } catch (e) {
-      console.error("Failed to restore personal configuration", e);
+      this.isHost = false;
+      this.net.send_cmd('set_data', { inGame: false, state: 'MENU', isHost: false });
     }
 
     this.checkHost();
