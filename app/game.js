@@ -867,7 +867,10 @@ export default class Game {
       }
     }
 
-    if (myData.classType === selectedClass) {
+    // Only restore in-game progression if we are reconnecting to an active session
+    const isReconnecting = myData.inGame === true && (myData.state === 'PLAYING' || myData.state === 'GAME_OVER');
+
+    if (myData.classType === selectedClass && isReconnecting) {
       if (myData.level !== undefined) target.level = myData.level;
       if (myData.atk !== undefined) target.atk = myData.atk;
       if (myData.spd !== undefined) target.spd = myData.spd;
@@ -908,6 +911,10 @@ export default class Game {
 
     // Broadcast leaving the game
     if (this.net && this.net.me) {
+      // Clear session data so they don't resume with items after a manual quit
+      localStorage.removeItem('nightvibe-inventory');
+      localStorage.removeItem('nightvibe-equipment');
+      
       // Reset in-game progression stats locally so next game starts fresh at level 1.
       // Persistent progression (resets, bonusStatPoints) is already saved in localStorage
       // and will be restored by restoreWebsocketStats() on the next game start.
@@ -1061,24 +1068,24 @@ export default class Game {
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing, damage: this.player.atk, critChance: 0.1 };
 
     const skillType = cd.s1Name;
-    if (skillType === 'Bash') {
+    if (skillType === 'Bash' || this.player.classType === 'warrior') {
       const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
       this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 5, 3);
-    } else if (skillType === 'Magic Bolt') {
+    } else if (skillType === 'Magic Bolt' || this.player.classType === 'mage') {
       const mageBaseAtk = cd.atk;
       const mageRangeMult = Math.pow(this.player.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
       const mageLife = Math.round(60 * mageRangeMult);
       this.projectiles.push(new Projectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: cd.s1Color || '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#3498db', 3, 2);
-    } else if (skillType === 'Quick Shot') {
+    } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
       const archerBaseAtk = cd.atk;
       const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
       const archerLife = Math.round(50 * archerRangeMult);
       const speed = 10;
       this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale * lvlScale, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
-    } else if (skillType === 'Psionic Slash') {
+    } else if (skillType === 'Psionic Slash' || this.player.classType === 'magicgladiator') {
       const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
       this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 20, maxLife: 20, color: cd.s1Color || '#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#e74c3c', 7, 4);
@@ -1143,7 +1150,7 @@ export default class Game {
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing };
 
     const skillType = cd.s2Name;
-    if (skillType === 'Sword Slash') {
+    if (skillType === 'Sword Slash' || this.player.classType === 'warrior') {
       const waveCount = 1 + charges;
       const spdDiff = Math.max(0, this.player.spd - cd.spd);
       const waveDistance = (120 + spdDiff * 6) * areaMulti;
@@ -1154,11 +1161,11 @@ export default class Game {
         this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.5 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMulti * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
       }
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
-    } else if (skillType === 'Fireball') {
+    } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
       const fbRadius = 15 + charges * 15;
       this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 2.2 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 10, 5);
-    } else if (skillType === 'Arrow Barrage') {
+    } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
       const arrowCount = Math.min(7, 3 + Math.floor((this.player.spd - cd.spd) / 8)) + charges;
       for (let i = 0; i < arrowCount; i++) {
         const a = aimAngle + (i - Math.floor(arrowCount / 2)) * (0.2 + (aoeScale - 1) * 0.1);
@@ -1166,7 +1173,7 @@ export default class Game {
         this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 1.3 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale }));
       }
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
-    } else if (skillType === 'Cross Slash') {
+    } else if (skillType === 'Cross Slash' || this.player.classType === 'magicgladiator') {
       this.projectiles.push(new Projectile({ type: 'aoe_explosion', x: this.player.x, y: weaponY, radius: 130 * aoeScale * areaMulti * lvlScale, life: 25, maxLife: 25, color: cd.s2Color || '#ffd700', damage: this.player.atk * 3.0 * dmgMulti, critChance: 0.25, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#ffd700', 30 * aoeScale + charges * 15, 8);
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
