@@ -178,12 +178,18 @@ export default class UI {
         document.getElementById('btn-prev-class').addEventListener('click', () => this.prevClass());
         document.getElementById('btn-next-class').addEventListener('click', () => this.nextClass());
         document.getElementById('btn-start').addEventListener('click', () => {
-            localStorage.setItem('nightvibe-last-played-config', ConfigModule.activePresetId);
+            this.saveLastGameConfig();
             this.game.startGame(this.selectedClass);
         });
         document.getElementById('btn-fullscreen').addEventListener('click', () => this.toggleFullscreen());
-        document.getElementById('btn-quit-game').addEventListener('click', () => this.game.quitToMenu());
-        document.getElementById('btn-death-quit').addEventListener('click', () => this.game.quitToMenu());
+        document.getElementById('btn-quit-game').addEventListener('click', () => {
+            this.saveLastGameConfig();
+            this.game.quitToMenu();
+        });
+        document.getElementById('btn-death-quit').addEventListener('click', () => {
+            this.saveLastGameConfig();
+            this.game.quitToMenu();
+        });
 
         document.getElementById('btn-up-atk').addEventListener('click', () => { if (this.game) this.game.upgradeStat('atk', this.statMultiplier); });
         document.getElementById('btn-up-spd').addEventListener('click', () => { if (this.game) this.game.upgradeStat('spd', this.statMultiplier); });
@@ -326,31 +332,33 @@ export default class UI {
         this.applySavedPreset();
     }
 
+    saveLastGameConfig() {
+        const customPresets = ConfigModule.getCustomPresets();
+        customPresets['last_game_config'] = {
+            id: 'last_game_config',
+            name: 'Last Game Config',
+            values: JSON.parse(JSON.stringify(ConfigModule.activeConfig)),
+            classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
+            monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
+        };
+        ConfigModule.saveCustomPresets(customPresets);
+    }
+
     populateConfigSelector() {
         const selector = document.getElementById('config-preset-selector');
         if (!selector) return;
         
         selector.innerHTML = '';
         
-        // 1. Last Played optgroup (if not default)
-        const lastPlayedId = localStorage.getItem('nightvibe-last-played-config');
-        if (lastPlayedId && lastPlayedId !== 'built-in:default') {
+        // 1. Last Game Config optgroup
+        const customPresets = ConfigModule.getCustomPresets();
+        if (customPresets['last_game_config']) {
             const groupLast = document.createElement('optgroup');
-            groupLast.label = 'Last Played';
-            
-            let name = 'Unknown Config';
-            if (lastPlayedId.startsWith('built-in:')) {
-                const key = lastPlayedId.split('built-in:')[1];
-                if (this.builtInConfigs[key]) name = this.builtInConfigs[key].name;
-            } else if (lastPlayedId.startsWith('custom:')) {
-                const key = lastPlayedId.split('custom:')[1];
-                const presets = ConfigModule.getCustomPresets();
-                if (presets[key]) name = presets[key].name;
-            }
+            groupLast.label = 'Last Game Config';
             
             const opt = document.createElement('option');
-            opt.value = lastPlayedId;
-            opt.textContent = `🕒 ${name}`;
+            opt.value = 'custom:last_game_config';
+            opt.textContent = `🕒 Last Game Config`;
             groupLast.appendChild(opt);
             selector.appendChild(groupLast);
         }
@@ -383,9 +391,9 @@ export default class UI {
         // 4. Custom User Presets optgroup
         const groupCustom = document.createElement('optgroup');
         groupCustom.label = 'My Custom Presets';
-        const customPresets = ConfigModule.getCustomPresets();
         let hasCustom = false;
         for (const id in customPresets) {
+            if (id === 'last_game_config') continue;
             const opt = document.createElement('option');
             opt.value = `custom:${id}`;
             opt.textContent = `✏️ ${customPresets[id].name}`;

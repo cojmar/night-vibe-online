@@ -665,6 +665,9 @@ export default class Game {
   }
 
   startGame(selectedClass) {
+    if (this.ui && this.ui.saveLastGameConfig) {
+      this.ui.saveLastGameConfig();
+    }
     this.state = 'PLAYING';
     this.selectedEnv = ENV_LIST[0];
     this.kills = GAME_INITIAL_KILLS;
@@ -950,6 +953,9 @@ export default class Game {
   }
 
   quitToMenu() {
+    if (this.ui && this.ui.saveLastGameConfig) {
+      this.ui.saveLastGameConfig();
+    }
     this.state = 'MENU';
     document.getElementById('game-btns').style.display = 'none';
     document.getElementById('hud').classList.remove('visible');
