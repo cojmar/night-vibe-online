@@ -1853,7 +1853,15 @@ export default class UI {
         if (nameEl) nameEl.textContent = player.nick || 'Player';
         if (classEl) {
             const cd = CLASS_DATA[player.classType];
-            if (cd) classEl.innerHTML = `${cd.icon} ${cd.name}`;
+            if (cd) {
+                let iconHtml = '';
+                if (cd.icon && typeof cd.icon === 'string' && (cd.icon.startsWith('data:image/') || cd.icon.startsWith('http'))) {
+                    iconHtml = `<img src="${cd.icon}" style="width:1.6em; height:1.6em; object-fit:contain; border-radius:4px; vertical-align:middle; margin-right:4px;" />`;
+                } else {
+                    iconHtml = `<span style="vertical-align:middle; margin-right:4px;">${cd.icon || ''}</span>`;
+                }
+                classEl.innerHTML = `${iconHtml}<span style="vertical-align:middle;">${cd.name}</span>`;
+            }
         }
 
         const pct = Math.max(0, (player.hp / player.maxHp) * 100);

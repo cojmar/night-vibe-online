@@ -1,4 +1,4 @@
-import { getGroundY, getArmAnim, CLASS_DATA, PLAYER_MOVE_SPEEDS, LEVEL_UP_STAT_POINTS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, RANGED_MAX_RANGE, WARRIOR_MELEE_RANGE, MAGICGLADIATOR_MELEE_RANGE, MELEE_RANGE_LVL_SCALE_MULT, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, CHAT_MESSAGE_DURATION, CHAT_FADE_OUT_DURATION, LIMIT_LEVEL_TO_REBIRTH_REQ } from './utils.js';
+import { getGroundY, getArmAnim, CLASS_DATA, PLAYER_MOVE_SPEEDS, LEVEL_UP_STAT_POINTS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, RANGED_MAX_RANGE, WARRIOR_MELEE_RANGE, MAGICGLADIATOR_MELEE_RANGE, MELEE_RANGE_LVL_SCALE_MULT, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, CHAT_MESSAGE_DURATION, CHAT_FADE_OUT_DURATION, LIMIT_LEVEL_TO_REBIRTH_REQ, getCachedImage } from './utils.js';
 import * as ConfigModule from './config.js';
 
 export default class Player {
@@ -387,7 +387,41 @@ export default class Player {
       }
     }
 
-    if (renderType === 'warrior') {
+    if (cd.icon && typeof cd.icon === 'string' && (cd.icon.startsWith('data:image/') || cd.icon.startsWith('http'))) {
+      const img = getCachedImage(cd.icon);
+      if (img) {
+        ctx.drawImage(img, -40, -80, 80, 80);
+      } else {
+        ctx.font = '50px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👾', 0, -40);
+      }
+      
+      // Weapon rendering for custom classes based on their body type
+      if (renderType === 'warrior') {
+        ctx.save(); ctx.translate(15, -20);
+        ctx.rotate(localAim + armAnim);
+        ctx.fillStyle = '#d8a070'; ctx.fillRect(0, -5, 12, 10);
+        ctx.fillStyle = '#c0c0c0'; ctx.fillRect(12, -4, 60, 8);
+        ctx.restore();
+      } else if (renderType === 'mage') {
+        ctx.save(); ctx.translate(15, -20);
+        ctx.rotate(localAim + armAnim);
+        ctx.fillStyle = '#d8a070'; ctx.fillRect(0, -5, 12, 10);
+        ctx.fillStyle = '#6b4226'; ctx.fillRect(12, -40, 6, 80);
+        ctx.fillStyle = cd.s1Color;
+        ctx.beginPath(); ctx.arc(15, -45, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (renderType === 'archer') {
+        ctx.save(); ctx.translate(15, -20);
+        ctx.rotate(localAim + armAnim);
+        ctx.fillStyle = '#d8a070'; ctx.fillRect(0, -5, 12, 10);
+        ctx.strokeStyle = '#8b6914'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(12, 0, 25, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+        ctx.restore();
+      }
+    } else if (renderType === 'warrior') {
       ctx.fillStyle = cd.color; ctx.fillRect(-18, -55, 36, 60);
       ctx.fillStyle = cd.accent; ctx.fillRect(-5, -45, 10, 40);
       ctx.fillStyle = '#8b6914'; ctx.fillRect(-16, -10, 32, 6);
