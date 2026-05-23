@@ -151,8 +151,7 @@ export default class Game {
               this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (hit.isCrit ? '💥 ' : '') + hit.damage, color: hit.isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: hit.isCrit });
               if (e.hp <= 0) {
                 e.alive = false; e.deathTime = Date.now(); e.hp = 0;
-                this.spawnParticles(e.x, e.y - 20, e.color || '#fff', 30, 8);
-                this.spawnParticles(e.x, e.y - 20, '#e74c3c', 15, 6);
+                this.spawnEnemyDeathExplosion(e);
                 if (hit.source) {
                   this.net.send_cmd('set_data', { enemyKilled: hit.source });
                 }
@@ -1313,8 +1312,7 @@ export default class Game {
         this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (isCrit ? '💥 ' : '') + damage, color: isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: isCrit });
         if (e.hp <= 0) {
           e.alive = false; e.deathTime = Date.now(); e.hp = 0;
-          this.spawnParticles(e.x, e.y - 20, e.color || '#fff', 30, 8);
-          this.spawnParticles(e.x, e.y - 20, '#e74c3c', 15, 6);
+          this.spawnEnemyDeathExplosion(e);
           this.net.send_cmd('set_data', { enemyKilled: this.net.me.info.user });
           this.waveEnemiesKilled++;
           if (this.bossActive && e.name === 'BOSS') {
@@ -1349,6 +1347,58 @@ export default class Game {
         size: (1.5 + Math.random() * 3) * sizeScale
       });
     }
+  }
+
+  spawnEnemyDeathExplosion(e) {
+    const size = e.size || 30;
+    const pCount = Math.floor(45 * (this.settings ? this.settings.particles : 1.0));
+    
+    // 1. Shatter/dissolve starting positions all across the monster's visual area
+    for (let i = 0; i < pCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = (0.3 + Math.random() * 0.7) * 4.5;
+      const r = Math.random() * (size * 0.45);
+      const startAngle = Math.random() * Math.PI * 2;
+      const px = e.x + Math.cos(startAngle) * r;
+      const py = (e.y - size * 0.4) + Math.sin(startAngle) * r;
+      
+      this.particles.push({
+        x: px, y: py,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd - 0.5,
+        life: 25 + Math.floor(Math.random() * 25),
+        maxLife: 50,
+        color: e.color || '#e74c3c',
+        size: (2.0 + Math.random() * 4.5) * (size / 30)
+      });
+    }
+
+    // 2. Extra sparks/smoke for dense texture
+    const sparksCount = Math.floor(20 * (this.settings ? this.settings.particles : 1.0));
+    for (let i = 0; i < sparksCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = (0.2 + Math.random() * 0.5) * 2.5;
+      this.particles.push({
+        x: e.x + (Math.random() - 0.5) * size * 0.6,
+        y: e.y - size * 0.4 + (Math.random() - 0.5) * size * 0.6,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd - 1.2,
+        life: 30 + Math.floor(Math.random() * 30),
+        maxLife: 60,
+        color: '#ff7979',
+        size: (3.0 + Math.random() * 5) * (size / 30)
+      });
+    }
+
+    // 3. Glowing vaporizing shockwave puff
+    this.particles.push({
+      x: e.x, y: e.y - size * 0.4,
+      vx: 0, vy: 0,
+      life: 20, maxLife: 20,
+      color: e.color || '#e74c3c',
+      size: size * 1.6,
+      isShockwave: true
+    });
   }
 
   initBgParticles() {
@@ -2228,10 +2278,31 @@ export default class Game {
 
       // Effects
       for (let p of this.particles) {
-        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.05 * dt; p.life -= dt;
+        if (!p.isShockwave) {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy += 0.05 * dt;
+        }
+        p.life -= dt;
         const progress = Math.max(0, p.life / p.maxLife);
         this.ctx.globalAlpha = progress;
-        this.ctx.fillStyle = p.color; this.ctx.beginPath(); this.ctx.arc(p.x, p.y, p.size * progress, 0, Math.PI * 2); this.ctx.fill();
+        
+        if (p.isShockwave) {
+          const currentSize = p.size * (1 + (1 - progress) * 1.5);
+          const grad = this.ctx.createRadialGradient(p.x, p.y, currentSize * 0.1, p.x, p.y, currentSize);
+          grad.addColorStop(0, p.color);
+          grad.addColorStop(0.3, p.color);
+          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          this.ctx.fillStyle = grad;
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
+          this.ctx.fill();
+        } else {
+          this.ctx.fillStyle = p.color;
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.size * progress, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
       }
       this.ctx.globalAlpha = 1;
       this.particles = this.particles.filter(p => p.life > 0);
