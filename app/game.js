@@ -402,6 +402,14 @@ export default class Game {
   scheduleLayoutUpdate() {
     this.updateLayout();
 
+    // Run again on the next two animation frames — after orientation changes
+    // some devices (notably Samsung S24 FE) report stale viewport sizes for
+    // one or two frames, so a single updateLayout() leaves a black strip.
+    requestAnimationFrame(() => {
+      this.updateLayout();
+      requestAnimationFrame(() => this.updateLayout());
+    });
+
     clearTimeout(this.layoutRefreshTimer);
     clearTimeout(this.layoutSettledTimer);
     this.layoutRefreshTimer = setTimeout(() => this.updateLayout(), 120);
@@ -524,10 +532,19 @@ export default class Game {
   }
 
   updateLayout() {
-    const parent = this.canvas.parentElement;
-    const cw = parent.clientWidth;
-    const ch = parent.clientHeight;
+    // Source dimensions from the visual viewport / window directly instead of
+    // parent.clientWidth — on some devices (e.g. Samsung S24 FE) the parent's
+    // computed size is stale for the first frame after an orientation change,
+    // which caused a black strip on the right side until the next resize tick.
+    const vv = window.visualViewport;
+    const cw = Math.round(vv ? vv.width : window.innerWidth);
+    const ch = Math.round(vv ? vv.height : window.innerHeight);
     if (cw <= 0 || ch <= 0) return;
+
+    // Pin the canvas explicitly to those dimensions so its CSS box doesn't
+    // depend on a flex parent that may not have laid out yet.
+    this.canvas.style.width = cw + 'px';
+    this.canvas.style.height = ch + 'px';
 
     const rawDpr = Math.min(window.devicePixelRatio || 1, 2);
     const isTouchDisplay = navigator.maxTouchPoints > 0;
