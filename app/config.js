@@ -214,7 +214,7 @@ try {
   console.error("Failed parsing custom config", e);
 }
 
-const activeConfig = Object.assign({}, DEFAULTS, savedConfig);
+export let activeConfig = Object.assign({}, DEFAULTS, savedConfig);
 
 // ==========================================
 // D. LIVE LET BINDINGS EXPORTS
