@@ -19,6 +19,52 @@ export default class UI {
         this.loadBuiltInConfigs();
         this.bindEvents();
         this.updateClassCarousel();
+        
+        this.customDialogResolver = null;
+        this.bindCustomDialogEvents();
+    }
+
+    bindCustomDialogEvents() {
+        const btnConfirm = document.getElementById('btn-custom-dialog-confirm');
+        const btnCancel = document.getElementById('btn-custom-dialog-cancel');
+        const inputEl = document.getElementById('custom-dialog-input');
+        const modal = document.getElementById('custom-dialog-modal');
+        
+        if (btnConfirm) {
+            btnConfirm.addEventListener('click', () => {
+                if (this.customDialogResolver) {
+                    const inputContainer = document.getElementById('custom-dialog-input-container');
+                    const val = inputContainer.style.display === 'block' ? inputEl.value : true;
+                    if (modal) modal.style.display = 'none';
+                    const res = this.customDialogResolver;
+                    this.customDialogResolver = null;
+                    res(val);
+                }
+            });
+        }
+        
+        if (btnCancel) {
+            btnCancel.addEventListener('click', () => {
+                if (this.customDialogResolver) {
+                    if (modal) modal.style.display = 'none';
+                    const res = this.customDialogResolver;
+                    this.customDialogResolver = null;
+                    res(null);
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (this.customDialogResolver) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (btnConfirm) btnConfirm.click();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    if (btnCancel && btnCancel.style.display !== 'none') btnCancel.click();
+                }
+            }
+        });
     }
 
     showPrompt(title, text, defaultValue = '') {
@@ -29,7 +75,6 @@ export default class UI {
             const inputContainer = document.getElementById('custom-dialog-input-container');
             const inputEl = document.getElementById('custom-dialog-input');
             const btnCancel = document.getElementById('btn-custom-dialog-cancel');
-            const btnConfirm = document.getElementById('btn-custom-dialog-confirm');
             
             if (!modal) {
                 resolve(prompt(text, defaultValue));
@@ -42,29 +87,11 @@ export default class UI {
             inputEl.value = defaultValue;
             btnCancel.style.display = 'block';
             
+            this.customDialogResolver = resolve;
+            
             modal.style.display = 'flex';
             inputEl.focus();
             inputEl.select();
-            
-            const cleanup = () => {
-                modal.style.display = 'none';
-                btnConfirm.replaceWith(btnConfirm.cloneNode(true));
-                btnCancel.replaceWith(btnCancel.cloneNode(true));
-            };
-            
-            const newConfirm = document.getElementById('btn-custom-dialog-confirm');
-            const newCancel = document.getElementById('btn-custom-dialog-cancel');
-            
-            newConfirm.addEventListener('click', () => {
-                const val = inputEl.value;
-                cleanup();
-                resolve(val);
-            });
-            
-            newCancel.addEventListener('click', () => {
-                cleanup();
-                resolve(null);
-            });
         });
     }
 
@@ -75,7 +102,6 @@ export default class UI {
             const textEl = document.getElementById('custom-dialog-text');
             const inputContainer = document.getElementById('custom-dialog-input-container');
             const btnCancel = document.getElementById('btn-custom-dialog-cancel');
-            const btnConfirm = document.getElementById('btn-custom-dialog-confirm');
             
             if (!modal) {
                 resolve(confirm(text));
@@ -87,26 +113,11 @@ export default class UI {
             inputContainer.style.display = 'none';
             btnCancel.style.display = 'block';
             
-            modal.style.display = 'flex';
-            
-            const cleanup = () => {
-                modal.style.display = 'none';
-                btnConfirm.replaceWith(btnConfirm.cloneNode(true));
-                btnCancel.replaceWith(btnCancel.cloneNode(true));
+            this.customDialogResolver = (val) => {
+                resolve(val === true);
             };
             
-            const newConfirm = document.getElementById('btn-custom-dialog-confirm');
-            const newCancel = document.getElementById('btn-custom-dialog-cancel');
-            
-            newConfirm.addEventListener('click', () => {
-                cleanup();
-                resolve(true);
-            });
-            
-            newCancel.addEventListener('click', () => {
-                cleanup();
-                resolve(false);
-            });
+            modal.style.display = 'flex';
         });
     }
 
@@ -117,7 +128,6 @@ export default class UI {
             const textEl = document.getElementById('custom-dialog-text');
             const inputContainer = document.getElementById('custom-dialog-input-container');
             const btnCancel = document.getElementById('btn-custom-dialog-cancel');
-            const btnConfirm = document.getElementById('btn-custom-dialog-confirm');
             
             if (!modal) {
                 alert(text);
@@ -130,20 +140,11 @@ export default class UI {
             inputContainer.style.display = 'none';
             btnCancel.style.display = 'none';
             
-            modal.style.display = 'flex';
-            
-            const cleanup = () => {
-                modal.style.display = 'none';
-                btnConfirm.replaceWith(btnConfirm.cloneNode(true));
-                btnCancel.replaceWith(btnCancel.cloneNode(true));
+            this.customDialogResolver = () => {
+                resolve();
             };
             
-            const newConfirm = document.getElementById('btn-custom-dialog-confirm');
-            
-            newConfirm.addEventListener('click', () => {
-                cleanup();
-                resolve();
-            });
+            modal.style.display = 'flex';
         });
     }
 
