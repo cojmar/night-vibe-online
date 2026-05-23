@@ -1,4 +1,5 @@
-import { circleOverlapsCrescentArc, pointInSweepArc, GAME_W, GAME_H, PROJ_HIT_RADIUS_ARROW, PROJ_HIT_RADIUS_BOLT, PROJ_HIT_RADIUS_DEFAULT } from './utils.js';
+import { circleOverlapsCrescentArc, pointInSweepArc, PROJ_HIT_RADIUS_ARROW, PROJ_HIT_RADIUS_BOLT, PROJ_HIT_RADIUS_DEFAULT } from './utils.js';
+import { GAME_W, GAME_H } from './config.js';
 
 export default class Projectile {
   constructor(props) {
