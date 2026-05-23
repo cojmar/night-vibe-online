@@ -21,6 +21,132 @@ export default class UI {
         this.updateClassCarousel();
     }
 
+    showPrompt(title, text, defaultValue = '') {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('custom-dialog-modal');
+            const titleEl = document.getElementById('custom-dialog-title');
+            const textEl = document.getElementById('custom-dialog-text');
+            const inputContainer = document.getElementById('custom-dialog-input-container');
+            const inputEl = document.getElementById('custom-dialog-input');
+            const btnCancel = document.getElementById('btn-custom-dialog-cancel');
+            const btnConfirm = document.getElementById('btn-custom-dialog-confirm');
+            
+            if (!modal) {
+                resolve(prompt(text, defaultValue));
+                return;
+            }
+            
+            titleEl.textContent = title;
+            textEl.textContent = text;
+            inputContainer.style.display = 'block';
+            inputEl.value = defaultValue;
+            btnCancel.style.display = 'block';
+            
+            modal.style.display = 'flex';
+            inputEl.focus();
+            inputEl.select();
+            
+            const cleanup = () => {
+                modal.style.display = 'none';
+                btnConfirm.replaceWith(btnConfirm.cloneNode(true));
+                btnCancel.replaceWith(btnCancel.cloneNode(true));
+            };
+            
+            const newConfirm = document.getElementById('btn-custom-dialog-confirm');
+            const newCancel = document.getElementById('btn-custom-dialog-cancel');
+            
+            newConfirm.addEventListener('click', () => {
+                const val = inputEl.value;
+                cleanup();
+                resolve(val);
+            });
+            
+            newCancel.addEventListener('click', () => {
+                cleanup();
+                resolve(null);
+            });
+        });
+    }
+
+    showConfirm(title, text) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('custom-dialog-modal');
+            const titleEl = document.getElementById('custom-dialog-title');
+            const textEl = document.getElementById('custom-dialog-text');
+            const inputContainer = document.getElementById('custom-dialog-input-container');
+            const btnCancel = document.getElementById('btn-custom-dialog-cancel');
+            const btnConfirm = document.getElementById('btn-custom-dialog-confirm');
+            
+            if (!modal) {
+                resolve(confirm(text));
+                return;
+            }
+            
+            titleEl.textContent = title;
+            textEl.textContent = text;
+            inputContainer.style.display = 'none';
+            btnCancel.style.display = 'block';
+            
+            modal.style.display = 'flex';
+            
+            const cleanup = () => {
+                modal.style.display = 'none';
+                btnConfirm.replaceWith(btnConfirm.cloneNode(true));
+                btnCancel.replaceWith(btnCancel.cloneNode(true));
+            };
+            
+            const newConfirm = document.getElementById('btn-custom-dialog-confirm');
+            const newCancel = document.getElementById('btn-custom-dialog-cancel');
+            
+            newConfirm.addEventListener('click', () => {
+                cleanup();
+                resolve(true);
+            });
+            
+            newCancel.addEventListener('click', () => {
+                cleanup();
+                resolve(false);
+            });
+        });
+    }
+
+    showAlert(title, text) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('custom-dialog-modal');
+            const titleEl = document.getElementById('custom-dialog-title');
+            const textEl = document.getElementById('custom-dialog-text');
+            const inputContainer = document.getElementById('custom-dialog-input-container');
+            const btnCancel = document.getElementById('btn-custom-dialog-cancel');
+            const btnConfirm = document.getElementById('btn-custom-dialog-confirm');
+            
+            if (!modal) {
+                alert(text);
+                resolve();
+                return;
+            }
+            
+            titleEl.textContent = title;
+            textEl.textContent = text;
+            inputContainer.style.display = 'none';
+            btnCancel.style.display = 'none';
+            
+            modal.style.display = 'flex';
+            
+            const cleanup = () => {
+                modal.style.display = 'none';
+                btnConfirm.replaceWith(btnConfirm.cloneNode(true));
+                btnCancel.replaceWith(btnCancel.cloneNode(true));
+            };
+            
+            const newConfirm = document.getElementById('btn-custom-dialog-confirm');
+            
+            newConfirm.addEventListener('click', () => {
+                cleanup();
+                resolve();
+            });
+        });
+    }
+
     updateBuffs(hpTimer, manaTimer) {
         const container = document.getElementById('buffs-container');
         if (!container) return;
@@ -295,6 +421,8 @@ export default class UI {
         ConfigModule.setActivePresetId(presetId);
         
         let valuesToApply = null;
+        let classesToApply = null;
+        let monstersToApply = null;
         let isCustom = false;
         let presetName = 'Default';
         
@@ -309,6 +437,8 @@ export default class UI {
             const presets = ConfigModule.getCustomPresets();
             if (presets[key]) {
                 valuesToApply = presets[key].values;
+                classesToApply = presets[key].classes;
+                monstersToApply = presets[key].monsters;
                 presetName = presets[key].name;
                 isCustom = true;
             }
@@ -316,6 +446,40 @@ export default class UI {
         
         if (valuesToApply) {
             ConfigModule.updateConfig(valuesToApply);
+            
+            // Revert or apply custom classes
+            const defaultClasses = {
+              warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
+              mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
+              archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
+              magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
+            };
+            
+            const targetClasses = classesToApply || defaultClasses;
+            for (const k in ConfigModule.CLASS_DATA) delete ConfigModule.CLASS_DATA[k];
+            Object.assign(ConfigModule.CLASS_DATA, targetClasses);
+            localStorage.setItem('nightvibe-custom-classes', JSON.stringify(ConfigModule.CLASS_DATA));
+            
+            // Revert or apply custom monsters
+            const defaultMonsters = [
+              { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+              { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
+              { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+              { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
+              { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+              { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
+              { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+              { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+            ];
+            
+            const targetMonsters = monstersToApply || defaultMonsters;
+            ConfigModule.ENEMY_TYPES.length = 0;
+            ConfigModule.ENEMY_TYPES.push(...targetMonsters);
+            localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ConfigModule.ENEMY_TYPES));
+            
+            // Re-render editor tabs and lists
+            this.buildClassesTab();
+            this.buildMonstersTab();
             
             if (this.game) {
                 if (this.game.updateLayout) this.game.updateLayout();
@@ -345,7 +509,8 @@ export default class UI {
         if (titleEl) titleEl.textContent = presetName;
         if (badgeEl) {
             badgeEl.textContent = isCustom ? 'Custom' : 'Built-in';
-            badgeEl.style.background = isCustom ? '#9b59b6' : '#27ae60';
+            badgeEl.style.background = '#ffd700';
+            badgeEl.style.color = '#000';
         }
         if (btnDelete) {
             btnDelete.style.display = isCustom ? 'inline-block' : 'none';
@@ -502,7 +667,9 @@ export default class UI {
                 customPresets[newId] = {
                     id: newId,
                     name: name.trim(),
-                    values: valuesCopy
+                    values: valuesCopy,
+                    classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
+                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
                 };
                 
                 ConfigModule.saveCustomPresets(customPresets);
@@ -540,7 +707,9 @@ export default class UI {
                 customPresets[newId] = {
                     id: newId,
                     name: name.trim(),
-                    values: valuesCopy
+                    values: valuesCopy,
+                    classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
+                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
                 };
                 
                 ConfigModule.saveCustomPresets(customPresets);
@@ -589,11 +758,29 @@ export default class UI {
                 const newId = 'preset_' + Date.now();
                 
                 const valuesCopy = { ...ConfigModule.DEFAULTS };
+                const defaultClasses = {
+                  warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
+                  mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
+                  archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
+                  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
+                };
+                const defaultMonsters = [
+                  { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+                  { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
+                  { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+                  { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
+                  { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+                  { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
+                  { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+                  { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+                ];
                 
                 customPresets[newId] = {
                     id: newId,
                     name: name.trim(),
-                    values: valuesCopy
+                    values: valuesCopy,
+                    classes: defaultClasses,
+                    monsters: defaultMonsters
                 };
                 
                 ConfigModule.saveCustomPresets(customPresets);
@@ -620,7 +807,9 @@ export default class UI {
                 customPresets[newId] = {
                     id: newId,
                     name: name.trim(),
-                    values: valuesCopy
+                    values: valuesCopy,
+                    classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
+                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
                 };
                 
                 ConfigModule.saveCustomPresets(customPresets);
@@ -973,7 +1162,12 @@ export default class UI {
                 for (const key in CONFIG_METADATA) {
                     activeConfigValues[key] = ConfigModule.activeConfig[key];
                 }
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeConfigValues, null, 2));
+                const exportData = {
+                    values: activeConfigValues,
+                    classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
+                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
+                };
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
                 
                 let filename = 'nightvibe-gameplay-config.json';
                 const presetId = ConfigModule.activePresetId;
@@ -1016,12 +1210,16 @@ export default class UI {
                         const customPresets = ConfigModule.getCustomPresets();
                         const newId = 'preset_' + Date.now();
                         
-                        const mergedValues = Object.assign({}, ConfigModule.DEFAULTS, imported);
+                        const mergedValues = Object.assign({}, ConfigModule.DEFAULTS, imported.values || imported);
+                        const importedClasses = imported.classes || null;
+                        const importedMonsters = imported.monsters || null;
                         
                         customPresets[newId] = {
                             id: newId,
                             name: name.trim(),
-                            values: mergedValues
+                            values: mergedValues,
+                            classes: importedClasses,
+                            monsters: importedMonsters
                         };
                         
                         ConfigModule.saveCustomPresets(customPresets);
@@ -1113,6 +1311,18 @@ export default class UI {
     saveClassesToStorage() {
         localStorage.setItem('nightvibe-custom-classes', JSON.stringify(ConfigModule.CLASS_DATA));
         this.updateClassCarousel(); // Refresh main menu UI classes
+        
+        // Also update inside the active custom preset
+        const presetId = ConfigModule.activePresetId;
+        if (presetId && presetId.startsWith('custom:')) {
+            const key = presetId.split('custom:')[1];
+            const presets = ConfigModule.getCustomPresets();
+            if (presets[key]) {
+                presets[key].classes = JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA));
+                ConfigModule.saveCustomPresets(presets);
+            }
+        }
+        
         if (this.game && this.game.isHost && this.game.net) {
             this.game.net.send_cmd('set_data', { classData: ConfigModule.CLASS_DATA });
         }
@@ -1504,6 +1714,18 @@ export default class UI {
 
     saveMonstersToStorage() {
         localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ConfigModule.ENEMY_TYPES));
+        
+        // Also update inside the active custom preset
+        const presetId = ConfigModule.activePresetId;
+        if (presetId && presetId.startsWith('custom:')) {
+            const key = presetId.split('custom:')[1];
+            const presets = ConfigModule.getCustomPresets();
+            if (presets[key]) {
+                presets[key].monsters = JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES));
+                ConfigModule.saveCustomPresets(presets);
+            }
+        }
+        
         if (this.game && this.game.isHost && this.game.net) {
             this.game.net.send_cmd('set_data', { enemyTypes: ConfigModule.ENEMY_TYPES });
         }
