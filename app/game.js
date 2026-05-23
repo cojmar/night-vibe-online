@@ -540,7 +540,22 @@ export default class Game {
 
     // Lock scaling to the screen height to provide native side-scrolling experience
     this.viewScale = ch / GAME_H;
-    const scaledW = GAME_W * this.viewScale;
+
+    // Dynamically adjust GAME_W if the screen is wider than the configured width
+    const requiredGameW = Math.ceil(cw / this.viewScale);
+    const baseConfigW = ConfigModule.activeConfig.GAME_W || 2560;
+    const targetW = Math.max(baseConfigW, requiredGameW);
+
+    if (targetW !== ConfigModule.GAME_W) {
+      ConfigModule.setDynamicGameW(targetW);
+      if (this.player && this.player.isLocal) {
+        this.player.x = Math.max(20, Math.min(targetW - 20, this.player.x));
+      }
+      this.generateScenery();
+      this.initBgParticles();
+    }
+
+    const scaledW = ConfigModule.GAME_W * this.viewScale;
 
     // If the game width is wider than the screen, left-align and let side-scrolling handle offsets.
     // Otherwise, center the game world horizontally on screen.

@@ -457,3 +457,7 @@ export function resetConfig() {
   localStorage.removeItem('nightvibe-custom-config');
   updateConfig(DEFAULTS);
 }
+
+export function setDynamicGameW(w) {
+  GAME_W = w;
+}
