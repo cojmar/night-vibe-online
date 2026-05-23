@@ -1,6 +1,7 @@
 import Network from './network.js';
 import Game from './game.js';
 import UI from './ui.js';
+import { initPwa } from './pwa.js';
 import { CHAT_MESSAGE_DURATION, NETWORK_ROOM_NAME } from './utils.js';
 
 window.app = new class {
@@ -17,6 +18,8 @@ window.app = new class {
     }
 
     init() {
+        initPwa();
+
         this.net = new Network();
         this.ui = new UI(null); // Will set game instance later
         this.game = null;

@@ -42,6 +42,7 @@ export default class Game {
     this.viewScale = 1;
     this.viewOX = 0;
     this.viewOY = 0;
+    this.pixelRatio = 1;
     this.globalTime = 0;
     this.moveMarker = null;
 
@@ -512,7 +513,13 @@ export default class Game {
     const ch = parent.clientHeight;
     if (cw <= 0 || ch <= 0) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rawDpr = Math.min(window.devicePixelRatio || 1, 2);
+    const isTouchDisplay = navigator.maxTouchPoints > 0;
+    const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    const maxMobilePixels = 900000;
+    const pixelBudgetDpr = Math.sqrt(maxMobilePixels / (cw * ch));
+    const dpr = (isTouchDisplay || isStandalone) ? Math.max(1, Math.min(rawDpr, pixelBudgetDpr)) : rawDpr;
+    this.pixelRatio = dpr;
     this.canvas.width = cw * dpr;
     this.canvas.height = ch * dpr;
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -555,7 +562,7 @@ export default class Game {
 
     // Side-scrolling camera to follow local player
     if (this.player && this.canvas) {
-      const cw = this.canvas.width / (window.devicePixelRatio || 1);
+      const cw = this.canvas.width / (this.pixelRatio || 1);
       const viewportWidth = cw / this.viewScale;
       const scaledW = GAME_W * this.viewScale;
       if (cw < scaledW) {
@@ -1604,7 +1611,7 @@ export default class Game {
         if (dead) this.atmosEffects.splice(i, 1);
       }
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = this.pixelRatio || 1;
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
