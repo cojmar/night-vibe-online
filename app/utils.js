@@ -65,3 +65,22 @@ export class PRNG {
     return (this.next() - 1) / 2147483646;
   }
 }
+
+const imageCache = {};
+export function getCachedImage(src) {
+  if (!src) return null;
+  if (imageCache[src]) {
+    return imageCache[src].loaded ? imageCache[src].img : null;
+  }
+  const img = new Image();
+  imageCache[src] = { img, loaded: false };
+  img.onload = () => {
+    imageCache[src].loaded = true;
+  };
+  img.onerror = () => {
+    console.error("Failed to load custom image:", src);
+  };
+  img.src = src;
+  return null;
+}
+
