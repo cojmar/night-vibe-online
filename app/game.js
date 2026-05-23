@@ -973,6 +973,11 @@ export default class Game {
 
     this.checkHost();
     this.updateLayout();
+    if (this.ui) {
+      if (this.ui.buildClassesTab) this.ui.buildClassesTab();
+      if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
+      if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
+    }
   }
 
   _resetSessionData() {
