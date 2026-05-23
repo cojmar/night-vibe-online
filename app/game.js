@@ -805,7 +805,8 @@ export default class Game {
 
     const base = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
 
-    // Reset local player object state so that quitToMenu()'s broadcastState() broadcasts the clean LEVEL 1 state
+    // Reset local player object state for a fresh start on next game.
+    // Persistent progression (resets, bonusStatPoints) is already saved to localStorage.
     this.player.level = 1;
     this.player.kills = 0;
     this.player.resets = newResets;
@@ -821,12 +822,6 @@ export default class Game {
     this.net.send_cmd('set_data', {
       resets: newResets,
       bonusStatPoints: newBonusStats,
-      level: 1,
-      kills: 0,
-      atk: base.atk,
-      spd: base.spd,
-      maxHp: base.hp,
-      hp: base.hp,
       statPoints: newBonusStats
     });
 
@@ -913,27 +908,11 @@ export default class Game {
 
     // Broadcast leaving the game
     if (this.net && this.net.me) {
-      // Reset in-game progression stats so next game starts fresh at level 1
-      // while preserving persistent progression (resets, bonusStatPoints) from localStorage
+      // Reset in-game progression stats locally so next game starts fresh at level 1.
+      // Persistent progression (resets, bonusStatPoints) is already saved in localStorage
+      // and will be restored by restoreWebsocketStats() on the next game start.
       this._resetSessionData();
-
-      const base = CLASS_DATA.warrior;
-      const savedResets = parseInt(localStorage.getItem('nightvibe-resets'), 10) || 0;
-      const savedStatPoints = parseInt(localStorage.getItem('nightvibe-statpoints'), 10) || 0;
-
-      this.net.send_cmd('set_data', {
-        inGame: false,
-        state: 'MENU',
-        level: 1,
-        kills: 0,
-        resets: savedResets,
-        bonusStatPoints: savedStatPoints,
-        statPoints: savedStatPoints,
-        atk: base.atk,
-        spd: base.spd,
-        maxHp: base.hp,
-        hp: base.hp
-      });
+      this.net.send_cmd('set_data', { inGame: false, state: 'MENU' });
     }
 
     // Restore personal configuration from localStorage
