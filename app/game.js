@@ -199,6 +199,7 @@ export default class Game {
             }
             if (data.data.classData) ConfigModule.updateClassData(data.data.classData);
             if (data.data.enemyTypes) ConfigModule.updateEnemyTypes(data.data.enemyTypes);
+            if (data.data.itemsDb) ConfigModule.updateItemsDb(data.data.itemsDb);
             
             // Pre-cache all custom base64 images to prevent mid-game lag
             if (data.data.classData) {
@@ -212,11 +213,17 @@ export default class Game {
                 if (e.icon && typeof e.icon === 'string' && e.icon.startsWith('data:image/')) getCachedImage(e.icon);
               }
             }
+            if (data.data.itemsDb) {
+              for (const item of data.data.itemsDb) {
+                if (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) getCachedImage(item.icon);
+              }
+            }
             
             if (this.updateLayout) this.updateLayout();
             if (this.ui) {
               if (this.ui.buildClassesTab) this.ui.buildClassesTab();
               if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
+              if (this.ui.buildItemsTab) this.ui.buildItemsTab();
               if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
             }
           }
@@ -328,7 +335,8 @@ export default class Game {
             isHost: true, 
             gameplayConfig: ConfigModule.activeConfig,
             classData: ConfigModule.CLASS_DATA,
-            enemyTypes: ConfigModule.ENEMY_TYPES
+            enemyTypes: ConfigModule.ENEMY_TYPES,
+            itemsDb: ConfigModule.ITEMS_DB
         });
         // If we just became host, make sure we sync the global time to avoid jump
         if (this.globalTime) {
@@ -718,9 +726,11 @@ export default class Game {
             }
             if (userData.classData) ConfigModule.updateClassData(userData.classData);
             if (userData.enemyTypes) ConfigModule.updateEnemyTypes(userData.enemyTypes);
+            if (userData.itemsDb) ConfigModule.updateItemsDb(userData.itemsDb);
             if (this.ui) {
               if (this.ui.buildClassesTab) this.ui.buildClassesTab();
               if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
+              if (this.ui.buildItemsTab) this.ui.buildItemsTab();
               if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
             }
             this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
@@ -748,7 +758,8 @@ export default class Game {
             gameplayConfig: ConfigModule.activeConfig,
             gameplayConfigName: ConfigModule.activePresetName || 'Default',
             classData: ConfigModule.CLASS_DATA,
-            enemyTypes: ConfigModule.ENEMY_TYPES
+            enemyTypes: ConfigModule.ENEMY_TYPES,
+            itemsDb: ConfigModule.ITEMS_DB
         });
       }
     }

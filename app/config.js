@@ -392,6 +392,22 @@ try {
   console.error("Failed loading custom monsters", e);
 }
 
+export const ITEMS_DB = [
+  { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
+  { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
+  { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
+];
+
+try {
+  const customItems = JSON.parse(localStorage.getItem('nightvibe-custom-items'));
+  if (customItems && Array.isArray(customItems) && customItems.length > 0) {
+    ITEMS_DB.length = 0;
+    ITEMS_DB.push(...customItems);
+  }
+} catch (e) {
+  console.error("Failed loading custom items", e);
+}
+
 export const ENV_LIST = ['forest', 'castle', 'volcano', 'beach', 'tundra', 'swamp'];
 export const ENV_DISPLAY = { forest: 'Forest', castle: 'Castle', volcano: 'Volcano', beach: 'Beach', tundra: 'Tundra', swamp: 'Swamp' };
 export const ENV_CONFIG = {
@@ -546,6 +562,14 @@ export function updateEnemyTypes(newEnemies) {
     ENEMY_TYPES.length = 0;
     ENEMY_TYPES.push(...newEnemies);
     localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ENEMY_TYPES));
+  }
+}
+
+export function updateItemsDb(newItems) {
+  if (Array.isArray(newItems) && newItems.length > 0) {
+    ITEMS_DB.length = 0;
+    ITEMS_DB.push(...newItems);
+    localStorage.setItem('nightvibe-custom-items', JSON.stringify(ITEMS_DB));
   }
 }
 

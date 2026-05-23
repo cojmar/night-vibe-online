@@ -341,7 +341,8 @@ export default class UI {
             name: 'Last Game Config',
             values: JSON.parse(JSON.stringify(ConfigModule.activeConfig)),
             classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
-            monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
+            monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES)),
+            items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB))
         };
         ConfigModule.saveCustomPresets(customPresets);
         
@@ -445,6 +446,7 @@ export default class UI {
         let valuesToApply = null;
         let classesToApply = null;
         let monstersToApply = null;
+        let itemsToApply = null;
         let isCustom = false;
         let presetName = 'Default';
         
@@ -461,6 +463,7 @@ export default class UI {
                 valuesToApply = presets[key].values;
                 classesToApply = presets[key].classes;
                 monstersToApply = presets[key].monsters;
+                itemsToApply = presets[key].items;
                 presetName = presets[key].name;
                 isCustom = true;
             }
@@ -501,9 +504,22 @@ export default class UI {
             ConfigModule.ENEMY_TYPES.push(...targetMonsters);
             localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ConfigModule.ENEMY_TYPES));
             
+            // Revert or apply custom items
+            const defaultItems = [
+              { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
+              { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
+              { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
+            ];
+            
+            const targetItems = itemsToApply || defaultItems;
+            ConfigModule.ITEMS_DB.length = 0;
+            ConfigModule.ITEMS_DB.push(...targetItems);
+            localStorage.setItem('nightvibe-custom-items', JSON.stringify(ConfigModule.ITEMS_DB));
+            
             // Re-render editor tabs and lists
             this.buildClassesTab();
             this.buildMonstersTab();
+            this.buildItemsTab();
             
             if (this.game) {
                 if (this.game.updateLayout) this.game.updateLayout();
@@ -817,7 +833,12 @@ export default class UI {
                     name: name.trim(),
                     values: valuesCopy,
                     classes: defaultClasses,
-                    monsters: defaultMonsters
+                    monsters: defaultMonsters,
+                    items: [
+                      { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
+                      { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
+                      { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
+                    ]
                 };
                 
                 ConfigModule.saveCustomPresets(customPresets);
@@ -846,7 +867,8 @@ export default class UI {
                     name: name.trim(),
                     values: valuesCopy,
                     classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
-                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
+                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES)),
+                    items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB))
                 };
                 
                 ConfigModule.saveCustomPresets(customPresets);
@@ -1303,6 +1325,8 @@ export default class UI {
                     this.buildClassesTab();
                 } else if (targetId === 'tab-monsters') {
                     this.buildMonstersTab();
+                } else if (targetId === 'tab-items') {
+                    this.buildItemsTab();
                 }
             });
         });
@@ -2091,6 +2115,296 @@ export default class UI {
             }
             
             container.appendChild(monsterCard);
+        });
+    }
+
+    saveItemsToStorage() {
+        localStorage.setItem('nightvibe-custom-items', JSON.stringify(ConfigModule.ITEMS_DB));
+        
+        const presetId = ConfigModule.activePresetId;
+        if (presetId && presetId.startsWith('custom:')) {
+            const key = presetId.split('custom:')[1];
+            const presets = ConfigModule.getCustomPresets();
+            if (presets[key]) {
+                presets[key].items = JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB));
+                ConfigModule.saveCustomPresets(presets);
+            }
+        }
+        
+        if (this.game && this.game.isHost && this.game.net) {
+            this.game.net.send_cmd('set_data', { itemsDb: ConfigModule.ITEMS_DB });
+        }
+        if (this.game && this.game.broadcastState) {
+            this.game.broadcastState();
+        }
+    }
+
+    buildItemsTab() {
+        const container = document.getElementById('visual-items-container');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const isPlaying = this.game && this.game.state === 'PLAYING';
+
+        if (isPlaying) {
+            const warnBanner = document.createElement('div');
+            warnBanner.style.background = 'rgba(231, 76, 60, 0.15)';
+            warnBanner.style.border = '1px solid #e74c3c';
+            warnBanner.style.padding = '10px 15px';
+            warnBanner.style.borderRadius = '6px';
+            warnBanner.style.marginBottom = '15px';
+            warnBanner.style.color = '#ff6b6b';
+            warnBanner.style.fontWeight = 'bold';
+            warnBanner.style.textAlign = 'center';
+            warnBanner.style.fontSize = '0.9em';
+            warnBanner.innerHTML = '⚠️ Active Session: Settings are read-only and locked to the Host\'s gameplay configuration.';
+            container.appendChild(warnBanner);
+        }
+
+        ConfigModule.ITEMS_DB.forEach((item, index) => {
+            const itemCard = document.createElement('div');
+            itemCard.style.background = 'rgba(0,0,0,0.3)';
+            itemCard.style.border = `2px solid ${item.color || '#e67e22'}`;
+            itemCard.style.borderRadius = '8px';
+            itemCard.style.padding = '15px';
+            itemCard.style.marginBottom = '15px';
+            itemCard.style.display = 'flex';
+            itemCard.style.flexDirection = 'column';
+            itemCard.style.gap = '10px';
+            
+            const headerRow = document.createElement('div');
+            headerRow.style.display = 'flex';
+            headerRow.style.justifyContent = 'space-between';
+            headerRow.style.alignItems = 'center';
+            headerRow.style.borderBottom = '1px solid #34495e';
+            headerRow.style.paddingBottom = '8px';
+            
+            const iconHtml = (item.icon.startsWith('data:image/') || item.icon.startsWith('http')) ? 
+                `<img src="${item.icon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+                `<span style="font-size:1.8em;">${item.icon}</span>`;
+            const titleHtml = `<div style="display:flex; align-items:center; gap:10px;">
+                <div class="item-icon-preview">${iconHtml}</div>
+                <h3 style="margin:0; color:${item.color}; font-size:1.3em;">${item.name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(index: ${index})</span></h3>
+            </div>`;
+            
+            headerRow.innerHTML = titleHtml;
+            itemCard.appendChild(headerRow);
+            
+            const grid = document.createElement('div');
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = '1fr 1fr';
+            grid.style.gap = '10px';
+            
+            const addField = (label, key, type, step = 1, options = null) => {
+                const wrapper = document.createElement('div');
+                const disabledAttr = isPlaying ? 'disabled' : '';
+                const opacityStyle = isPlaying ? 'opacity: 0.6; cursor: not-allowed;' : '';
+                
+                let inputHtml = '';
+                if (type === 'color') {
+                    inputHtml = `<div style="display:flex; gap:10px; align-items:center;">
+                        <input type="color" data-key="${key}" value="${item[key] || '#ffffff'}" ${disabledAttr} style="border:none; background:none; width:40px; height:30px; padding:0; ${opacityStyle}">
+                    </div>`;
+                } else if (type === 'number') {
+                    const isStat = key.startsWith('stats.');
+                    const statKey = isStat ? key.split('.')[1] : null;
+                    const val = isStat ? (item.stats[statKey] || 0) : (item[key] || 0);
+                    inputHtml = `<input type="number" data-key="${key}" value="${val}" step="${step}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-family:monospace; ${opacityStyle}">`;
+                } else if (type === 'select') {
+                    const val = item[key] || '';
+                    let optHtml = '';
+                    options.forEach(opt => {
+                        const sel = opt.value === val ? 'selected' : '';
+                        optHtml += `<option value="${opt.value}" ${sel}>${opt.label}</option>`;
+                    });
+                    inputHtml = `<select data-key="${key}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">${optHtml}</select>`;
+                } else if (type === 'custom-icon') {
+                    const currentIcon = item[key] || '💎';
+                    const displayEmoji = (currentIcon.startsWith('data:image/') || currentIcon.startsWith('http')) ? '💎' : currentIcon;
+                    
+                    inputHtml = `<div class="custom-icon-picker-container" style="position:relative; display:flex; flex-direction:column; gap:6px; ${opacityStyle}">
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <button type="button" class="custom-emoji-btn" ${disabledAttr} style="width:60px; height:34px; padding:0; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; cursor:pointer; font-size:1.4em; display:flex; align-items:center; justify-content:center; transition: all 0.2s ease;">
+                                ${displayEmoji}
+                            </button>
+                            <span style="color:#bdc3c7; font-size:0.9em;">or</span>
+                            <label style="flex:1; text-align:center; padding:7px 10px; background:#16a085; border:1px solid #1abc9c; color:#fff; border-radius:5px; cursor:pointer; font-weight:bold; font-size:0.85em; display:inline-block; user-select:none; transition: all 0.2s ease; ${disabledAttr ? 'pointer-events:none; opacity:0.6;' : ''}">
+                                📤 Photo
+                                <input type="file" accept="image/*" class="photo-upload" ${disabledAttr} style="display:none;">
+                            </label>
+                        </div>
+                        <div class="custom-emoji-picker-popover" style="display:none; position:absolute; z-index:1000; top:40px; left:0; width:260px; background:rgba(30, 39, 46, 0.98); border:1px solid #34495e; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,0.5); padding:10px; backdrop-filter:blur(10px); flex-direction:column; gap:8px;">
+                            <div style="position:relative; display:flex; align-items:center;">
+                                <input type="text" class="emoji-search-input" placeholder="🔍 Search emojis..." style="width:100%; box-sizing:border-box; padding:6px 10px; padding-left:28px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; font-size:0.85em;">
+                                <span style="position:absolute; left:8px; color:#95a5a6; font-size:0.9em; pointer-events:none;">🔍</span>
+                            </div>
+                            <div class="emoji-grid-scroll" style="max-height:160px; overflow-y:auto; display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; padding-right:4px;">
+                            </div>
+                        </div>
+                        <input type="text" data-key="${key}" value="${item[key] || ''}" ${disabledAttr} style="display:none;">
+                    </div>`;
+                } else {
+                    inputHtml = `<input type="text" data-key="${key}" value="${item[key] || ''}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">`;
+                }
+                
+                wrapper.innerHTML = `<label style="display:block; font-size:0.85em; color:#bdc3c7; margin-bottom:4px;">${label}</label>${inputHtml}`;
+                grid.appendChild(wrapper);
+
+                if (type === 'custom-icon') {
+                    const emojiBtn = wrapper.querySelector('.custom-emoji-btn');
+                    const popover = wrapper.querySelector('.custom-emoji-picker-popover');
+                    const searchInput = wrapper.querySelector('.emoji-search-input');
+                    const emojiGrid = wrapper.querySelector('.emoji-grid-scroll');
+                    const fileInput = wrapper.querySelector('.photo-upload');
+                    const textInput = wrapper.querySelector('input[data-key="icon"]');
+
+                    const EMOJI_LIST = [
+                        { char: "🗡️", tags: "weapon sword dagger blade slice gear" },
+                        { char: "⚔️", tags: "weapon swords dual fight combat gear" },
+                        { char: "🛡️", tags: "shield defense guard armor tank protection gear" },
+                        { char: "💍", tags: "ring jewelry finger stats gold magic gear" },
+                        { char: "📿", tags: "amulet necklace beads jewelry magic stats gear" },
+                        { char: "🏹", tags: "weapon bow arrow range hunter gear" },
+                        { char: "🪓", tags: "weapon axe hatchet lumber chop gear" },
+                        { char: "🧙", tags: "staff wizard warlock magic lich gear" },
+                        { char: "💎", tags: "gem crystal diamond blue treasure rich gear" },
+                        { char: "👑", tags: "crown king queen gold royalty head gear" },
+                        { char: "🏺", tags: "urn vase pot jar magic gear" },
+                        { char: "🗝️", tags: "key lock secret room dungeon gear" }
+                    ];
+
+                    const renderEmojis = (filter = '') => {
+                        emojiGrid.innerHTML = '';
+                        const cleanFilter = filter.toLowerCase().trim();
+                        EMOJI_LIST.forEach(em => {
+                            if (cleanFilter && !em.tags.includes(cleanFilter) && !em.char.includes(cleanFilter)) {
+                                return;
+                            }
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.innerText = em.char;
+                            btn.style.background = 'none';
+                            btn.style.border = 'none';
+                            btn.style.fontSize = '1.6em';
+                            btn.style.cursor = 'pointer';
+                            btn.style.padding = '4px';
+                            btn.style.borderRadius = '5px';
+                            btn.style.transition = '0.2s';
+                            btn.onmouseover = () => btn.style.background = 'rgba(255,255,255,0.1)';
+                            btn.onmouseout = () => btn.style.background = 'none';
+                            
+                            btn.onclick = () => {
+                                textInput.value = em.char;
+                                textInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                popover.style.display = 'none';
+                            };
+                            emojiGrid.appendChild(btn);
+                        });
+                    };
+
+                    if (!isPlaying) {
+                        emojiBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            const isShown = popover.style.display === 'flex';
+                            document.querySelectorAll('.custom-emoji-picker-popover').forEach(p => p.style.display = 'none');
+                            popover.style.display = isShown ? 'none' : 'flex';
+                            if (!isShown) {
+                                renderEmojis();
+                                searchInput.value = '';
+                                setTimeout(() => searchInput.focus(), 50);
+                            }
+                        };
+
+                        searchInput.oninput = (e) => {
+                            renderEmojis(e.target.value);
+                        };
+
+                        fileInput.onchange = (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                const base64 = event.target.result;
+                                textInput.value = base64;
+                                textInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            };
+                            reader.readAsDataURL(file);
+                        };
+
+                        popover.onclick = (e) => e.stopPropagation();
+                    }
+                }
+            };
+
+            addField('Gear Name', 'name', 'text');
+            addField('Icon / Emoji', 'icon', 'custom-icon');
+            addField('Accent Color', 'color', 'color');
+            addField('Gear Type', 'gearType', 'select', 1, [
+                { value: 'Weapon', label: '⚔️ Weapon' },
+                { value: 'Armor', label: '🛡️ Armor' },
+                { value: 'Ring', label: '💍 Ring' },
+                { value: 'Amulet', label: '📿 Amulet' }
+            ]);
+            addField('Rarity', 'rarity', 'select', 1, [
+                { value: 'normal', label: '⚪ Normal' },
+                { value: 'magic', label: '🔵 Magic' },
+                { value: 'rare', label: '🟡 Rare' }
+            ]);
+            addField('ATK Scaling Multiplier', 'stats.atk', 'number', 1);
+            addField('HP Scaling Multiplier', 'stats.maxHp', 'number', 5);
+            addField('SPD Scaling Multiplier', 'stats.spd', 'number', 0.5);
+
+            itemCard.appendChild(grid);
+            
+            if (!isPlaying) {
+                const inputs = itemCard.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    const eventType = input.tagName === 'SELECT' || input.type === 'color' || input.type === 'number' ? 'change' : 'input';
+                    input.addEventListener(eventType, (e) => {
+                        const key = e.target.getAttribute('data-key');
+                        let val = e.target.value;
+                        if (e.target.type === 'number') val = parseFloat(val) || 0;
+                        
+                        if (key.startsWith('stats.')) {
+                            const statKey = key.split('.')[1];
+                            ConfigModule.ITEMS_DB[index].stats[statKey] = val;
+                        } else {
+                            ConfigModule.ITEMS_DB[index][key] = val;
+                        }
+                        
+                        itemCard.style.borderColor = ConfigModule.ITEMS_DB[index].color || '#e67e22';
+                        headerRow.querySelector('h3').style.color = ConfigModule.ITEMS_DB[index].color || '#e67e22';
+                        headerRow.querySelector('h3').innerHTML = `${ConfigModule.ITEMS_DB[index].name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(index: ${index})</span>`;
+                        const iconPreview = headerRow.querySelector('.item-icon-preview');
+                        if (iconPreview) {
+                            const newIcon = ConfigModule.ITEMS_DB[index].icon;
+                            iconPreview.innerHTML = (newIcon.startsWith('data:image/') || newIcon.startsWith('http')) ? 
+                                `<img src="${newIcon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+                                `<span style="font-size:1.8em;">${newIcon}</span>`;
+                        }
+                        this.saveItemsToStorage();
+                    });
+                });
+                
+                const btnDelete = document.createElement('button');
+                btnDelete.innerText = '🗑️ Delete Gear';
+                btnDelete.style.background = '#e74c3c';
+                btnDelete.style.color = '#fff';
+                btnDelete.style.border = 'none';
+                btnDelete.style.padding = '8px';
+                btnDelete.style.borderRadius = '5px';
+                btnDelete.style.marginTop = '10px';
+                btnDelete.style.cursor = 'pointer';
+                btnDelete.style.fontWeight = 'bold';
+                btnDelete.onclick = () => {
+                    ConfigModule.ITEMS_DB.splice(index, 1);
+                    this.saveItemsToStorage();
+                    this.buildItemsTab();
+                };
+                itemCard.appendChild(btnDelete);
+            }
+            
+            container.appendChild(itemCard);
         });
     }
 
