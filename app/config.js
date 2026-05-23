@@ -102,7 +102,7 @@ const FALLBACK_DEFAULTS = {
 export let DEFAULTS = { ...FALLBACK_DEFAULTS };
 try {
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', 'app/nightvibe-gameplay-config.json', false); // false makes the request synchronous
+  xhr.open('GET', 'configs/default.json', false); // false makes the request synchronous
   xhr.send(null);
   if (xhr.status === 200) {
     const loadedDefaults = JSON.parse(xhr.responseText);
@@ -113,7 +113,7 @@ try {
     }
   }
 } catch (error) {
-  console.warn("Could not load app/nightvibe-gameplay-config.json synchronously, using hardcoded fallback", error);
+  console.warn("Could not load configs/default.json synchronously, using hardcoded fallback", error);
 }
 
 // ==========================================
@@ -209,14 +209,43 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
 // ==========================================
 // C. CONFIG LOAD & DYNAMIC INITIALIZATION
 // ==========================================
-let savedConfig = {};
-try {
-  savedConfig = JSON.parse(localStorage.getItem('nightvibe-custom-config') || '{}');
-} catch (e) {
-  console.error("Failed parsing custom config", e);
+export function getCustomPresets() {
+  try {
+    return JSON.parse(localStorage.getItem('nightvibe-config-presets') || '{}');
+  } catch (e) {
+    console.error("Failed parsing custom presets", e);
+    return {};
+  }
 }
 
-export let activeConfig = Object.assign({}, DEFAULTS, savedConfig);
+export function saveCustomPresets(presets) {
+  localStorage.setItem('nightvibe-config-presets', JSON.stringify(presets));
+}
+
+export let activePresetId = localStorage.getItem('nightvibe-active-preset-id') || 'built-in:default';
+
+export function setActivePresetId(id) {
+  activePresetId = id;
+  localStorage.setItem('nightvibe-active-preset-id', id);
+}
+
+// Load startup active configuration (uses scratch space or default values)
+let startupConfig = {};
+if (activePresetId && activePresetId.startsWith('custom:')) {
+  const customId = activePresetId.split('custom:')[1];
+  const presets = getCustomPresets();
+  if (presets[customId]) {
+    startupConfig = presets[customId].values || {};
+  }
+} else {
+  try {
+    startupConfig = JSON.parse(localStorage.getItem('nightvibe-scratch-config') || '{}');
+  } catch (e) {
+    console.error("Failed parsing scratch config", e);
+  }
+}
+
+export let activeConfig = Object.assign({}, DEFAULTS, startupConfig);
 
 // ==========================================
 // D. LIVE LET BINDINGS EXPORTS
@@ -385,15 +414,10 @@ export const SKILL_DESC = {
 
 // ==========================================
 // E. DYNAMIC SETTINGS CONTROLS FUNCTIONS
-export function updateConfig(newValues) {
-  for (const key in newValues) {
-    if (DEFAULTS[key] !== undefined) {
-      activeConfig[key] = newValues[key];
-    }
-  }
+// ==========================================
 
-  // Save customized config object back to localStorage
-  localStorage.setItem('nightvibe-custom-config', JSON.stringify(activeConfig));
+export function applyPreset(presetValues) {
+  activeConfig = Object.assign({}, DEFAULTS, presetValues);
 
   // Dynamically update the live bindings so that all other game source modules receive the fresh settings immediately!
   GAME_W = activeConfig.GAME_W;
@@ -473,10 +497,32 @@ export function updateConfig(newValues) {
   GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
   GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
   GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
-   GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
-   CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
-   POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
-   POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
+  GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
+  CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
+  POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
+  POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
+}
+
+export function updateConfig(newValues) {
+  for (const key in newValues) {
+    if (DEFAULTS[key] !== undefined) {
+      activeConfig[key] = newValues[key];
+    }
+  }
+
+  applyPreset(activeConfig);
+
+  // Save updated values to persistent preset if custom, or scratch space if built-in
+  if (activePresetId && activePresetId.startsWith('custom:')) {
+    const customId = activePresetId.split('custom:')[1];
+    const presets = getCustomPresets();
+    if (presets[customId]) {
+      presets[customId].values = { ...activeConfig };
+      saveCustomPresets(presets);
+    }
+  } else {
+    localStorage.setItem('nightvibe-scratch-config', JSON.stringify(activeConfig));
+  }
 }
 
 export function updateClassData(newClasses) {
@@ -494,7 +540,16 @@ export function updateEnemyTypes(newEnemies) {
 }
 
 export function resetConfig() {
-  localStorage.removeItem('nightvibe-custom-config');
+  if (activePresetId && activePresetId.startsWith('custom:')) {
+    const customId = activePresetId.split('custom:')[1];
+    const presets = getCustomPresets();
+    if (presets[customId]) {
+      presets[customId].values = { ...DEFAULTS };
+      saveCustomPresets(presets);
+    }
+  } else {
+    localStorage.removeItem('nightvibe-scratch-config');
+  }
   updateConfig(DEFAULTS);
 }
 

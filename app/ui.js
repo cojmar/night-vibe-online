@@ -15,6 +15,8 @@ export default class UI {
         this.statMultiplier = 1; // Default allocation multiplier
         this.configSearchQuery = ''; // Persisted search filter
 
+        this.builtInConfigs = {};
+        this.loadBuiltInConfigs();
         this.bindEvents();
         this.updateClassCarousel();
     }
@@ -48,7 +50,10 @@ export default class UI {
     bindEvents() {
         document.getElementById('btn-prev-class').addEventListener('click', () => this.prevClass());
         document.getElementById('btn-next-class').addEventListener('click', () => this.nextClass());
-        document.getElementById('btn-start').addEventListener('click', () => this.game.startGame(this.selectedClass));
+        document.getElementById('btn-start').addEventListener('click', () => {
+            localStorage.setItem('nightvibe-last-played-config', ConfigModule.activePresetId);
+            this.game.startGame(this.selectedClass);
+        });
         document.getElementById('btn-fullscreen').addEventListener('click', () => this.toggleFullscreen());
         document.getElementById('btn-quit-game').addEventListener('click', () => this.game.quitToMenu());
         document.getElementById('btn-death-quit').addEventListener('click', () => this.game.quitToMenu());
@@ -158,6 +163,200 @@ export default class UI {
         });
     }
 
+    async loadBuiltInConfigs() {
+        this.builtInConfigs = {
+            'default': { name: 'Default Mode', values: { ...ConfigModule.DEFAULTS } }
+        };
+        
+        let manifest = ['default.json', 'hardcore.json', 'rapidfire.json', 'sandbox.json'];
+        try {
+            const response = await fetch('configs/manifest.json');
+            if (response.ok) {
+                manifest = await response.json();
+            }
+        } catch (e) {
+            console.warn("Could not load configs/manifest.json, using fallback list", e);
+        }
+
+        for (const file of manifest) {
+            const key = file.replace('.json', '');
+            if (key === 'default') continue;
+            try {
+                const res = await fetch(`configs/${file}`);
+                if (res.ok) {
+                    const cfg = await res.json();
+                    this.builtInConfigs[key] = {
+                        name: key.charAt(0).toUpperCase() + key.slice(1) + ' Mode',
+                        values: cfg
+                    };
+                }
+            } catch (err) {
+                console.error(`Failed to load built-in config ${file}:`, err);
+            }
+        }
+        
+        this.populateConfigSelector();
+        this.applySavedPreset();
+    }
+
+    populateConfigSelector() {
+        const selector = document.getElementById('config-preset-selector');
+        if (!selector) return;
+        
+        selector.innerHTML = '';
+        
+        // 1. Last Played optgroup (if not default)
+        const lastPlayedId = localStorage.getItem('nightvibe-last-played-config');
+        if (lastPlayedId && lastPlayedId !== 'built-in:default') {
+            const groupLast = document.createElement('optgroup');
+            groupLast.label = 'Last Played';
+            
+            let name = 'Unknown Config';
+            if (lastPlayedId.startsWith('built-in:')) {
+                const key = lastPlayedId.split('built-in:')[1];
+                if (this.builtInConfigs[key]) name = this.builtInConfigs[key].name;
+            } else if (lastPlayedId.startsWith('custom:')) {
+                const key = lastPlayedId.split('custom:')[1];
+                const presets = ConfigModule.getCustomPresets();
+                if (presets[key]) name = presets[key].name;
+            }
+            
+            const opt = document.createElement('option');
+            opt.value = lastPlayedId;
+            opt.textContent = `🕒 ${name}`;
+            groupLast.appendChild(opt);
+            selector.appendChild(groupLast);
+        }
+        
+        // 2. Default optgroup
+        const groupDefault = document.createElement('optgroup');
+        groupDefault.label = 'Default';
+        const optDefault = document.createElement('option');
+        optDefault.value = 'built-in:default';
+        optDefault.textContent = '🎮 Default Rules';
+        groupDefault.appendChild(optDefault);
+        selector.appendChild(groupDefault);
+        
+        // 3. Built-in Game Modes optgroup
+        const groupBuiltin = document.createElement('optgroup');
+        groupBuiltin.label = 'Built-in Game Modes';
+        for (const key in this.builtInConfigs) {
+            if (key === 'default') continue;
+            const opt = document.createElement('option');
+            opt.value = `built-in:${key}`;
+            let emoji = '⚙️';
+            if (key === 'hardcore') emoji = '👹';
+            else if (key === 'rapidfire') emoji = '⚡';
+            else if (key === 'sandbox') emoji = '🌿';
+            opt.textContent = `${emoji} ${this.builtInConfigs[key].name}`;
+            groupBuiltin.appendChild(opt);
+        }
+        selector.appendChild(groupBuiltin);
+        
+        // 4. Custom User Presets optgroup
+        const groupCustom = document.createElement('optgroup');
+        groupCustom.label = 'My Custom Presets';
+        const customPresets = ConfigModule.getCustomPresets();
+        let hasCustom = false;
+        for (const id in customPresets) {
+            const opt = document.createElement('option');
+            opt.value = `custom:${id}`;
+            opt.textContent = `✏️ ${customPresets[id].name}`;
+            groupCustom.appendChild(opt);
+            hasCustom = true;
+        }
+        if (!hasCustom) {
+            const optNone = document.createElement('option');
+            optNone.disabled = true;
+            optNone.textContent = '(No custom presets saved)';
+            groupCustom.appendChild(optNone);
+        }
+        selector.appendChild(groupCustom);
+        
+        // Set selected option
+        selector.value = ConfigModule.activePresetId;
+        if (!selector.value) {
+            selector.value = 'built-in:default';
+            ConfigModule.setActivePresetId('built-in:default');
+        }
+    }
+
+    applySavedPreset() {
+        const selector = document.getElementById('config-preset-selector');
+        if (!selector) return;
+        
+        const presetId = selector.value || ConfigModule.activePresetId;
+        this.selectPreset(presetId);
+    }
+
+    selectPreset(presetId) {
+        if (!presetId) return;
+        
+        ConfigModule.setActivePresetId(presetId);
+        
+        let valuesToApply = null;
+        let isCustom = false;
+        let presetName = 'Default';
+        
+        if (presetId.startsWith('built-in:')) {
+            const key = presetId.split('built-in:')[1];
+            if (this.builtInConfigs && this.builtInConfigs[key]) {
+                valuesToApply = this.builtInConfigs[key].values;
+                presetName = this.builtInConfigs[key].name;
+            }
+        } else if (presetId.startsWith('custom:')) {
+            const key = presetId.split('custom:')[1];
+            const presets = ConfigModule.getCustomPresets();
+            if (presets[key]) {
+                valuesToApply = presets[key].values;
+                presetName = presets[key].name;
+                isCustom = true;
+            }
+        }
+        
+        if (valuesToApply) {
+            ConfigModule.updateConfig(valuesToApply);
+            
+            if (this.game) {
+                if (this.game.updateLayout) this.game.updateLayout();
+                if (this.game.player) {
+                    this.game.player.moveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.game.player.classType] || ConfigModule.PLAYER_MOVE_SPEEDS.default;
+                    if (this.game.player.classType === 'warrior') {
+                        this.game.player.atkRange = ConfigModule.WARRIOR_MELEE_RANGE;
+                    } else if (this.game.player.classType === 'magicgladiator') {
+                        this.game.player.atkRange = ConfigModule.MAGICGLADIATOR_MELEE_RANGE;
+                    } else {
+                        this.game.player.atkRange = ConfigModule.RANGED_MAX_RANGE;
+                    }
+                    this.updateHUD(this.game.player);
+                }
+                if (this.game.generateScenery) this.game.generateScenery(this.game.selectedEnv);
+                if (this.game.broadcastState) this.game.broadcastState();
+            }
+            
+            this.updateLobbyRulesText();
+            this.updateClassCarousel();
+        }
+        
+        const titleEl = document.getElementById('active-preset-title');
+        const badgeEl = document.getElementById('active-preset-badge');
+        const btnDelete = document.getElementById('btn-preset-delete');
+        
+        if (titleEl) titleEl.textContent = presetName;
+        if (badgeEl) {
+            badgeEl.textContent = isCustom ? 'Custom' : 'Built-in';
+            badgeEl.style.background = isCustom ? '#9b59b6' : '#27ae60';
+        }
+        if (btnDelete) {
+            btnDelete.style.display = isCustom ? 'inline-block' : 'none';
+        }
+        
+        const sel = document.getElementById('config-preset-selector');
+        if (sel && sel.value !== presetId) {
+            sel.value = presetId;
+        }
+    }
+
     initSettings() {
         if (!this.game || !this.game.settings) return;
         const s = this.game.settings;
@@ -248,8 +447,18 @@ export default class UI {
         const configEditorModal = document.getElementById('config-editor-modal');
         const btnConfigEditorCloseIcon = document.getElementById('btn-config-editor-close-icon');
         const btnConfigSave = document.getElementById('btn-config-save');
+        
         if (btnConfigSave) {
             btnConfigSave.addEventListener('click', () => {
+                const presetId = ConfigModule.activePresetId;
+                if (presetId && presetId.startsWith('built-in:')) {
+                    alert("This is a built-in read-only preset. Click 'Save As...' to save your modifications as a custom preset!");
+                    const btnSaveAs = document.getElementById('btn-preset-save-as');
+                    if (btnSaveAs) btnSaveAs.click();
+                    return;
+                }
+                
+                saveConfigFromUI();
                 const originalText = btnConfigSave.innerText;
                 btnConfigSave.innerText = '✔️ SAVED!';
                 btnConfigSave.style.background = '#27ae60';
@@ -257,6 +466,171 @@ export default class UI {
                     btnConfigSave.innerText = originalText;
                     btnConfigSave.style.background = '#2ecc71';
                 }, 1000);
+            });
+        }
+
+        // Config preset dropdown selector
+        const selector = document.getElementById('config-preset-selector');
+        if (selector) {
+            selector.addEventListener('change', (e) => {
+                this.selectPreset(e.target.value);
+                buildConfigFields();
+            });
+        }
+
+        const btnEditSelected = document.getElementById('btn-edit-selected-config');
+        if (btnEditSelected) {
+            btnEditSelected.addEventListener('click', () => {
+                settingsModal.style.display = 'none';
+                configEditorModal.style.display = 'flex';
+                buildConfigFields();
+            });
+        }
+
+        // Preset Manager Bar Action Buttons
+        const btnSaveAs = document.getElementById('btn-preset-save-as');
+        if (btnSaveAs) {
+            btnSaveAs.addEventListener('click', () => {
+                const name = prompt("Enter a name for the new custom preset:", "My Custom Preset");
+                if (!name || !name.trim()) return;
+                
+                const customPresets = ConfigModule.getCustomPresets();
+                const newId = 'preset_' + Date.now();
+                
+                const valuesCopy = { ...ConfigModule.activeConfig };
+                
+                customPresets[newId] = {
+                    id: newId,
+                    name: name.trim(),
+                    values: valuesCopy
+                };
+                
+                ConfigModule.saveCustomPresets(customPresets);
+                ConfigModule.setActivePresetId(`custom:${newId}`);
+                
+                this.populateConfigSelector();
+                this.selectPreset(`custom:${newId}`);
+                buildConfigFields();
+                
+                this.addLog(`💾 Saved preset as "${name.trim()}"`);
+            });
+        }
+
+        const btnDuplicate = document.getElementById('btn-preset-duplicate');
+        if (btnDuplicate) {
+            btnDuplicate.addEventListener('click', () => {
+                let currentName = 'Preset';
+                const presetId = ConfigModule.activePresetId;
+                if (presetId.startsWith('built-in:')) {
+                    const key = presetId.split('built-in:')[1];
+                    if (this.builtInConfigs && this.builtInConfigs[key]) currentName = this.builtInConfigs[key].name;
+                } else if (presetId.startsWith('custom:')) {
+                    const key = presetId.split('custom:')[1];
+                    const presets = ConfigModule.getCustomPresets();
+                    if (presets[key]) currentName = presets[key].name;
+                }
+                
+                const name = prompt("Enter name for duplicated preset:", currentName + " (Copy)");
+                if (!name || !name.trim()) return;
+                
+                const customPresets = ConfigModule.getCustomPresets();
+                const newId = 'preset_' + Date.now();
+                const valuesCopy = { ...ConfigModule.activeConfig };
+                
+                customPresets[newId] = {
+                    id: newId,
+                    name: name.trim(),
+                    values: valuesCopy
+                };
+                
+                ConfigModule.saveCustomPresets(customPresets);
+                ConfigModule.setActivePresetId(`custom:${newId}`);
+                
+                this.populateConfigSelector();
+                this.selectPreset(`custom:${newId}`);
+                buildConfigFields();
+                
+                this.addLog(`📋 Duplicated preset to "${name.trim()}"`);
+            });
+        }
+
+        const btnDeletePreset = document.getElementById('btn-preset-delete');
+        if (btnDeletePreset) {
+            btnDeletePreset.addEventListener('click', () => {
+                const presetId = ConfigModule.activePresetId;
+                if (!presetId.startsWith('custom:')) return;
+                const key = presetId.split('custom:')[1];
+                
+                const customPresets = ConfigModule.getCustomPresets();
+                if (customPresets[key]) {
+                    const name = customPresets[key].name;
+                    if (confirm(`Are you sure you want to delete the preset "${name}"?`)) {
+                        delete customPresets[key];
+                        ConfigModule.saveCustomPresets(customPresets);
+                        
+                        ConfigModule.setActivePresetId('built-in:default');
+                        this.populateConfigSelector();
+                        this.selectPreset('built-in:default');
+                        buildConfigFields();
+                        
+                        this.addLog(`🗑️ Deleted preset "${name}"`);
+                    }
+                }
+            });
+        }
+
+        const btnNewPreset = document.getElementById('btn-preset-new');
+        if (btnNewPreset) {
+            btnNewPreset.addEventListener('click', () => {
+                const name = prompt("Enter a name for the new custom preset:", "My New Preset");
+                if (!name || !name.trim()) return;
+                
+                const customPresets = ConfigModule.getCustomPresets();
+                const newId = 'preset_' + Date.now();
+                
+                const valuesCopy = { ...ConfigModule.DEFAULTS };
+                
+                customPresets[newId] = {
+                    id: newId,
+                    name: name.trim(),
+                    values: valuesCopy
+                };
+                
+                ConfigModule.saveCustomPresets(customPresets);
+                ConfigModule.setActivePresetId(`custom:${newId}`);
+                
+                this.populateConfigSelector();
+                this.selectPreset(`custom:${newId}`);
+                buildConfigFields();
+                
+                this.addLog(`➕ Created custom preset "${name.trim()}"`);
+            });
+        }
+
+        const btnImportGameSession = document.getElementById('btn-preset-import-game');
+        if (btnImportGameSession) {
+            btnImportGameSession.addEventListener('click', () => {
+                const name = prompt("Enter a name for the imported preset:", "Imported Preset");
+                if (!name || !name.trim()) return;
+                
+                const customPresets = ConfigModule.getCustomPresets();
+                const newId = 'preset_' + Date.now();
+                const valuesCopy = { ...ConfigModule.activeConfig };
+                
+                customPresets[newId] = {
+                    id: newId,
+                    name: name.trim(),
+                    values: valuesCopy
+                };
+                
+                ConfigModule.saveCustomPresets(customPresets);
+                ConfigModule.setActivePresetId(`custom:${newId}`);
+                
+                this.populateConfigSelector();
+                this.selectPreset(`custom:${newId}`);
+                buildConfigFields();
+                
+                this.addLog(`📥 Imported session preset as "${name.trim()}"`);
             });
         }
         const btnConfigReset = document.getElementById('btn-config-reset');
@@ -595,18 +969,31 @@ export default class UI {
 
         if (btnConfigExport) {
             btnConfigExport.addEventListener('click', () => {
-                const activeConfig = {};
+                const activeConfigValues = {};
                 for (const key in CONFIG_METADATA) {
-                    activeConfig[key] = ConfigModule[key];
+                    activeConfigValues[key] = ConfigModule.activeConfig[key];
                 }
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeConfig, null, 2));
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeConfigValues, null, 2));
+                
+                let filename = 'nightvibe-gameplay-config.json';
+                const presetId = ConfigModule.activePresetId;
+                if (presetId.startsWith('built-in:')) {
+                    filename = `nightvibe-config-${presetId.split('built-in:')[1]}.json`;
+                } else if (presetId.startsWith('custom:')) {
+                    const key = presetId.split('custom:')[1];
+                    const presets = ConfigModule.getCustomPresets();
+                    if (presets[key]) {
+                        filename = `nightvibe-config-${presets[key].name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
+                    }
+                }
+                
                 const downloadAnchor = document.createElement('a');
                 downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", "nightvibe-gameplay-config.json");
+                downloadAnchor.setAttribute("download", filename);
                 document.body.appendChild(downloadAnchor);
                 downloadAnchor.click();
                 downloadAnchor.remove();
-                this.addLog("📥 Gameplay balance config exported.");
+                this.addLog(`📥 Exported preset as "${filename}"`);
             });
         }
 
@@ -621,10 +1008,30 @@ export default class UI {
                 reader.onload = (event) => {
                     try {
                         const imported = JSON.parse(event.target.result);
-                        updateConfig(imported);
+                        let defaultName = file.name.replace('.json', '').replace('nightvibe-config-', '');
+                        defaultName = defaultName.charAt(0).toUpperCase() + defaultName.slice(1);
+                        const name = prompt("Enter a name for the imported preset:", defaultName);
+                        if (!name || !name.trim()) return;
+                        
+                        const customPresets = ConfigModule.getCustomPresets();
+                        const newId = 'preset_' + Date.now();
+                        
+                        const mergedValues = Object.assign({}, ConfigModule.DEFAULTS, imported);
+                        
+                        customPresets[newId] = {
+                            id: newId,
+                            name: name.trim(),
+                            values: mergedValues
+                        };
+                        
+                        ConfigModule.saveCustomPresets(customPresets);
+                        ConfigModule.setActivePresetId(`custom:${newId}`);
+                        
+                        this.populateConfigSelector();
+                        this.selectPreset(`custom:${newId}`);
                         buildConfigFields();
-                        saveConfigFromUI();
-                        this.addLog("📤 Gameplay balance config imported successfully!");
+                        
+                        this.addLog(`📤 Imported configuration preset "${name.trim()}" successfully!`);
                     } catch (err) {
                         alert("Failed to parse configuration JSON: " + err.message);
                     }
