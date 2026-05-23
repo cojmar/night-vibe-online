@@ -2504,7 +2504,7 @@ export default class Game {
               this.waveEnemiesToSpawn = this.waveTotalEnemies;
             }
             this.waveEnemiesKilled = 0;
-            this.ui.updateScore(this.kills, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
+            this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
           }
         }
       }

@@ -1646,7 +1646,12 @@
       <div class="hud" id="hud">
         <div class="party-list" id="party-list">
           <div class="hp-container player-hud-box" id="player-hp-container" style="cursor:pointer; display: flex; flex-direction: column; gap: 3px;">
-            <!-- Top row: Level and Kills status -->
+            <!-- Player name and class row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: bold; color: #fff; border-bottom: 1px solid #34495e; padding-bottom: 2px;">
+              <span id="player-name-display" style="color: #ecf0f1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px;"></span>
+              <span id="player-class-display" style="color: #bdc3c7;"></span>
+            </div>
+            <!-- Level and Kills status -->
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: bold; color: #fff;">
               <span style="color: #f1c40f;">⭐ Lv.<span id="player-level">1</span></span>
               <span style="color: #ffd700;">💀 <span id="kill-count">0</span>/<span id="req-kill-count">5</span></span>

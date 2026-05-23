@@ -1847,6 +1847,15 @@ export default class UI {
 
     updateHUD(player) {
         if (!player) return;
+
+        const nameEl = document.getElementById('player-name-display');
+        const classEl = document.getElementById('player-class-display');
+        if (nameEl) nameEl.textContent = player.nick || 'Player';
+        if (classEl) {
+            const cd = CLASS_DATA[player.classType];
+            if (cd) classEl.innerHTML = `${cd.icon} ${cd.name}`;
+        }
+
         const pct = Math.max(0, (player.hp / player.maxHp) * 100);
         document.getElementById('hp-bar').style.width = pct + '%';
         document.getElementById('hp-text').textContent = `HP: ${Math.floor(player.hp)} / ${player.maxHp}`;
@@ -2045,7 +2054,8 @@ export default class UI {
                     iconHtml = `<span style="vertical-align:middle; margin-right:4px;">${classIcon}</span>`;
                 }
             }
-            const newHtml = `<span style="vertical-align:middle;">${iconHtml}<span style="vertical-align:middle;">${dispName}${aliveText}</span></span>`;
+            const className = (p.classType && CLASS_DATA[p.classType]) ? CLASS_DATA[p.classType].name : '';
+            const newHtml = `<span style="vertical-align:middle;">${iconHtml}<span style="vertical-align:middle;">${dispName}${aliveText}</span> <span style="vertical-align:middle; color:#7f8c8d; font-size:0.85em;">${className}</span></span>`;
             if (nameEl.innerHTML !== newHtml) nameEl.innerHTML = newHtml;
 
             const newInfoText = `Lv.${p.level || 1} | Kills: ${p.kills || 0}/${p.reqKills || 5}`;
