@@ -1369,6 +1369,24 @@ export default class UI {
             });
         }
 
+        // Add new gear button binding
+        const btnAddItem = document.getElementById('btn-add-item');
+        if (btnAddItem) {
+            btnAddItem.addEventListener('click', async () => {
+                const isPlaying = this.game && this.game.state === 'PLAYING';
+                if (isPlaying) {
+                    await this.showAlert("⚠️ Active Session", "Cannot add gear while a game session is active.");
+                    return;
+                }
+                ConfigModule.ITEMS_DB.push({
+                    name: 'New Gear', icon: '💎', gearType: 'Ring', rarity: 'normal',
+                    color: '#e67e22', stats: { atk: 5, maxHp: 20, spd: 1 }
+                });
+                this.saveItemsToStorage();
+                this.buildItemsTab();
+            });
+        }
+
         this.updateLobbyRulesText();
         this.initInventory();
     }
