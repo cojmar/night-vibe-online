@@ -1952,7 +1952,8 @@ export default class Game {
         this.player.updateMovement(dt, this);
 
         if (this.player.isChargingS2) {
-          const chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? ConfigModule.POTION_BLUE_CD_MULTIPLIER : 1;
+          let chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? ConfigModule.POTION_BLUE_CD_MULTIPLIER : 1;
+          if (this.player.classType === 'archer') chargeSpeed *= 1.35;
           this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67 * chargeSpeed;
           const maxCharges = 3 + (this.player.resets || 0);
           const newCount = Math.min(maxCharges, Math.floor(this.player.s2ChargeTime / 1000));
