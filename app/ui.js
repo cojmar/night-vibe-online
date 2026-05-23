@@ -1001,10 +1001,25 @@ export default class UI {
                             if (file) {
                                 const reader = new FileReader();
                                 reader.onload = (event) => {
-                                    textInput.value = event.target.result;
-                                    emojiBtn.innerText = '👤'; // fallback smiley for images
-                                    textInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                    popover.style.display = 'none';
+                                    const img = new Image();
+                                    img.onload = () => {
+                                        const canvas = document.createElement('canvas');
+                                        const MAX_SIZE = 128;
+                                        let w = img.width;
+                                        let h = img.height;
+                                        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } 
+                                        else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
+                                        canvas.width = w; canvas.height = h;
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.drawImage(img, 0, 0, w, h);
+                                        const dataUrl = canvas.toDataURL('image/png', 0.8);
+                                        
+                                        textInput.value = dataUrl;
+                                        emojiBtn.innerText = '👤'; // fallback smiley for images
+                                        textInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                        popover.style.display = 'none';
+                                    };
+                                    img.src = event.target.result;
                                 };
                                 reader.readAsDataURL(file);
                             }
@@ -1319,10 +1334,25 @@ export default class UI {
                             if (file) {
                                 const reader = new FileReader();
                                 reader.onload = (event) => {
-                                    textInput.value = event.target.result;
-                                    emojiBtn.innerText = '👾'; // fallback smiley for images
-                                    textInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                    popover.style.display = 'none';
+                                    const img = new Image();
+                                    img.onload = () => {
+                                        const canvas = document.createElement('canvas');
+                                        const MAX_SIZE = 128;
+                                        let w = img.width;
+                                        let h = img.height;
+                                        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } 
+                                        else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
+                                        canvas.width = w; canvas.height = h;
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.drawImage(img, 0, 0, w, h);
+                                        const dataUrl = canvas.toDataURL('image/png', 0.8);
+                                        
+                                        textInput.value = dataUrl;
+                                        emojiBtn.innerText = '👾'; // fallback smiley for images
+                                        textInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                        popover.style.display = 'none';
+                                    };
+                                    img.src = event.target.result;
                                 };
                                 reader.readAsDataURL(file);
                             }
