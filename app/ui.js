@@ -445,6 +445,8 @@ export default class UI {
             }
         }
         
+        ConfigModule.setActivePresetName(presetName);
+        
         if (valuesToApply) {
             ConfigModule.updateConfig(valuesToApply);
             
@@ -800,7 +802,7 @@ export default class UI {
         const btnImportGameSession = document.getElementById('btn-preset-import-game');
         if (btnImportGameSession) {
             btnImportGameSession.addEventListener('click', async () => {
-                const name = await this.showPrompt("📥 Import Session", "Enter a name for the imported preset:", "Imported Preset");
+                const name = await this.showPrompt("📥 Import Session", "Enter a name for the imported preset:", ConfigModule.activePresetName || "Imported Preset");
                 if (!name || !name.trim()) return;
                 
                 const customPresets = ConfigModule.getCustomPresets();
@@ -1088,7 +1090,10 @@ export default class UI {
             }
 
             if (this.game && this.game.isHost && this.game.net) {
-                this.game.net.send_cmd('set_data', { gameplayConfig: ConfigModule.activeConfig });
+                this.game.net.send_cmd('set_data', { 
+                    gameplayConfig: ConfigModule.activeConfig,
+                    gameplayConfigName: ConfigModule.activePresetName || 'Default'
+                });
             }
 
             this.updateLobbyRulesText();

@@ -223,10 +223,16 @@ export function saveCustomPresets(presets) {
 }
 
 export let activePresetId = localStorage.getItem('nightvibe-active-preset-id') || 'built-in:default';
+export let activePresetName = 'Default';
 
 export function setActivePresetId(id) {
   activePresetId = id;
   localStorage.setItem('nightvibe-active-preset-id', id);
+}
+
+export function setActivePresetName(name) {
+  activePresetName = name;
+  localStorage.setItem('nightvibe-active-preset-name', name);
 }
 
 // Load startup active configuration (uses scratch space or default values)
@@ -236,7 +242,11 @@ if (activePresetId && activePresetId.startsWith('custom:')) {
   const presets = getCustomPresets();
   if (presets[customId]) {
     startupConfig = presets[customId].values || {};
+    activePresetName = presets[customId].name || 'Custom Preset';
   }
+} else if (activePresetId && activePresetId.startsWith('built-in:')) {
+  const key = activePresetId.split('built-in:')[1];
+  activePresetName = key.charAt(0).toUpperCase() + key.slice(1);
 } else {
   try {
     startupConfig = JSON.parse(localStorage.getItem('nightvibe-scratch-config') || '{}');

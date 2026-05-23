@@ -194,6 +194,9 @@ export default class Game {
           const isSenderHost = data.data.isHost || (op && op.isHost);
           if (isSenderHost) {
             ConfigModule.updateConfig(data.data.gameplayConfig);
+            if (data.data.gameplayConfigName) {
+              ConfigModule.setActivePresetName(data.data.gameplayConfigName);
+            }
             if (data.data.classData) ConfigModule.updateClassData(data.data.classData);
             if (data.data.enemyTypes) ConfigModule.updateEnemyTypes(data.data.enemyTypes);
             
@@ -707,6 +710,9 @@ export default class Game {
           this.isHost = false;
           if (userData.gameplayConfig) {
             ConfigModule.updateConfig(userData.gameplayConfig);
+            if (userData.gameplayConfigName) {
+              ConfigModule.setActivePresetName(userData.gameplayConfigName);
+            }
             if (userData.classData) ConfigModule.updateClassData(userData.classData);
             if (userData.enemyTypes) ConfigModule.updateEnemyTypes(userData.enemyTypes);
             if (this.ui) {
@@ -737,6 +743,7 @@ export default class Game {
         this.net.send_cmd('set_data', { 
             isHost: true, 
             gameplayConfig: ConfigModule.activeConfig,
+            gameplayConfigName: ConfigModule.activePresetName || 'Default',
             classData: ConfigModule.CLASS_DATA,
             enemyTypes: ConfigModule.ENEMY_TYPES
         });
