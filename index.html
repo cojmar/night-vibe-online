@@ -522,7 +522,7 @@
       z-index: 5;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 0;
       pointer-events: auto;
       width: 200px;
     }
@@ -1670,10 +1670,6 @@
               <span>🌍 <span id="env-name" style="color: #3498db;">Forest</span></span>
             </div>
           </div>
-          <div id="buffs-container" style="display:flex; gap:10px; margin-top:2px; margin-bottom:2px; height: 24px;">
-          </div>
-          <!-- Hidden score display container to maintain backwards compatibility -->
-          <div id="player-score-container" style="display: none !important;"></div>
           <div class="stats-display" id="stats-display" style="display:none;">
             <div id="stat-pts-row"
               style="display:none; border-bottom: 1px dashed #ffd700; padding-bottom: 4px; margin-bottom: 2px; color: #f1c40f;">
@@ -1730,6 +1726,10 @@
               style="display:none; width:100%; margin-top:8px; background:#8e44ad; color:white; border: 2px solid #9b59b6; border-radius:4px; padding:4px; font-weight:bold; cursor:pointer;">🔄
               REBIRTH (Start Over with Bonus Stats)</button>
           </div>
+          <div id="buffs-container" style="display:flex; gap:10px; margin-top:4px; height: 24px;">
+          </div>
+          <!-- Hidden score display container to maintain backwards compatibility -->
+          <div id="player-score-container" style="display: none !important;"></div>
           <div id="remote-players-list"></div>
         </div>
       </div>
