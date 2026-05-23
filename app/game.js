@@ -194,7 +194,28 @@ export default class Game {
           const isSenderHost = data.data.isHost || (op && op.isHost);
           if (isSenderHost) {
             ConfigModule.updateConfig(data.data.gameplayConfig);
+            if (data.data.classData) ConfigModule.updateClassData(data.data.classData);
+            if (data.data.enemyTypes) ConfigModule.updateEnemyTypes(data.data.enemyTypes);
+            
+            // Pre-cache all custom base64 images to prevent mid-game lag
+            if (data.data.classData) {
+              for (const k in data.data.classData) {
+                const ic = data.data.classData[k].icon;
+                if (ic && typeof ic === 'string' && ic.startsWith('data:image/')) getCachedImage(ic);
+              }
+            }
+            if (data.data.enemyTypes) {
+              for (const e of data.data.enemyTypes) {
+                if (e.icon && typeof e.icon === 'string' && e.icon.startsWith('data:image/')) getCachedImage(e.icon);
+              }
+            }
+            
             if (this.updateLayout) this.updateLayout();
+            if (this.ui) {
+              if (this.ui.buildClassesTab) this.ui.buildClassesTab();
+              if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
+              if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
+            }
           }
         }
       }
@@ -289,7 +310,12 @@ export default class Game {
       this.isHost = isHost;
       this.ui.addLog(this.isHost ? '👑 You are the Host!' : '👥 You are a Client', 'reward');
       if (this.isHost) {
-        this.net.send_cmd('set_data', { isHost: true, gameplayConfig: ConfigModule.activeConfig });
+        this.net.send_cmd('set_data', { 
+            isHost: true, 
+            gameplayConfig: ConfigModule.activeConfig,
+            classData: ConfigModule.CLASS_DATA,
+            enemyTypes: ConfigModule.ENEMY_TYPES
+        });
         // If we just became host, make sure we sync the global time to avoid jump
         if (this.globalTime) {
           // Time is already matched
@@ -670,6 +696,13 @@ export default class Game {
           this.isHost = false;
           if (userData.gameplayConfig) {
             ConfigModule.updateConfig(userData.gameplayConfig);
+            if (userData.classData) ConfigModule.updateClassData(userData.classData);
+            if (userData.enemyTypes) ConfigModule.updateEnemyTypes(userData.enemyTypes);
+            if (this.ui) {
+              if (this.ui.buildClassesTab) this.ui.buildClassesTab();
+              if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
+              if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
+            }
             this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
           }
           if (userData.hostData) {
@@ -690,7 +723,12 @@ export default class Game {
       this.isHost = true;
       this.ui.addLog('👑 You are the Host!', 'reward');
       if (this.net && this.net.me) {
-        this.net.send_cmd('set_data', { isHost: true, gameplayConfig: ConfigModule.activeConfig });
+        this.net.send_cmd('set_data', { 
+            isHost: true, 
+            gameplayConfig: ConfigModule.activeConfig,
+            classData: ConfigModule.CLASS_DATA,
+            enemyTypes: ConfigModule.ENEMY_TYPES
+        });
       }
     }
 

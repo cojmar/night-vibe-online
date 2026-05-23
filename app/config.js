@@ -473,10 +473,24 @@ export function updateConfig(newValues) {
   GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
   GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
   GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
-  GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
-  CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
-  POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
-  POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
+   GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
+   CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
+   POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
+   POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
+}
+
+export function updateClassData(newClasses) {
+  for (const key in CLASS_DATA) delete CLASS_DATA[key];
+  Object.assign(CLASS_DATA, newClasses);
+  localStorage.setItem('nightvibe-custom-classes', JSON.stringify(CLASS_DATA));
+}
+
+export function updateEnemyTypes(newEnemies) {
+  if (Array.isArray(newEnemies) && newEnemies.length > 0) {
+    ENEMY_TYPES.length = 0;
+    ENEMY_TYPES.push(...newEnemies);
+    localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ENEMY_TYPES));
+  }
 }
 
 export function resetConfig() {
