@@ -1,5 +1,4 @@
 import { ENEMY_TYPES, ENV_CONFIG, getGroundY, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_LASER_DAMAGE_PER_SEC, BOSS_LASER_DAMAGE_LEVEL_SCALE, BOSS_PROJECTILE_LIFETIME } from './utils.js';
-import { GAME_W, GAME_H } from './config.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -43,8 +42,8 @@ export default class Enemy {
       this.bossState = 'IDLE';
       
       const totalBosses = gameInstance.waveTotalEnemies > 0 ? gameInstance.waveTotalEnemies : 1;
-      const spacing = GAME_W * 0.7 / totalBosses;
-      const offsetX = GAME_W * 0.15 + (spacing / 2) + (spawnIndex * spacing);
+      const spacing = this.game.gameW * 0.7 / totalBosses;
+      const offsetX = this.game.gameW * 0.15 + (spacing / 2) + (spawnIndex * spacing);
       this.x = offsetX;
       
       const groundY = getGroundY(gameInstance.selectedEnv);
@@ -74,8 +73,8 @@ export default class Enemy {
 
   getSafeSpawnPosition(localPrng) {
     const groundY = getGroundY(this.game.selectedEnv);
-    const minDim = Math.min(GAME_W, GAME_H);
-    const aspectRatio = GAME_W / GAME_H;
+    const minDim = Math.min(this.game.gameW, this.game.gameH);
+    const aspectRatio = this.game.gameW / this.game.gameH;
     const safeMargin = Math.max(40, minDim * 0.12);
     const minDist = minDim * 0.25;
     let attempts = 0;
@@ -87,23 +86,23 @@ export default class Enemy {
       if (aspectRatio < 0.6) {
         const edge = localPrng.nextFloat();
         if (edge < 0.5) {
-          sx = safeMargin + localPrng.nextFloat() * (GAME_W - safeMargin * 2);
+          sx = safeMargin + localPrng.nextFloat() * (this.game.gameW - safeMargin * 2);
           sy = -30 - localPrng.nextFloat() * 40;
         } else {
-          sx = safeMargin + localPrng.nextFloat() * (GAME_W - safeMargin * 2);
-          sy = GAME_H + 30 + localPrng.nextFloat() * 40;
+          sx = safeMargin + localPrng.nextFloat() * (this.game.gameW - safeMargin * 2);
+          sy = this.game.gameH + 30 + localPrng.nextFloat() * 40;
         }
       } else {
         const roll = localPrng.nextFloat();
         if (roll < 0.45) {
-          sx = safeMargin + localPrng.nextFloat() * (GAME_W - safeMargin * 2);
+          sx = safeMargin + localPrng.nextFloat() * (this.game.gameW - safeMargin * 2);
           sy = -30 - localPrng.nextFloat() * 40;
         } else if (roll < 0.7) {
           sx = -40 - localPrng.nextFloat() * 50;
-          sy = safeMargin + localPrng.nextFloat() * (GAME_H - safeMargin * 2);
+          sy = safeMargin + localPrng.nextFloat() * (this.game.gameH - safeMargin * 2);
         } else {
-          sx = GAME_W + 40 + localPrng.nextFloat() * 50;
-          sy = safeMargin + localPrng.nextFloat() * (GAME_H - safeMargin * 2);
+          sx = this.game.gameW + 40 + localPrng.nextFloat() * 50;
+          sy = safeMargin + localPrng.nextFloat() * (this.game.gameH - safeMargin * 2);
         }
       }
       
@@ -116,7 +115,7 @@ export default class Enemy {
       sy += Math.sin(angle) * (minDist + 30);
     }
     
-    if(!player) return {x: GAME_W/2, y: groundY - 50};
+    if(!player) return {x: this.game.gameW/2, y: groundY - 50};
     
     return {
       x: player.x + (localPrng.nextFloat() < 0.5 ? -1 : 1) * (minDist + 50),
@@ -299,7 +298,7 @@ export default class Enemy {
     if (this.hitFlash > 0 && this.alive) ctx.globalAlpha *= 0.5 + Math.sin(this.hitFlash * 3) * 0.5;
 
     // Shadow
-    const eDepth = Math.max(0, Math.min(1, (this.y - groundY) / (GAME_H - groundY)));
+    const eDepth = Math.max(0, Math.min(1, (this.y - groundY) / (this.game.gameH - groundY)));
     const eShadowAlpha = 0.15 + eDepth * 0.2;
     const eShadowW = this.size * 0.7 + eDepth * this.size * 0.3;
     const eShadowH = this.size * 0.2 + eDepth * this.size * 0.15;

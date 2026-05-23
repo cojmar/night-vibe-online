@@ -1,5 +1,4 @@
 import * as ConfigModule from './config.js';
-import { GAME_W, GAME_H } from './config.js';
 import { CONFIG_METADATA, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, POTION_BUFF_DURATION, POTION_LIFESTEAL_PERCENT, GAME_INITIAL_WAVE, GAME_INITIAL_KILLS, GAME_INITIAL_WAVE_ENEMIES, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP } from './utils.js';
 import Player from './player.js';
 import Enemy from './enemy.js';
@@ -99,7 +98,7 @@ export default class Game {
       if (this.net.me && data.user !== this.net.me.info.user) {
         if (!this.otherPlayers[data.user]) {
           // Default spawn for other players
-          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || GAME_W / 2, data.data.y || (getGroundY(this.selectedEnv) + GAME_H) / 2);
+          this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || this.gameW / 2, data.data.y || (getGroundY(this.selectedEnv) + this.gameH) / 2);
         }
 
         const oldInGame = this.otherPlayers[data.user].inGame;
@@ -557,15 +556,15 @@ export default class Game {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     // Lock scaling to the screen height to provide native side-scrolling experience
-    this.viewScale = ch / GAME_H;
+    this.viewScale = ch / this.gameH;
 
-    // Dynamically adjust GAME_W if the screen is wider than the configured width
+    // Dynamically adjust this.gameW if the screen is wider than the configured width
     const requiredGameW = Math.ceil(cw / this.viewScale);
     const baseConfigW = ConfigModule.activeConfig.GAME_W || 2560;
     const targetW = Math.max(baseConfigW, requiredGameW);
 
-    if (targetW !== ConfigModule.GAME_W) {
-      ConfigModule.setDynamicGameW(targetW);
+    if (targetW !== this.gameW) {
+      this.gameW = targetW;
       if (this.player && this.player.isLocal) {
         this.player.x = Math.max(20, Math.min(targetW - 20, this.player.x));
       }
@@ -573,7 +572,7 @@ export default class Game {
       this.initBgParticles();
     }
 
-    const scaledW = ConfigModule.GAME_W * this.viewScale;
+    const scaledW = this.gameW * this.viewScale;
 
     // If the game width is wider than the screen, left-align and let side-scrolling handle offsets.
     // Otherwise, center the game world horizontally on screen.
@@ -611,9 +610,9 @@ export default class Game {
     if (this.player && this.canvas) {
       const cw = this.canvas.width / (this.pixelRatio || 1);
       const viewportWidth = cw / this.viewScale;
-      const scaledW = GAME_W * this.viewScale;
+      const scaledW = this.gameW * this.viewScale;
       if (cw < scaledW) {
-        this.cameraX = Math.max(0, Math.min(GAME_W - viewportWidth, this.player.x - viewportWidth / 2));
+        this.cameraX = Math.max(0, Math.min(this.gameW - viewportWidth, this.player.x - viewportWidth / 2));
       } else {
         this.cameraX = 0;
       }
@@ -705,7 +704,7 @@ export default class Game {
       myData = this.net.room.users[this.net.me.info.user].data;
     }
 
-    this.player = new Player(this.net.me.info.user, true, selectedClass, GAME_W / 2, (getGroundY(this.selectedEnv) + GAME_H) / 2);
+    this.player = new Player(this.net.me.info.user, true, selectedClass, this.gameW / 2, (getGroundY(this.selectedEnv) + this.gameH) / 2);
 
     this.checkHost();
 
@@ -961,12 +960,12 @@ export default class Game {
   respawnPlayer() {
     document.getElementById('death-overlay').classList.remove('show');
     if (this.player) {
-      this.player.x = GAME_W / 2;
-      this.player.y = (getGroundY(this.selectedEnv) + GAME_H) / 2;
+      this.player.x = this.gameW / 2;
+      this.player.y = (getGroundY(this.selectedEnv) + this.gameH) / 2;
       this.player.hp = this.player.maxHp;
       this.player.alive = true;
     } else {
-      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, GAME_W / 2, (getGroundY(this.selectedEnv) + GAME_H) / 2);
+      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, this.gameW / 2, (getGroundY(this.selectedEnv) + this.gameH) / 2);
     }
     this.ui.updateHUD(this.player);
     this.ui.addLog('✨ Respawned!', 'reward');
@@ -1016,7 +1015,7 @@ export default class Game {
       if (!e.alive) continue;
 
       // Melee classes cannot click or lock onto enemies in the upper half of the screen
-      if ((this.player.classType === 'warrior' || this.player.classType === 'magicgladiator') && e.y < GAME_H / 2) {
+      if ((this.player.classType === 'warrior' || this.player.classType === 'magicgladiator') && e.y < this.gameH / 2) {
         continue;
       }
 
@@ -1045,8 +1044,8 @@ export default class Game {
     } else {
       this.player.autoAttackTarget = null;
       this.player.isMoving = true;
-      this.player.moveTargetX = Math.max(20, Math.min(GAME_W - 20, cx));
-      this.player.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 45, cy));
+      this.player.moveTargetX = Math.max(20, Math.min(this.gameW - 20, cx));
+      this.player.moveTargetY = Math.max(groundY - 50, Math.min(this.gameH - 45, cy));
       this.player.action = 'walk';
       document.getElementById('walk-indicator').innerHTML = '🚶 Walking...';
       document.getElementById('walk-indicator').classList.add('visible');
@@ -1273,7 +1272,7 @@ export default class Game {
       this.player.hp = 0;
       this.player.alive = false;
       // Move body behind horizon
-      this.player.y = GAME_H * 0.45;
+      this.player.y = this.gameH * 0.45;
       this.broadcastState();
       // Keep state PLAYING so the network host continues to run the simulation
       this.ui.showDeathScreen(this.kills, this.wave);
@@ -1327,7 +1326,7 @@ export default class Game {
     enemy.x += Math.cos(dirAngle) * distance;
     enemy.y += Math.sin(dirAngle) * distance * 0.4;
     const groundY = getGroundY(this.selectedEnv);
-    enemy.x = Math.max(enemy.size, Math.min(GAME_W - enemy.size, enemy.x));
+    enemy.x = Math.max(enemy.size, Math.min(this.gameW - enemy.size, enemy.x));
     enemy.y = Math.max(enemy.size, Math.min(groundY - enemy.size, enemy.y));
     if (enemy.attackTimer !== undefined) enemy.attackTimer = Math.max(enemy.attackTimer, 30);
   }
@@ -1350,7 +1349,7 @@ export default class Game {
     const groundY = getGroundY(this.selectedEnv);
     for (let i = 0; i < 40; i++) {
       this.bgParticles.push({
-        x: Math.random() * GAME_W, y: 10 + Math.random() * (groundY - 30),
+        x: Math.random() * this.gameW, y: 10 + Math.random() * (groundY - 30),
         vx: (Math.random() - 0.5) * 0.5, vy: -Math.random() * 0.8 - 0.2,
         size: Math.random() * 2 + 1, alpha: Math.random() * 0.5 + 0.2
       });
@@ -1370,7 +1369,7 @@ export default class Game {
       const w = 40 + localPrng.nextFloat() * 60;
       const h = 50 + localPrng.nextFloat() * 120;
       this.scenery.push({
-        x: localPrng.nextFloat() * GAME_W, w, h,
+        x: localPrng.nextFloat() * this.gameW, w, h,
         color: darkenColor(env.ground, 0.2 + localPrng.nextFloat() * 0.3)
       });
     }
@@ -1378,7 +1377,7 @@ export default class Game {
     const horizonCount = Math.floor(25 * (this.settings ? this.settings.bgElements : 1.0));
     for (let i = 0; i < horizonCount; i++) {
       this.horizonFoliage.push({
-        x: localPrng.nextFloat() * GAME_W,
+        x: localPrng.nextFloat() * this.gameW,
         h: 20 + localPrng.nextFloat() * 50,
         w: 15 + localPrng.nextFloat() * 30,
         phase: localPrng.nextFloat() * Math.PI * 2,
@@ -1388,12 +1387,12 @@ export default class Game {
       });
     }
 
-    const groundY = GAME_H * env.groundY;
+    const groundY = this.gameH * env.groundY;
     const groundCount = Math.floor(60 * (this.settings ? this.settings.groundElements : 1.0));
     for (let i = 0; i < groundCount; i++) {
       this.groundFoliage.push({
-        x: localPrng.nextFloat() * GAME_W,
-        y: groundY + 5 + localPrng.nextFloat() * (GAME_H - groundY - 10),
+        x: localPrng.nextFloat() * this.gameW,
+        y: groundY + 5 + localPrng.nextFloat() * (this.gameH - groundY - 10),
         size: 4 + localPrng.nextFloat() * 12,
         phase: localPrng.nextFloat() * Math.PI * 2,
         color: env.groundColor || darkenColor(env.ground, 0.1),
@@ -1408,42 +1407,42 @@ export default class Game {
     this.ctx.save();
     this.applyViewport();
 
-    const skyGrad = this.ctx.createLinearGradient(0, 0, 0, GAME_H);
+    const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.gameH);
     skyGrad.addColorStop(0, env.skyTop);
     skyGrad.addColorStop(0.5, env.skyMid);
     skyGrad.addColorStop(1, env.skyBot);
     this.ctx.fillStyle = skyGrad;
-    this.ctx.fillRect(0, 0, GAME_W, GAME_H);
+    this.ctx.fillRect(0, 0, this.gameW, this.gameH);
 
-    const gY = GAME_H * env.groundY;
+    const gY = this.gameH * env.groundY;
     this.ctx.fillStyle = env.ground;
-    this.ctx.fillRect(0, gY, GAME_W, GAME_H - gY);
+    this.ctx.fillRect(0, gY, this.gameW, this.gameH - gY);
 
     this.ctx.fillStyle = 'rgba(255,215,0,0.2)';
     this.ctx.font = 'bold 24px sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('🎮 SELECT CLASS & PRESS START', GAME_W / 2, GAME_H / 2);
+    this.ctx.fillText('🎮 SELECT CLASS & PRESS START', this.gameW / 2, this.gameH / 2);
 
     this.ctx.restore();
   }
 
   drawEnvironment() {
     const env = ENV_CONFIG[this.selectedEnv];
-    const gY = GAME_H * env.groundY;
+    const gY = this.gameH * env.groundY;
 
     const skyGrad = this.ctx.createLinearGradient(0, 0, 0, gY);
     skyGrad.addColorStop(0, env.skyTop);
     skyGrad.addColorStop(0.5, env.skyMid);
     skyGrad.addColorStop(1, env.skyBot);
     this.ctx.fillStyle = skyGrad;
-    this.ctx.fillRect(-2000, 0, GAME_W + 4000, gY);
+    this.ctx.fillRect(-2000, 0, this.gameW + 4000, gY);
 
     const nightAlpha = this.nightAlpha || 0;
     const dayAlpha = this.dayAlpha || 0;
     const cycle = (this.globalTime % 300) / 300;
 
-    const cx = GAME_W / 2, cy = gY;
+    const cx = this.gameW / 2, cy = gY;
     // Shift angle so cycle=0 is sunrise (angle = PI)
     const angle = cycle * Math.PI * 2 + Math.PI;
     const sunX = cx - Math.cos(angle) * 350;
@@ -1467,7 +1466,7 @@ export default class Game {
 
     if (nightAlpha > 0) {
       this.ctx.fillStyle = `rgba(5, 5, 20, ${nightAlpha * 0.4})`;
-      this.ctx.fillRect(-2000, 0, GAME_W + 4000, gY);
+      this.ctx.fillRect(-2000, 0, this.gameW + 4000, gY);
     }
 
     this.ctx.save();
@@ -1509,7 +1508,7 @@ export default class Game {
     this.ctx.restore();
 
     this.ctx.fillStyle = env.ground;
-    this.ctx.fillRect(-2000, gY, GAME_W + 4000, GAME_H - gY);
+    this.ctx.fillRect(-2000, gY, this.gameW + 4000, this.gameH - gY);
   }
 
   loop(time) {
@@ -1604,7 +1603,7 @@ export default class Game {
           if (Math.random() < 0.2) {
             this.atmosEffects.push({
               type: 'rain',
-              x: Math.random() * GAME_W,
+              x: Math.random() * this.gameW,
               y: -10,
               vx: -1 + Math.random() * 2,
               vy: 10 + Math.random() * 5,
@@ -1618,8 +1617,8 @@ export default class Game {
         if (Math.random() < 0.005 * this.settings.atmos * dt) {
           this.atmosEffects.push({
             type: 'cloud',
-            x: Math.random() < 0.5 ? -150 : GAME_W + 150,
-            y: Math.random() * (GAME_H * 0.5),
+            x: Math.random() < 0.5 ? -150 : this.gameW + 150,
+            y: Math.random() * (this.gameH * 0.5),
             vx: (Math.random() < 0.5 ? 1 : -1) * (0.1 + Math.random() * 0.3),
             vy: 0,
             color: isNight ? `rgba(255,255,255,${0.03 + Math.random() * 0.05})` : `rgba(0,0,0,${0.03 + Math.random() * 0.05})`,
@@ -1632,8 +1631,8 @@ export default class Game {
           const groundY = getGroundY(this.selectedEnv);
           this.atmosEffects.push({
             type: 'smoke',
-            x: Math.random() * GAME_W,
-            y: groundY + (Math.random() * (GAME_H - groundY)),
+            x: Math.random() * this.gameW,
+            y: groundY + (Math.random() * (this.gameH - groundY)),
             vx: -0.5 + Math.random(),
             vy: -0.5 - Math.random() * 0.5,
             color: isNight ? `rgba(150,255,150,${0.05 + Math.random() * 0.1})` : `rgba(50,50,50,${0.05 + Math.random() * 0.1})`,
@@ -1648,8 +1647,8 @@ export default class Game {
         ef.x += ef.vx * dt;
         ef.y += ef.vy * dt;
         let dead = false;
-        if (ef.type === 'rain' && ef.y > GAME_H) dead = true;
-        if (ef.type === 'cloud' && (ef.x < -200 || ef.x > GAME_W + 200)) dead = true;
+        if (ef.type === 'rain' && ef.y > this.gameH) dead = true;
+        if (ef.type === 'cloud' && (ef.x < -200 || ef.x > this.gameW + 200)) dead = true;
         if (ef.type === 'smoke') {
           ef.life -= 0.005 * dt;
           ef.size += 0.2 * dt;
@@ -1674,10 +1673,10 @@ export default class Game {
         const groundY = getGroundY(this.selectedEnv);
         if (p.y > groundY - 5) {
           p.y = 10 + Math.random() * (groundY - 30);
-          p.x = Math.random() * GAME_W;
+          p.x = Math.random() * this.gameW;
         }
-        if (p.x < -10) p.x = GAME_W + 10;
-        if (p.x > GAME_W + 10) p.x = -10;
+        if (p.x < -10) p.x = this.gameW + 10;
+        if (p.x > this.gameW + 10) p.x = -10;
         this.ctx.fillStyle = `rgba(255,255,255,${p.alpha * 0.3})`;
         this.ctx.beginPath(); this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); this.ctx.fill();
       }
@@ -1749,13 +1748,13 @@ export default class Game {
           if (e.name !== 'MISSILE' && e.name !== 'BOMB') {
             if (Math.random() < ConfigModule.POTION_RED_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+              const dropY = groundY + 20 + Math.random() * Math.min(250, this.gameH - groundY - 40);
               this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
             }
 
             if (Math.random() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+              const dropY = groundY + 20 + Math.random() * Math.min(250, this.gameH - groundY - 40);
               this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
             }
           }
@@ -1819,7 +1818,7 @@ export default class Game {
             }
 
 
-            const dropY = groundY + 20 + Math.random() * Math.min(250, GAME_H - groundY - 40);
+            const dropY = groundY + 20 + Math.random() * Math.min(250, this.gameH - groundY - 40);
             this.items.push({
               id: Math.random().toString(36).substr(2, 9),
               type: 'gear', gearType: category, rarity: rarity, color: color,
@@ -2355,21 +2354,21 @@ export default class Game {
       // Global Day/Night Lighting Overlays
       if (this.nightAlpha > 0) {
         const env = ENV_CONFIG[this.selectedEnv];
-        const gY = GAME_H * (env ? env.groundY : 0.5);
-        const nightGrad = this.ctx.createLinearGradient(0, 0, 0, GAME_H);
+        const gY = this.gameH * (env ? env.groundY : 0.5);
+        const nightGrad = this.ctx.createLinearGradient(0, 0, 0, this.gameH);
         // Moon illuminates the sky and background scenery
         nightGrad.addColorStop(0, `rgba(15, 20, 40, ${this.nightAlpha * 0.25})`);
-        nightGrad.addColorStop(gY / GAME_H, `rgba(5, 10, 25, ${this.nightAlpha * 0.35})`);
+        nightGrad.addColorStop(gY / this.gameH, `rgba(5, 10, 25, ${this.nightAlpha * 0.35})`);
         // Ground stays very dark
-        nightGrad.addColorStop(gY / GAME_H + 0.01, `rgba(0, 0, 5, ${this.nightAlpha * 0.5})`);
+        nightGrad.addColorStop(gY / this.gameH + 0.01, `rgba(0, 0, 5, ${this.nightAlpha * 0.5})`);
         nightGrad.addColorStop(1, `rgba(0, 0, 0, ${this.nightAlpha * 0.65})`);
 
         this.ctx.fillStyle = nightGrad;
-        this.ctx.fillRect(0, 0, GAME_W, GAME_H);
+        this.ctx.fillRect(0, 0, this.gameW, this.gameH);
       }
       if (this.dayAlpha > 0) {
         this.ctx.fillStyle = `rgba(255, 230, 150, ${this.dayAlpha * 0.1})`;
-        this.ctx.fillRect(0, 0, GAME_W, GAME_H);
+        this.ctx.fillRect(0, 0, this.gameW, this.gameH);
       }
 
       this.ctx.restore();

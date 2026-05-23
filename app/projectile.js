@@ -1,5 +1,4 @@
 import { circleOverlapsCrescentArc, pointInSweepArc, PROJ_HIT_RADIUS_ARROW, PROJ_HIT_RADIUS_BOLT, PROJ_HIT_RADIUS_DEFAULT } from './utils.js';
-import { GAME_W, GAME_H } from './config.js';
 
 export default class Projectile {
   constructor(props) {
@@ -43,8 +42,8 @@ export default class Projectile {
       }
       
       if (this.traveled >= this.maxDistance ||
-          this.x < -50 || this.x > GAME_W + 50 ||
-          this.y < -50 || this.y > GAME_H + 50) {
+          this.x < -50 || this.x > gameInstance.gameW + 50 ||
+          this.y < -50 || this.y > gameInstance.gameH + 50) {
         gameInstance.spawnParticles(this.x, this.y, this.color, 15, 5);
         this.life = 0;
       }
@@ -105,7 +104,7 @@ export default class Projectile {
           break;
         }
       }
-      if (this.x < -100 || this.x > GAME_W + 100 || this.y < -100 || this.y > GAME_H + 100) this.life = 0;
+      if (this.x < -100 || this.x > gameInstance.gameW + 100 || this.y < -100 || this.y > gameInstance.gameH + 100) this.life = 0;
       
       if (this.type === 'fireball' && this.life <= 0) {
         const explosionRadius = (this.radius || 15) * 4;

@@ -1,5 +1,4 @@
 import { getGroundY, getArmAnim, CLASS_DATA, PLAYER_MOVE_SPEEDS, LEVEL_UP_STAT_POINTS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, RANGED_MAX_RANGE, WARRIOR_MELEE_RANGE, MAGICGLADIATOR_MELEE_RANGE, MELEE_RANGE_LVL_SCALE_MULT, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, CHAT_MESSAGE_DURATION, CHAT_FADE_OUT_DURATION, LIMIT_LEVEL_TO_REBIRTH_REQ } from './utils.js';
-import { GAME_W, GAME_H } from './config.js';
 import * as ConfigModule from './config.js';
 
 export default class Player {
@@ -278,9 +277,9 @@ export default class Player {
           this.isMoving = false;
           return;
         } else {
-          this.moveTargetX = Math.max(20, Math.min(GAME_W - 20, e.x));
+          this.moveTargetX = Math.max(20, Math.min(gameInstance.gameW - 20, e.x));
           const groundY = getGroundY(gameInstance.selectedEnv);
-          this.moveTargetY = Math.max(groundY - 50, Math.min(GAME_H - 45, e.y));
+          this.moveTargetY = Math.max(groundY - 50, Math.min(gameInstance.gameH - 45, e.y));
           this.isMoving = true;
         }
       }
@@ -303,9 +302,9 @@ export default class Player {
     this.x += (dx / dist) * moveAmt;
     this.y += (dy / dist) * moveAmt;
 
-    this.x = Math.max(20, Math.min(GAME_W - 20, this.x));
+    this.x = Math.max(20, Math.min(gameInstance.gameW - 20, this.x));
     const groundY = getGroundY(gameInstance.selectedEnv);
-    this.y = Math.max(groundY - 50, Math.min(GAME_H - 45, this.y));
+    this.y = Math.max(groundY - 50, Math.min(gameInstance.gameH - 45, this.y));
 
     if (dx > 2) this.facing = 1;
     else if (dx < -2) this.facing = -1;
@@ -340,7 +339,7 @@ export default class Player {
     const groundY = getGroundY(gameInstance.selectedEnv);
 
     // Shadow
-    const depthRatio = Math.max(0, (this.y - groundY) / (GAME_H - groundY));
+    const depthRatio = Math.max(0, (this.y - groundY) / (gameInstance.gameH - groundY));
     const shadowAlpha = (0.2 + depthRatio * 0.3) * baseAlpha;
     const shadowWidth = 22 + depthRatio * 8 + ((this.isMoving || this.action === 'walk') ? 3 : 0);
     const shadowHeight = 6 + depthRatio * 4;
