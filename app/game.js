@@ -533,19 +533,16 @@ export default class Game {
   }
 
   updateLayout() {
-    // Source dimensions from the visual viewport / window directly instead of
-    // parent.clientWidth — on some devices (e.g. Samsung S24 FE) the parent's
-    // computed size is stale for the first frame after an orientation change,
-    // which caused a black strip on the right side until the next resize tick.
-    const vv = window.visualViewport;
-    const cw = Math.round(vv ? vv.width : window.innerWidth);
-    const ch = Math.round(vv ? vv.height : window.innerHeight);
+    // Trust the browser's own layout: the canvas is CSS-sized to fill the
+    // viewport-pinned main-area (position:absolute; inset:0). Read whatever
+    // size it actually ended up with via getBoundingClientRect() — this is
+    // the only reliable measurement across devices. Earlier attempts to use
+    // parent.clientWidth or visualViewport.width gave stale/under-reported
+    // numbers on some Samsung phones, leaving a black strip on the right.
+    const rect = this.canvas.getBoundingClientRect();
+    const cw = Math.round(rect.width);
+    const ch = Math.round(rect.height);
     if (cw <= 0 || ch <= 0) return;
-
-    // Pin the canvas explicitly to those dimensions so its CSS box doesn't
-    // depend on a flex parent that may not have laid out yet.
-    this.canvas.style.width = cw + 'px';
-    this.canvas.style.height = ch + 'px';
 
     const rawDpr = Math.min(window.devicePixelRatio || 1, 2);
     const isTouchDisplay = navigator.maxTouchPoints > 0;
