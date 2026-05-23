@@ -41,6 +41,7 @@ const FALLBACK_DEFAULTS = {
   DEPTH_GROUND_BOTTOM: 1.0,
   GROUND_TOLERANCE: 30,
   DEAD_BODY_LIFETIME: 3500,
+  DAY_CYCLE_DURATION: 115,
 
   // 6. Waves Setup
   GAME_INITIAL_WAVE: 1,
@@ -154,6 +155,7 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   DEPTH_GROUND_BOTTOM: { label: "Ground Bottom Depth Ratio", type: "number", min: 0.5, max: 1.0, step: 0.05, category: "Viewport & Display" },
   GROUND_TOLERANCE: { label: "Ground Y-Tolerance (px)", type: "number", min: 5, max: 100, step: 5, category: "Viewport & Display" },
   DEAD_BODY_LIFETIME: { label: "Dead Body Lifetime (ms)", type: "number", min: 500, max: 10000, step: 500, category: "Viewport & Display" },
+  DAY_CYCLE_DURATION: { label: "Day/Night Cycle Duration", type: "number", min: 30, max: 3000, step: 30, category: "Viewport & Display" },
 
   // 6. Enemy Dynamics & Timing
   ENEMY_SPAWN_INTERVAL: { label: "Enemy Spawn Delay (ms)", type: "number", min: 100, max: 5000, step: 100, category: "Enemy Dynamics" },
@@ -225,6 +227,7 @@ export let DEPTH_GROUND_TOP = activeConfig.DEPTH_GROUND_TOP;
 export let DEPTH_GROUND_BOTTOM = activeConfig.DEPTH_GROUND_BOTTOM;
 export let GROUND_TOLERANCE = activeConfig.GROUND_TOLERANCE;
 export let DEAD_BODY_LIFETIME = activeConfig.DEAD_BODY_LIFETIME;
+export let DAY_CYCLE_DURATION = activeConfig.DAY_CYCLE_DURATION;
 
 export let MOVE_SPEED = activeConfig.MOVE_SPEED;
 
@@ -399,6 +402,7 @@ export function updateConfig(newValues) {
   DEPTH_GROUND_BOTTOM = activeConfig.DEPTH_GROUND_BOTTOM;
   GROUND_TOLERANCE = activeConfig.GROUND_TOLERANCE;
   DEAD_BODY_LIFETIME = activeConfig.DEAD_BODY_LIFETIME;
+  DAY_CYCLE_DURATION = activeConfig.DAY_CYCLE_DURATION;
 
   MOVE_SPEED = activeConfig.MOVE_SPEED;
 

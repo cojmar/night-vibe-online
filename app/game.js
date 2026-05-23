@@ -1482,7 +1482,7 @@ export default class Game {
     this.horizonFoliage = [];
     this.groundFoliage = [];
     const env = ENV_CONFIG[this.selectedEnv] || ENV_CONFIG.forest;
-    const currentDay = Math.floor(this.globalTime / 300);
+    const currentDay = Math.floor(this.globalTime / ConfigModule.DAY_CYCLE_DURATION);
     let localPrng = new PRNG((currentDay + 1) * 9999);
 
     const sceneryCount = Math.floor(15 * (this.settings ? this.settings.bgElements : 1.0));
@@ -1561,7 +1561,7 @@ export default class Game {
 
     const nightAlpha = this.nightAlpha || 0;
     const dayAlpha = this.dayAlpha || 0;
-    const cycle = (this.globalTime % 300) / 300;
+    const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
 
     const cx = this.gameW / 2, cy = gY;
     // Shift angle so cycle=0 is sunrise (angle = PI)
@@ -1683,7 +1683,7 @@ export default class Game {
         }
       }
 
-      const cycle = (this.globalTime % 300) / 300;
+      const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
       this.nightAlpha = 0;
       if (cycle > 0.45 && cycle <= 0.55) this.nightAlpha = (cycle - 0.45) * 10;
       else if (cycle > 0.55 && cycle <= 0.95) this.nightAlpha = 1;
@@ -1695,7 +1695,7 @@ export default class Game {
       }
 
       if (this.isHost) {
-        const currentDay = Math.floor(this.globalTime / 300);
+        const currentDay = Math.floor(this.globalTime / ConfigModule.DAY_CYCLE_DURATION);
         const newEnv = ENV_LIST[currentDay % ENV_LIST.length];
         if (this.selectedEnv !== newEnv) {
           this.selectedEnv = newEnv;
