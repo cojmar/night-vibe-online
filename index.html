@@ -1460,10 +1460,12 @@
       <div id="preset-manager-bar"
         style="background: rgba(0,0,0,0.5); padding: 12px 15px; border-radius: 8px; border: 1px solid #ffd700; margin-bottom: 15px; text-align: left; font-size: 0.9em; display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
             <span style="color: #bdc3c7;">Active Preset:</span>
-            <strong id="active-preset-title" style="color: #ffd700; font-size: 1.1em; margin-left: 5px;">Default Mode</strong>
-            <span id="active-preset-badge" style="background: #ffd700; color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 8px; font-weight: bold; text-transform: uppercase;">Built-in</span>
+            <select id="config-editor-preset-selector" style="background: #2c3e50; color: #fff; border: 1px solid #ffd700; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; outline: none; font-size: 0.95em; font-family: inherit;">
+              <!-- Dynamically populated -->
+            </select>
+            <span id="active-preset-badge" style="background: #ffd700; color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; font-weight: bold; text-transform: uppercase;">Built-in</span>
           </div>
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
             <button id="btn-preset-save-as" style="background: #e67e22; color: #fff; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: 0.2s; font-size: 0.85em;" title="Save current settings under a new named preset">💾 Save As...</button>

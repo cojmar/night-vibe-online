@@ -353,75 +353,79 @@ export default class UI {
     }
 
     populateConfigSelector() {
-        const selector = document.getElementById('config-preset-selector');
-        if (!selector) return;
+        const ids = ['config-preset-selector', 'config-editor-preset-selector'];
         
-        selector.innerHTML = '';
-        
-        // 1. Last Game Config optgroup
-        const customPresets = ConfigModule.getCustomPresets();
-        if (customPresets['last_game_config']) {
-            const groupLast = document.createElement('optgroup');
-            groupLast.label = 'Last Game Config';
+        for (const targetId of ids) {
+            const selector = document.getElementById(targetId);
+            if (!selector) continue;
             
-            const opt = document.createElement('option');
-            opt.value = 'custom:last_game_config';
-            opt.textContent = `🕒 Last Game Config`;
-            groupLast.appendChild(opt);
-            selector.appendChild(groupLast);
-        }
-        
-        // 2. Default optgroup
-        const groupDefault = document.createElement('optgroup');
-        groupDefault.label = 'Default';
-        const optDefault = document.createElement('option');
-        optDefault.value = 'built-in:default';
-        optDefault.textContent = '🎮 Default Rules';
-        groupDefault.appendChild(optDefault);
-        selector.appendChild(groupDefault);
-        
-        // 3. Built-in Game Modes optgroup
-        const groupBuiltin = document.createElement('optgroup');
-        groupBuiltin.label = 'Built-in Game Modes';
-        for (const key in this.builtInConfigs) {
-            if (key === 'default') continue;
-            const opt = document.createElement('option');
-            opt.value = `built-in:${key}`;
-            let emoji = '⚙️';
-            if (key === 'hardcore') emoji = '👹';
-            else if (key === 'rapidfire') emoji = '⚡';
-            else if (key === 'sandbox') emoji = '🌿';
-            else if (key === 'bossrush') emoji = '👑';
-            opt.textContent = `${emoji} ${this.builtInConfigs[key].name}`;
-            groupBuiltin.appendChild(opt);
-        }
-        selector.appendChild(groupBuiltin);
-        
-        // 4. Custom User Presets optgroup
-        const groupCustom = document.createElement('optgroup');
-        groupCustom.label = 'My Custom Presets';
-        let hasCustom = false;
-        for (const id in customPresets) {
-            if (id === 'last_game_config') continue;
-            const opt = document.createElement('option');
-            opt.value = `custom:${id}`;
-            opt.textContent = `✏️ ${customPresets[id].name}`;
-            groupCustom.appendChild(opt);
-            hasCustom = true;
-        }
-        if (!hasCustom) {
-            const optNone = document.createElement('option');
-            optNone.disabled = true;
-            optNone.textContent = '(No custom presets saved)';
-            groupCustom.appendChild(optNone);
-        }
-        selector.appendChild(groupCustom);
-        
-        // Set selected option
-        selector.value = ConfigModule.activePresetId;
-        if (!selector.value) {
-            selector.value = 'built-in:default';
-            ConfigModule.setActivePresetId('built-in:default');
+            selector.innerHTML = '';
+            
+            // 1. Last Game Config optgroup
+            const customPresets = ConfigModule.getCustomPresets();
+            if (customPresets['last_game_config']) {
+                const groupLast = document.createElement('optgroup');
+                groupLast.label = 'Last Game Config';
+                
+                const opt = document.createElement('option');
+                opt.value = 'custom:last_game_config';
+                opt.textContent = `🕒 Last Game Config`;
+                groupLast.appendChild(opt);
+                selector.appendChild(groupLast);
+            }
+            
+            // 2. Default optgroup
+            const groupDefault = document.createElement('optgroup');
+            groupDefault.label = 'Default';
+            const optDefault = document.createElement('option');
+            optDefault.value = 'built-in:default';
+            optDefault.textContent = '🎮 Default Rules';
+            groupDefault.appendChild(optDefault);
+            selector.appendChild(groupDefault);
+            
+            // 3. Built-in Game Modes optgroup
+            const groupBuiltin = document.createElement('optgroup');
+            groupBuiltin.label = 'Built-in Game Modes';
+            for (const key in this.builtInConfigs) {
+                if (key === 'default') continue;
+                const opt = document.createElement('option');
+                opt.value = `built-in:${key}`;
+                let emoji = '⚙️';
+                if (key === 'hardcore') emoji = '👹';
+                else if (key === 'rapidfire') emoji = '⚡';
+                else if (key === 'sandbox') emoji = '🌿';
+                else if (key === 'bossrush') emoji = '👑';
+                opt.textContent = `${emoji} ${this.builtInConfigs[key].name}`;
+                groupBuiltin.appendChild(opt);
+            }
+            selector.appendChild(groupBuiltin);
+            
+            // 4. Custom User Presets optgroup
+            const groupCustom = document.createElement('optgroup');
+            groupCustom.label = 'My Custom Presets';
+            let hasCustom = false;
+            for (const id in customPresets) {
+                if (id === 'last_game_config') continue;
+                const opt = document.createElement('option');
+                opt.value = `custom:${id}`;
+                opt.textContent = `✏️ ${customPresets[id].name}`;
+                groupCustom.appendChild(opt);
+                hasCustom = true;
+            }
+            if (!hasCustom) {
+                const optNone = document.createElement('option');
+                optNone.disabled = true;
+                optNone.textContent = '(No custom presets saved)';
+                groupCustom.appendChild(optNone);
+            }
+            selector.appendChild(groupCustom);
+            
+            // Set selected option
+            selector.value = ConfigModule.activePresetId;
+            if (!selector.value) {
+                selector.value = 'built-in:default';
+                ConfigModule.setActivePresetId('built-in:default');
+            }
         }
     }
 
@@ -522,11 +526,9 @@ export default class UI {
             this.updateClassCarousel();
         }
         
-        const titleEl = document.getElementById('active-preset-title');
         const badgeEl = document.getElementById('active-preset-badge');
         const btnDelete = document.getElementById('btn-preset-delete');
         
-        if (titleEl) titleEl.textContent = presetName;
         if (badgeEl) {
             badgeEl.textContent = isCustom ? 'Custom' : 'Built-in';
             badgeEl.style.background = '#ffd700';
@@ -539,6 +541,11 @@ export default class UI {
         const sel = document.getElementById('config-preset-selector');
         if (sel && sel.value !== presetId) {
             sel.value = presetId;
+        }
+        
+        const selEditor = document.getElementById('config-editor-preset-selector');
+        if (selEditor && selEditor.value !== presetId) {
+            selEditor.value = presetId;
         }
     }
 
@@ -660,6 +667,14 @@ export default class UI {
         const selector = document.getElementById('config-preset-selector');
         if (selector) {
             selector.addEventListener('change', (e) => {
+                this.selectPreset(e.target.value);
+                buildConfigFields();
+            });
+        }
+
+        const editorSelector = document.getElementById('config-editor-preset-selector');
+        if (editorSelector) {
+            editorSelector.addEventListener('change', (e) => {
                 this.selectPreset(e.target.value);
                 buildConfigFields();
             });
