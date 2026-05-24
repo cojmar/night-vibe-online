@@ -725,27 +725,44 @@ export default class UI {
                 const name = await this.showPrompt("💾 Save Preset As", "Enter a name for the new custom preset:", "My Custom Preset");
                 if (!name || !name.trim()) return;
                 
+                const nameTrimmed = name.trim();
                 const customPresets = ConfigModule.getCustomPresets();
-                const newId = 'preset_' + Date.now();
+                
+                let targetId = 'preset_' + Date.now();
+                let isOverwrite = false;
+                
+                for (const k in customPresets) {
+                    if (customPresets[k].name.toLowerCase() === nameTrimmed.toLowerCase()) {
+                        targetId = customPresets[k].id;
+                        isOverwrite = true;
+                        break;
+                    }
+                }
+                
+                if (isOverwrite) {
+                    const confirmOverwrite = await this.showConfirm("⚠️ Overwrite Preset", `A custom preset named "${nameTrimmed}" already exists. Do you want to overwrite it?`);
+                    if (!confirmOverwrite) return;
+                }
                 
                 const valuesCopy = { ...ConfigModule.activeConfig };
                 
-                customPresets[newId] = {
-                    id: newId,
-                    name: name.trim(),
+                customPresets[targetId] = {
+                    id: targetId,
+                    name: nameTrimmed,
                     values: valuesCopy,
                     classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
-                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
+                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES)),
+                    items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB))
                 };
                 
                 ConfigModule.saveCustomPresets(customPresets);
-                ConfigModule.setActivePresetId(`custom:${newId}`);
+                ConfigModule.setActivePresetId(`custom:${targetId}`);
                 
                 this.populateConfigSelector();
-                this.selectPreset(`custom:${newId}`);
+                this.selectPreset(`custom:${targetId}`);
                 buildConfigFields();
                 
-                this.addLog(`💾 Saved preset as "${name.trim()}"`);
+                this.addLog(`💾 Saved preset as "${nameTrimmed}"`);
             });
         }
 
@@ -2912,7 +2929,7 @@ export default class UI {
         }
     }
 
-    showConfirm(title, message, onYes, onNo) {
+    showRebirthConfirm(title, message, onYes, onNo) {
         const modal = document.getElementById('rebirth-modal');
         const titleEl = modal ? modal.querySelector('h2') : null;
         const textEl = document.getElementById('rebirth-modal-text');

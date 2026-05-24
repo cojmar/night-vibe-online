@@ -863,7 +863,7 @@ export default class Game {
     const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
     if (this.player.level < reqLevel) return;
 
-    this.ui.showConfirm(
+    this.ui.showRebirthConfirm(
       "🔄 Rebirth",
       `Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * REBIRTH_POINTS_PER_LEVEL} unallocated bonus stats on your next play!`,
       () => {
