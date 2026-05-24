@@ -979,10 +979,64 @@ export default class UI {
                             </div>
                         `;
                     } else if (meta.type === 'string') {
-                        fieldDiv.innerHTML = `
-                            <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
-                            <input type="text" id="cfg-${meta.key}" value="${currentValue}" ${isPlaying ? 'disabled' : ''} style="width:100%; box-sizing:border-box; padding:8px 12px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14.5px; opacity:${isPlaying ? '0.6' : '1'}; cursor:${isPlaying ? 'not-allowed' : 'text'};">
-                        `;
+                        if (meta.key === 'EQUIPMENT_SLOTS') {
+                            const slots = currentValue.split(',').map(s => s.trim()).filter(s => s);
+                            let badgesHtml = slots.map((s, idx) => `
+                                <div style="display:inline-flex; align-items:center; background:#3498db; color:#fff; padding:4px 8px; border-radius:4px; margin-right:5px; margin-bottom:5px; font-size:0.9em;">
+                                    ${s}
+                                    <button class="btn-del-equip-slot" data-idx="${idx}" ${isPlaying ? 'disabled' : ''} style="background:none; border:none; color:#ffb8b8; cursor:${isPlaying ? 'not-allowed' : 'pointer'}; margin-left:5px; padding:0 2px; font-weight:bold;">×</button>
+                                </div>
+                            `).join('');
+                            
+                            const availableTypes = ['Weapon', 'Armor', 'Ring', 'Amulet', 'Helmet', 'Boots', 'Shield'];
+                            let addOptions = availableTypes.map(t => `<option value="${t}">+ ${t}</option>`).join('');
+                            
+                            fieldDiv.innerHTML = `
+                                <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label.replace(' (comma separated)', '')}</label>
+                                <div style="margin-bottom:8px; display:flex; flex-wrap:wrap;">
+                                    ${badgesHtml || '<span style="color:#7f8c8d; font-size:0.85em; font-style:italic;">No slots defined</span>'}
+                                </div>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <select class="equip-slot-add-select" ${isPlaying ? 'disabled' : ''} style="flex:1; padding:6px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:4px; outline:none;">
+                                        ${addOptions}
+                                    </select>
+                                    <button class="btn-add-equip-slot" ${isPlaying ? 'disabled' : ''} style="padding:6px 12px; background:#2ecc71; border:none; color:#fff; border-radius:4px; cursor:${isPlaying ? 'not-allowed' : 'pointer'}; font-weight:bold;">Add Slot</button>
+                                </div>
+                                <input type="hidden" id="cfg-${meta.key}" value="${currentValue}">
+                            `;
+                            
+                            if (!isPlaying) {
+                                const addBtn = fieldDiv.querySelector('.btn-add-equip-slot');
+                                const sel = fieldDiv.querySelector('.equip-slot-add-select');
+                                const hiddenInput = fieldDiv.querySelector(`#cfg-${meta.key}`);
+                                
+                                addBtn.addEventListener('click', () => {
+                                    const newType = sel.value;
+                                    let currentArr = hiddenInput.value.split(',').map(s=>s.trim()).filter(s=>s);
+                                    currentArr.push(newType);
+                                    hiddenInput.value = currentArr.join(',');
+                                    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                    buildConfigFields();
+                                });
+                                
+                                const delBtns = fieldDiv.querySelectorAll('.btn-del-equip-slot');
+                                delBtns.forEach(btn => {
+                                    btn.addEventListener('click', (e) => {
+                                        const idx = parseInt(e.currentTarget.getAttribute('data-idx'));
+                                        let currentArr = hiddenInput.value.split(',').map(s=>s.trim()).filter(s=>s);
+                                        currentArr.splice(idx, 1);
+                                        hiddenInput.value = currentArr.join(',');
+                                        hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                        buildConfigFields();
+                                    });
+                                });
+                            }
+                        } else {
+                            fieldDiv.innerHTML = `
+                                <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
+                                <input type="text" id="cfg-${meta.key}" value="${currentValue}" ${isPlaying ? 'disabled' : ''} style="width:100%; box-sizing:border-box; padding:8px 12px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; outline:none; font-size:14.5px; opacity:${isPlaying ? '0.6' : '1'}; cursor:${isPlaying ? 'not-allowed' : 'text'};">
+                            `;
+                        }
                     } else {
                         fieldDiv.innerHTML = `
                             <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label}</label>
