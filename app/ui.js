@@ -708,28 +708,42 @@ export default class UI {
             btnSaveAs.addEventListener('click', async () => {
                 const name = await this.showPrompt("💾 Save Preset As", "Enter a name for the new custom preset:", "My Custom Preset");
                 if (!name || !name.trim()) return;
+                const trimName = name.trim();
 
                 const customPresets = ConfigModule.getCustomPresets();
-                const newId = 'preset_' + Date.now();
+                let existingId = null;
+                for (const id in customPresets) {
+                    if (customPresets[id].name === trimName && id !== 'last_game_config') {
+                        existingId = id;
+                        break;
+                    }
+                }
 
+                if (existingId) {
+                    const confirmOverwrite = await this.showConfirm("⚠️ Overwrite Preset", `A preset named "${trimName}" already exists. Overwrite it?`);
+                    if (!confirmOverwrite) return;
+                }
+
+                const targetId = existingId || ('preset_' + Date.now());
                 const valuesCopy = { ...ConfigModule.activeConfig };
 
-                customPresets[newId] = {
-                    id: newId,
-                    name: name.trim(),
+                customPresets[targetId] = {
+                    id: targetId,
+                    name: trimName,
                     values: valuesCopy,
                     classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
-                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
+                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES)),
+                    items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB || []))
                 };
 
                 ConfigModule.saveCustomPresets(customPresets);
-                ConfigModule.setActivePresetId(`custom:${newId}`);
+                ConfigModule.setActivePresetId(`custom:${targetId}`);
 
                 this.populateConfigSelector();
-                this.selectPreset(`custom:${newId}`);
+                this.selectPreset(`custom:${targetId}`);
                 buildConfigFields();
 
-                this.addLog(`💾 Saved preset as "${name.trim()}"`);
+                this.addLog(`💾 Saved preset as "${trimName}"`);
             });
         }
 
@@ -749,27 +763,42 @@ export default class UI {
 
                 const name = await this.showPrompt("📋 Duplicate Preset", "Enter name for duplicated preset:", currentName + " (Copy)");
                 if (!name || !name.trim()) return;
+                const trimName = name.trim();
 
                 const customPresets = ConfigModule.getCustomPresets();
-                const newId = 'preset_' + Date.now();
+                let existingId = null;
+                for (const id in customPresets) {
+                    if (customPresets[id].name === trimName && id !== 'last_game_config') {
+                        existingId = id;
+                        break;
+                    }
+                }
+
+                if (existingId) {
+                    const confirmOverwrite = await this.showConfirm("⚠️ Overwrite Preset", `A preset named "${trimName}" already exists. Overwrite it?`);
+                    if (!confirmOverwrite) return;
+                }
+
+                const targetId = existingId || ('preset_' + Date.now());
                 const valuesCopy = { ...ConfigModule.activeConfig };
 
-                customPresets[newId] = {
-                    id: newId,
-                    name: name.trim(),
+                customPresets[targetId] = {
+                    id: targetId,
+                    name: trimName,
                     values: valuesCopy,
                     classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
-                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
+                    monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES)),
+                    items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB || []))
                 };
 
                 ConfigModule.saveCustomPresets(customPresets);
-                ConfigModule.setActivePresetId(`custom:${newId}`);
+                ConfigModule.setActivePresetId(`custom:${targetId}`);
 
                 this.populateConfigSelector();
-                this.selectPreset(`custom:${newId}`);
+                this.selectPreset(`custom:${targetId}`);
                 buildConfigFields();
 
-                this.addLog(`📋 Duplicated preset to "${name.trim()}"`);
+                this.addLog(`📋 Duplicated preset to "${trimName}"`);
             });
         }
 
@@ -1848,10 +1877,12 @@ export default class UI {
                 btnDelete.style.marginTop = '10px';
                 btnDelete.style.cursor = 'pointer';
                 btnDelete.style.fontWeight = 'bold';
-                btnDelete.onclick = () => {
-                    delete ConfigModule.CLASS_DATA[classId];
-                    this.saveClassesToStorage();
-                    this.buildClassesTab();
+                btnDelete.onclick = async () => {
+                    if (await this.showConfirm("🗑️ Delete Class", `Are you sure you want to delete the class "${ConfigModule.CLASS_DATA[classId].name}"?`)) {
+                        delete ConfigModule.CLASS_DATA[classId];
+                        this.saveClassesToStorage();
+                        this.buildClassesTab();
+                    }
                 };
                 classCard.appendChild(btnDelete);
             }
@@ -2189,10 +2220,12 @@ export default class UI {
                 btnDelete.style.marginTop = '10px';
                 btnDelete.style.cursor = 'pointer';
                 btnDelete.style.fontWeight = 'bold';
-                btnDelete.onclick = () => {
-                    ConfigModule.ENEMY_TYPES.splice(index, 1);
-                    this.saveMonstersToStorage();
-                    this.buildMonstersTab();
+                btnDelete.onclick = async () => {
+                    if (await this.showConfirm("🗑️ Delete Monster", `Are you sure you want to delete the monster "${monster.name}"?`)) {
+                        ConfigModule.ENEMY_TYPES.splice(index, 1);
+                        this.saveMonstersToStorage();
+                        this.buildMonstersTab();
+                    }
                 };
                 monsterCard.appendChild(btnDelete);
             }
@@ -2479,10 +2512,12 @@ export default class UI {
                 btnDelete.style.marginTop = '10px';
                 btnDelete.style.cursor = 'pointer';
                 btnDelete.style.fontWeight = 'bold';
-                btnDelete.onclick = () => {
-                    ConfigModule.ITEMS_DB.splice(index, 1);
-                    this.saveItemsToStorage();
-                    this.buildItemsTab();
+                btnDelete.onclick = async () => {
+                    if (await this.showConfirm("🗑️ Delete Gear", `Are you sure you want to delete the gear "${item.name}"?`)) {
+                        ConfigModule.ITEMS_DB.splice(index, 1);
+                        this.saveItemsToStorage();
+                        this.buildItemsTab();
+                    }
                 };
                 itemCard.appendChild(btnDelete);
             }
