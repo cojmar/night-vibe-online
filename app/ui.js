@@ -178,16 +178,13 @@ export default class UI {
         document.getElementById('btn-prev-class').addEventListener('click', () => this.prevClass());
         document.getElementById('btn-next-class').addEventListener('click', () => this.nextClass());
         document.getElementById('btn-start').addEventListener('click', () => {
-            this.saveLastGameConfig();
             this.game.startGame(this.selectedClass);
         });
         document.getElementById('btn-fullscreen').addEventListener('click', () => this.toggleFullscreen());
         document.getElementById('btn-quit-game').addEventListener('click', () => {
-            this.saveLastGameConfig();
             this.game.quitToMenu();
         });
         document.getElementById('btn-death-quit').addEventListener('click', () => {
-            this.saveLastGameConfig();
             this.game.quitToMenu();
         });
 
