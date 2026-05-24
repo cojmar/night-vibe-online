@@ -1,7 +1,6 @@
 [
+  "bossrush.json",
   "default.json",
   "hardcore.json",
-  "rapidfire.json",
-  "sandbox.json",
-  "bossrush.json"
+  "sandbox.json"
 ]
