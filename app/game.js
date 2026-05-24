@@ -1946,7 +1946,7 @@ export default class Game {
             // boss projectiles don't drop gear
           } else if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
             // do nothing
-          } else if (e.name === 'BOSS' || Math.random() < ConfigModule.GEAR_DROP_RATE) {
+          } else if (Math.random() < ConfigModule.GEAR_DROP_RATE) {
             let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
             let randRarity = Math.random();
             const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
