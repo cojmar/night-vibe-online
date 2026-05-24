@@ -266,10 +266,6 @@ export default class Game {
         // Remote player: check inGame status and state from otherPlayers or from room data
         const otherPlayer = this.otherPlayers[user];
         if (otherPlayer) {
-          // If the player hasn't sent any network data in 3 seconds, consider them idle/inactive
-          if (otherPlayer.lastDataTime && Date.now() - otherPlayer.lastDataTime > 3000) {
-            return false;
-          }
           return otherPlayer.inGame && otherPlayer.state !== 'MENU' && otherPlayer.state !== 'GAME_OVER';
         }
         const roomUser = this.net.room.users[user];
@@ -300,43 +296,23 @@ export default class Game {
           currentHosts.push(u);
         }
       } else {
-        const op = this.otherPlayers[u] || (this.net.room && this.net.room.users[u] && this.net.room.users[u].data);
-        if (op && op.isHost) {
+        const op = this.otherPlayers[u];
+        const roomUser = this.net.room && this.net.room.users && this.net.room.users[u];
+        const remoteIsHost = (op && op.isHost) || (roomUser && roomUser.data && roomUser.data.isHost);
+        if (remoteIsHost) {
           currentHosts.push(u);
         }
       }
     }
 
-    const getHostTime = (u) => {
-      if (u === (this.net.me && this.net.me.info ? this.net.me.info.user : null)) {
-        return this.globalTime || 0;
-      } else {
-        const roomUser = this.net.room && this.net.room.users && this.net.room.users[u];
-        if (roomUser && roomUser.data && roomUser.data.hostData) {
-          return roomUser.data.hostData.time || 0;
-        }
-        return 0;
-      }
-    };
-
     let bestHost = null;
 
     if (currentHosts.length > 0) {
-      // Prioritize the host that has been playing the longest (highest globalTime)
-      bestHost = currentHosts.sort((a, b) => {
-        const tA = getHostTime(a);
-        const tB = getHostTime(b);
-        if (tA !== tB) return tB - tA;
-        return a.localeCompare(b);
-      })[0];
+      // Prioritize existing active host, stable sort alphabetically
+      bestHost = currentHosts.sort((a, b) => a.localeCompare(b))[0];
     } else if (hostCandidates.length > 0) {
-      // No current host exists among active players, pick the one who has been playing longest
-      bestHost = hostCandidates.sort((a, b) => {
-        const tA = getHostTime(a);
-        const tB = getHostTime(b);
-        if (tA !== tB) return tB - tA;
-        return a.localeCompare(b);
-      })[0];
+      // Pick a new host deterministically sorted alphabetically
+      bestHost = hostCandidates.sort((a, b) => a.localeCompare(b))[0];
     } else {
       bestHost = null; // No one is playing
     }
@@ -1407,15 +1383,34 @@ export default class Game {
     let hostChanged = false;
     let currentEnemiesStr = '';
     let currentItemsStr = '';
+    let hostChangeReason = '';
     
     if (this.isHost) {
-      currentEnemiesStr = JSON.stringify(this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({ id: e.id, x: Math.round(e.x), y: Math.round(e.y), hp: e.hp })));
+      currentEnemiesStr = JSON.stringify(this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({ id: e.id, hp: e.hp, alive: e.alive })));
       currentItemsStr = JSON.stringify(this.items.map(i => i.id));
-      if (!this.lastHostEnemiesStr || this.lastHostEnemiesStr !== currentEnemiesStr ||
-          !this.lastHostItemsStr || this.lastHostItemsStr !== currentItemsStr ||
-          this.lastHostWave !== this.wave || this.lastHostKills !== this.kills ||
-          this.lastHostEnv !== this.selectedEnv || this.lastHostBossActive !== this.bossActive) {
+      if (!this.lastHostEnemiesStr || this.lastHostEnemiesStr !== currentEnemiesStr) {
         hostChanged = true;
+        hostChangeReason += `enemies changed (${this.lastHostEnemiesStr} -> ${currentEnemiesStr}) `;
+      }
+      if (!this.lastHostItemsStr || this.lastHostItemsStr !== currentItemsStr) {
+        hostChanged = true;
+        hostChangeReason += `items changed (${this.lastHostItemsStr} -> ${currentItemsStr}) `;
+      }
+      if (this.lastHostWave !== this.wave) {
+        hostChanged = true;
+        hostChangeReason += `wave changed (${this.lastHostWave} -> ${this.wave}) `;
+      }
+      if (this.lastHostKills !== this.kills) {
+        hostChanged = true;
+        hostChangeReason += `kills changed (${this.lastHostKills} -> ${this.kills}) `;
+      }
+      if (this.lastHostEnv !== this.selectedEnv) {
+        hostChanged = true;
+        hostChangeReason += `env changed (${this.lastHostEnv} -> ${this.selectedEnv}) `;
+      }
+      if (this.lastHostBossActive !== this.bossActive) {
+        hostChanged = true;
+        hostChangeReason += `bossActive changed (${this.lastHostBossActive} -> ${this.bossActive}) `;
       }
     }
 
@@ -1439,7 +1434,7 @@ export default class Game {
       return;
     }
 
-    console.log('[NETWORK DEBUG] Broadcasting state. Force:', force, 'CriticalChanged:', criticalChanged, 'Reason:', criticalChangeReason, 'HostChanged:', hostChanged);
+    console.log('[NETWORK DEBUG] Broadcasting. Force:', force, 'CriticalChanged:', criticalChanged, 'Reason:', criticalChangeReason, 'HostChanged:', hostChanged, 'HostReason:', hostChangeReason);
 
     // Save current values for next comparison
     this.lastBroadcastedState = currentCriticalFields;
@@ -2830,7 +2825,14 @@ export default class Game {
       if (this.syncTimer >= 100) {
         this.syncTimer = 0;
         this.checkHost();
-        this.broadcastState();
+        
+        this.periodicSyncTimer = (this.periodicSyncTimer || 0) + 100;
+        let forceSync = false;
+        if (this.periodicSyncTimer >= 5000) {
+          this.periodicSyncTimer = 0;
+          forceSync = true;
+        }
+        this.broadcastState(forceSync);
       }
 
       // Global Day/Night Lighting Overlays
