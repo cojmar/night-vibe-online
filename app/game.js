@@ -81,6 +81,28 @@ export default class Game {
       this.checkHost();
     });
     this.net.on('room.user_data', (data) => {
+      // If we are in the menu, we should not process game calculations
+      if (this.state !== 'PLAYING') {
+        // We only care about gameplayConfig from host to sync lobby settings
+        if (this.net.me && data.user !== this.net.me.info.user && data.data && data.data.gameplayConfig) {
+          const roomUser = this.net.room && this.net.room.users && this.net.room.users[data.user];
+          if (roomUser && roomUser.data && roomUser.data.isHost) {
+            ConfigModule.updateConfig(data.data.gameplayConfig);
+            if (data.data.gameplayConfigName) ConfigModule.setActivePresetName(data.data.gameplayConfigName);
+            if (data.data.classData) ConfigModule.updateClassData(data.data.classData);
+            if (data.data.enemyTypes) ConfigModule.updateEnemyTypes(data.data.enemyTypes);
+            if (data.data.itemsDb) ConfigModule.updateItemsDb(data.data.itemsDb);
+            if (this.ui) {
+              if (this.ui.buildClassesTab) this.ui.buildClassesTab();
+              if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
+              if (this.ui.buildItemsTab) this.ui.buildItemsTab();
+              if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
+            }
+          }
+        }
+        return;
+      }
+
       // Process enemyKilled for ourselves even if it comes from our own user data broadcast
       if (data.data && data.data.enemyKilled && this.player && typeof data.data.enemyKilled === 'string') {
         if (data.data.enemyKilled !== this.lastProcessedKill && data.data.enemyKilled.split('_')[0] === this.net.me.info.user) {
@@ -246,6 +268,7 @@ export default class Game {
       if (this.isHost) {
         this.isHost = false;
         this.ui.addLog('👥 You are a Client', 'reward');
+        this.net.send_cmd('set_data', { isHost: false });
       }
       return;
     }
