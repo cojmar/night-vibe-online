@@ -224,7 +224,8 @@ export function saveCustomPresets(presets) {
   localStorage.setItem('nightvibe-config-presets', JSON.stringify(presets));
 }
 
-export let activePresetId = localStorage.getItem('nightvibe-active-preset-id') || 'built-in:default';
+export const DEFAULT_STARTUP_PRESET = 'built-in:rapidfire';
+export let activePresetId = localStorage.getItem('nightvibe-active-preset-id') || DEFAULT_STARTUP_PRESET;
 export let activePresetName = 'Default';
 
 export function setActivePresetId(id) {
