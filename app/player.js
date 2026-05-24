@@ -192,6 +192,7 @@ export default class Player {
       if (this.input_data.projectiles) this.projectiles = this.input_data.projectiles;
       if (this.input_data.inventory !== undefined) this.inventory = this.input_data.inventory;
       if (this.input_data.equipment !== undefined) this.equipment = this.input_data.equipment;
+      if (this.input_data.targetedItemId !== undefined) this.targetedItemId = this.input_data.targetedItemId;
 
       this.input_data = null;
     }

@@ -1305,6 +1305,7 @@ export default class Game {
       chatMsg: this.player.chatMsg,
       buffHpTimer: this.player.buffHpTimer,
       buffManaTimer: this.player.buffManaTimer,
+      targetedItemId: this.player.targetedItemId,
       // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
       projectiles: this.projectiles.map(p => ({
         type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
@@ -2186,6 +2187,9 @@ export default class Game {
             for (let p of activePlayersList) {
               if (!p.obj || !p.obj.alive || p.obj.hp <= 0) continue;
               if (Math.hypot(p.obj.x - item.x, p.obj.y - item.y) < 40) {
+                if (item.type === 'gear' && p.obj.targetedItemId !== item.id) {
+                  continue;
+                }
                 pickedUp = true;
                 if (this.isHost) {
                   if (item.type === 'gear') {
