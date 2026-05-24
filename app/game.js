@@ -1690,18 +1690,15 @@ export default class Game {
     }
 
     if (nightAlpha > 0) {
-      this.ctx.fillStyle = `rgba(5, 5, 20, ${nightAlpha * 0.4})`;
+      this.ctx.fillStyle = `rgba(5, 5, 20, ${nightAlpha * 0.75})`;
       this.ctx.fillRect(-2000, 0, this.gameW + 4000, gY);
     }
 
     this.ctx.save();
-    let filter = 'none';
-    if (nightAlpha > 0) {
-      filter = `grayscale(${nightAlpha * 95}%) brightness(${100 - nightAlpha * 25}%)`;
-    } else if (dayAlpha > 0) {
-      filter = `sepia(${dayAlpha * 60}%) brightness(${100 + dayAlpha * 25}%)`;
-    }
-    this.ctx.filter = filter;
+    const sepiaAmt = dayAlpha * 45;
+    const grayscaleAmt = nightAlpha * 95;
+    const brightnessAmt = 100 + (dayAlpha * 50) - (nightAlpha * 75);
+    this.ctx.filter = `sepia(${sepiaAmt}%) grayscale(${grayscaleAmt}%) brightness(${brightnessAmt}%)`;
 
     if (!this.scenery) this.generateScenery();
     for (let s of this.scenery) {
@@ -1788,15 +1785,15 @@ export default class Game {
       }
 
       const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
-      this.nightAlpha = 0;
-      if (cycle > 0.45 && cycle <= 0.55) this.nightAlpha = (cycle - 0.45) * 10;
-      else if (cycle > 0.55 && cycle <= 0.95) this.nightAlpha = 1;
-      else if (cycle > 0.95) this.nightAlpha = Math.max(0, 1 - (cycle - 0.95) * 20);
-
-      this.dayAlpha = 0;
-      if (cycle > 0.0 && cycle < 0.5) {
-        this.dayAlpha = Math.max(0, Math.sin(cycle * 2 * Math.PI));
-      }
+      
+      // Calculate celestial body heights (0 at horizon, 1 at peak)
+      const sunHeight = Math.max(0, Math.sin(cycle * 2 * Math.PI));
+      const moonHeight = Math.max(0, Math.sin(cycle * 2 * Math.PI - Math.PI));
+      
+      this.dayAlpha = sunHeight;
+      
+      // Sky darkness: 0 at noon, 1 at twilight, 0.6 at midnight (moonlight)
+      this.nightAlpha = Math.max(0, 1.0 - sunHeight - (moonHeight * 0.4));
 
       if (this.isHost) {
         const currentDay = Math.floor(this.globalTime / ConfigModule.DAY_CYCLE_DURATION);
