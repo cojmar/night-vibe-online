@@ -2565,6 +2565,133 @@ export default class UI {
             }
         }
 
+        const detailsPanel = document.getElementById('inventory-details-panel');
+        if (detailsPanel) detailsPanel.style.display = 'none'; // reset panel on re-render
+
+        const showDetails = (item, isEquipped, slotNameOrIndex, element) => {
+            document.querySelectorAll('.inv-active-highlight').forEach(el => {
+                el.classList.remove('inv-active-highlight');
+                el.style.transform = 'scale(1)';
+                if (el.dataset.isEquipped === 'true') {
+                    el.style.borderColor = el.dataset.itemColor;
+                    el.style.boxShadow = `0 0 10px ${el.dataset.itemColor}66`;
+                } else {
+                    el.style.borderColor = el.dataset.itemColor;
+                    el.style.boxShadow = 'none';
+                }
+            });
+            if (element) {
+                element.classList.add('inv-active-highlight');
+                element.style.setProperty('--highlight-color', item.color || '#f1c40f');
+            }
+            if (!detailsPanel) return;
+            detailsPanel.style.display = 'flex';
+
+            const dIcon = document.getElementById('inv-details-icon');
+            const dName = document.getElementById('inv-details-name');
+            const dType = document.getElementById('inv-details-type');
+            const dStats = document.getElementById('inv-details-stats');
+            const btnPrimary = document.getElementById('btn-inv-action-primary');
+            const btnDrop = document.getElementById('btn-inv-action-drop');
+
+            let resolvedIcon = item.icon || '💎';
+            if (resolvedIcon === '📦') {
+                const template = ConfigModule.ITEMS_DB.find(t => t.name === item.name);
+                if (template && template.icon) resolvedIcon = template.icon;
+            }
+            if (resolvedIcon && typeof resolvedIcon === 'string' && (resolvedIcon.startsWith('data:image/') || resolvedIcon.startsWith('http'))) {
+                dIcon.innerHTML = `<img src="${resolvedIcon}" style="width:100%; height:100%; object-fit:contain; border-radius:4px;" />`;
+            } else {
+                dIcon.innerText = resolvedIcon;
+            }
+
+            dName.textContent = item.name || 'Item';
+            dName.style.color = item.color || '#fff';
+            dType.textContent = item.gearType || item.type || 'Consumable';
+
+            dStats.innerHTML = item.stats ? Object.entries(item.stats).map(([k, v]) => `<div><strong style="color:#fff;">${k.toUpperCase()}:</strong> +${v.toFixed(1)}</div>`).join('') : 'No stats';
+
+            btnPrimary.textContent = isEquipped ? 'Unequip' : 'Equip';
+
+            let canEquip = true;
+            let targetSlotForValidation = null;
+            if (!isEquipped) {
+                const fallbackSlots = "Weapon,Armor,Ring 1,Ring 2,Amulet";
+                const rawSlots = ConfigModule.EQUIPMENT_SLOTS || fallbackSlots;
+                const slotNames = String(rawSlots).split(',').map(s => s.trim());
+                const itemType = (item.gearType || item.type || '').toLowerCase();
+                if (ConfigModule.ENFORCE_GEAR_SLOTS) {
+                    targetSlotForValidation = slotNames.find(s => s.toLowerCase().includes(itemType) && !p.equipment[s]) || slotNames.find(s => s.toLowerCase().includes(itemType));
+                } else {
+                    targetSlotForValidation = slotNames.find(s => s.toLowerCase().includes(itemType)) || slotNames.find(s => !p.equipment[s]) || slotNames[0];
+                }
+                if (!targetSlotForValidation) canEquip = false;
+            }
+
+            if (canEquip) {
+                btnPrimary.disabled = false;
+                btnPrimary.style.opacity = '1';
+                btnPrimary.style.cursor = 'pointer';
+            } else {
+                btnPrimary.disabled = true;
+                btnPrimary.style.opacity = '0.5';
+                btnPrimary.style.cursor = 'not-allowed';
+            }
+
+            btnPrimary.onclick = () => {
+                if (!canEquip) return;
+
+                if (isEquipped) {
+                    p.inventory.push(item);
+                    delete p.equipment[slotNameOrIndex];
+                } else {
+                    if (targetSlotForValidation) {
+                        if (p.equipment[targetSlotForValidation]) {
+                            p.inventory.push(p.equipment[targetSlotForValidation]);
+                        }
+                        p.equipment[targetSlotForValidation] = item;
+                        p.inventory.splice(slotNameOrIndex, 1);
+                    }
+                }
+
+                if (this.game && this.game.player) {
+                    this.game.saveLocalProgression();
+                    this.game.broadcastState();
+                    this.updateHUD(p);
+                } else {
+                    localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
+                    localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
+                }
+                this.renderInventory();
+            };
+
+            btnDrop.onclick = () => {
+                if (isEquipped) {
+                    delete p.equipment[slotNameOrIndex];
+                } else {
+                    p.inventory.splice(slotNameOrIndex, 1);
+                }
+                item.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : ConfigModule.GAME_W / 2 + (Math.random() * 60 - 30);
+                item.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : ConfigModule.GAME_H / 2 + (Math.random() * 60 - 30) + 20;
+                item.life = 60000;
+                if (this.game && this.game.player) {
+                    if (this.game.isHost) {
+                        this.game.items.push(item);
+                    } else {
+                        const netItem = { ...item, icon: (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) ? '📦' : item.icon };
+                        this.game.net.send_cmd('set_data', { spawnItem: netItem });
+                    }
+                    this.game.saveLocalProgression();
+                    this.game.broadcastState();
+                    this.updateHUD(p);
+                } else {
+                    localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
+                    localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
+                }
+                this.renderInventory();
+            };
+        };
+
         // Render Equipment Slots
         const eqContainer = document.getElementById('equipment-slots-container');
         if (eqContainer) {
@@ -2586,7 +2713,7 @@ export default class UI {
                 slotDiv.style.cursor = 'pointer';
                 slotDiv.style.transition = '0.2s';
                 slotDiv.onmouseover = () => { slotDiv.style.transform = 'scale(1.05)'; };
-                slotDiv.onmouseout = () => { slotDiv.style.transform = 'scale(1)'; };
+                slotDiv.onmouseout = () => { if (!slotDiv.classList.contains('inv-active-highlight')) slotDiv.style.transform = 'scale(1)'; };
 
                 const label = document.createElement('div');
                 label.innerText = slotName;
@@ -2608,8 +2735,8 @@ export default class UI {
 
                     let resolvedIcon = itemData.icon || '💎';
                     if (resolvedIcon === '📦') {
-                        const template = ConfigModule.ITEMS_DB.find(t => t.name === itemData.name);
-                        if (template && template.icon) resolvedIcon = template.icon;
+                      const template = ConfigModule.ITEMS_DB.find(t => t.name === itemData.name);
+                      if (template && template.icon) resolvedIcon = template.icon;
                     }
 
                     if (resolvedIcon && typeof resolvedIcon === 'string' && (resolvedIcon.startsWith('data:image/') || resolvedIcon.startsWith('http'))) {
@@ -2624,52 +2751,25 @@ export default class UI {
                     slotDiv.appendChild(itemVisual);
                     slotDiv.style.border = `2px solid ${itemData.color || '#2ecc71'}`;
                     slotDiv.style.background = 'rgba(46, 204, 113, 0.15)';
+                    slotDiv.dataset.isEquipped = 'true';
+                    slotDiv.dataset.itemColor = itemData.color || '#2ecc71';
                     slotDiv.style.boxShadow = `0 0 10px ${itemData.color || '#2ecc71'}66`;
 
-                    slotDiv.style.position = 'relative';
-                    const dropBtn = document.createElement('div');
-                    dropBtn.innerHTML = '✖';
-                    dropBtn.style.position = 'absolute';
-                    dropBtn.style.top = '-5px';
-                    dropBtn.style.right = '-5px';
-                    dropBtn.style.background = '#e74c3c';
-                    dropBtn.style.color = '#fff';
-                    dropBtn.style.borderRadius = '50%';
-                    dropBtn.style.width = '20px';
-                    dropBtn.style.height = '20px';
-                    dropBtn.style.display = 'flex';
-                    dropBtn.style.alignItems = 'center';
-                    dropBtn.style.justifyContent = 'center';
-                    dropBtn.style.fontSize = '12px';
-                    dropBtn.style.cursor = 'pointer';
-                    dropBtn.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
-                    dropBtn.title = "Drop item";
-                    dropBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        delete p.equipment[slotName];
-                        itemData.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : GAME_W / 2 + (Math.random() * 60 - 30);
-                        itemData.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : GAME_H / 2 + (Math.random() * 60 - 30) + 20;
-                        itemData.life = 60000;
-
-                        if (this.game && this.game.player) {
-                            if (this.game.isHost) {
-                                this.game.items.push(itemData);
-                            } else {
-                                const netItem = { ...itemData, icon: (itemData.icon && typeof itemData.icon === 'string' && itemData.icon.startsWith('data:image/')) ? '📦' : itemData.icon };
-                                this.game.net.send_cmd('set_data', { spawnItem: netItem });
-                            }
-                            this.game.saveLocalProgression();
-                            this.game.broadcastState();
-                            this.updateHUD(p);
-                        } else {
-                            // If dropped from the menu, we cannot reliably spawn it on the map right now,
-                            // but we still remove it from the persistent gear.
-                            localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
-                            localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
+                    slotDiv.addEventListener('click', () => {
+                        if (itemData) showDetails(itemData, true, slotName, slotDiv);
+                    });
+                    slotDiv.addEventListener('dblclick', () => {
+                        const btn = document.getElementById('btn-inv-action-primary');
+                        if (btn && !btn.disabled) btn.click();
+                    });
+                    slotDiv.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        if (itemData) {
+                            showDetails(itemData, true, slotName, slotDiv);
+                            const btnDrop = document.getElementById('btn-inv-action-drop');
+                            if (btnDrop) btnDrop.click();
                         }
-                        this.renderInventory();
-                    };
-                    slotDiv.appendChild(dropBtn);
+                    });
                 } else {
                     const emptyVisual = document.createElement('div');
                     emptyVisual.innerText = '🔒';
@@ -2677,44 +2777,6 @@ export default class UI {
                     emptyVisual.style.fontSize = '1.5em';
                     slotDiv.appendChild(emptyVisual);
                 }
-
-                // Click to unequip
-                slotDiv.addEventListener('click', () => {
-                    if (itemData) {
-                        p.inventory.push(itemData);
-                        delete p.equipment[slotName];
-                        if (this.game && this.game.player) {
-                            this.game.saveLocalProgression();
-                            this.game.broadcastState();
-                            this.updateHUD(p);
-                        } else {
-                            localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
-                            localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
-                        }
-                        this.renderInventory();
-                    }
-                });
-
-                // Right-click to drop
-                slotDiv.addEventListener('contextmenu', async (e) => {
-                    e.preventDefault();
-                    if (itemData && await this.showConfirm("⚠️ Drop Equipment", `Drop ${itemData.name}?`)) {
-                        delete p.equipment[slotName];
-                        itemData.x = p.x;
-                        itemData.y = p.y;
-                        itemData.life = 60000;
-                        if (this.game.isHost) {
-                            this.game.items.push(itemData);
-                        } else {
-                            const netItem = { ...itemData, icon: (itemData.icon && typeof itemData.icon === 'string' && itemData.icon.startsWith('data:image/')) ? '📦' : itemData.icon };
-                            this.game.net.send_cmd('set_data', { spawnItem: netItem });
-                        }
-                        this.game.saveLocalProgression();
-                        this.game.broadcastState();
-                        this.renderInventory();
-                        this.updateHUD(p);
-                    }
-                });
                 eqContainer.appendChild(slotDiv);
             });
         }
@@ -2739,6 +2801,8 @@ export default class UI {
 
                 let statText = item.stats ? Object.entries(item.stats).map(([k, v]) => `${k.toUpperCase()}: +${v.toFixed(1)}`).join('\n') : '';
                 cell.title = `${item.name || 'Item'}\n${statText}`;
+                cell.dataset.isEquipped = 'false';
+                cell.dataset.itemColor = item.color || '#95a5a6';
                 let resolvedIcon = item.icon || '💎';
                 if (resolvedIcon === '📦') {
                     const template = ConfigModule.ITEMS_DB.find(t => t.name === item.name);
@@ -2752,102 +2816,20 @@ export default class UI {
                 }
                 cell.style.transition = '0.2s';
                 cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; cell.style.borderColor = '#f1c40f'; cell.style.boxShadow = `0 0 10px ${item.color || '#f1c40f'}99`; };
-                cell.onmouseout = () => { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; };
+                cell.onmouseout = () => { if (!cell.classList.contains('inv-active-highlight')) { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; } };
 
-                cell.style.position = 'relative';
-                const dropBtn = document.createElement('div');
-                dropBtn.innerHTML = '✖';
-                dropBtn.style.position = 'absolute';
-                dropBtn.style.top = '-5px';
-                dropBtn.style.right = '-5px';
-                dropBtn.style.background = '#e74c3c';
-                dropBtn.style.color = '#fff';
-                dropBtn.style.borderRadius = '50%';
-                dropBtn.style.width = '20px';
-                dropBtn.style.height = '20px';
-                dropBtn.style.display = 'flex';
-                dropBtn.style.alignItems = 'center';
-                dropBtn.style.justifyContent = 'center';
-                dropBtn.style.fontSize = '12px';
-                dropBtn.style.cursor = 'pointer';
-                dropBtn.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
-                dropBtn.title = "Drop item";
-                dropBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    p.inventory.splice(index, 1);
-                    item.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : GAME_W / 2 + (Math.random() * 60 - 30);
-                    item.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : GAME_H / 2 + (Math.random() * 60 - 30) + 20;
-                    item.life = 60000;
-
-                    if (this.game && this.game.player) {
-                        if (this.game.isHost) {
-                            this.game.items.push(item);
-                        } else {
-                            const netItem = { ...item, icon: (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) ? '📦' : item.icon };
-                            this.game.net.send_cmd('set_data', { spawnItem: netItem });
-                        }
-                        this.game.saveLocalProgression();
-                        this.game.broadcastState();
-                        this.updateHUD(p);
-                    } else {
-                        localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
-                        localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
-                    }
-                    this.renderInventory();
-                };
-                cell.appendChild(dropBtn);
-
-                // Click to equip
                 cell.addEventListener('click', () => {
-                    const fallbackSlots = "Weapon,Armor,Ring 1,Ring 2,Amulet";
-                    const rawSlots = ConfigModule.EQUIPMENT_SLOTS || fallbackSlots;
-                    const slotNames = String(rawSlots).split(',').map(s => s.trim());
-                    // Find a slot that matches the item type, or just the first empty slot if none matches
-                    let targetSlot;
-                    const itemType = (item.gearType || item.type || '').toLowerCase();
-                    if (ConfigModule.ENFORCE_GEAR_SLOTS) {
-                        targetSlot = slotNames.find(s => s.toLowerCase().includes(itemType) && !p.equipment[s]) || slotNames.find(s => s.toLowerCase().includes(itemType));
-                    } else {
-                        targetSlot = slotNames.find(s => s.toLowerCase().includes(itemType)) || slotNames.find(s => !p.equipment[s]) || slotNames[0];
-                    }
-
-                    if (targetSlot) {
-                        if (p.equipment[targetSlot]) {
-                            p.inventory.push(p.equipment[targetSlot]); // unequip existing
-                        }
-                        p.equipment[targetSlot] = item;
-                        p.inventory.splice(index, 1); // remove from inventory
-                        if (this.game && this.game.player) {
-                            this.game.saveLocalProgression();
-                            this.game.broadcastState();
-                            this.updateHUD(p);
-                        } else {
-                            localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
-                            localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
-                        }
-                        this.renderInventory();
-                    }
+                    showDetails(item, false, index, cell);
                 });
-
-                // Right-click to drop
-                cell.addEventListener('contextmenu', async (e) => {
+                cell.addEventListener('dblclick', () => {
+                    const btn = document.getElementById('btn-inv-action-primary');
+                    if (btn && !btn.disabled) btn.click();
+                });
+                cell.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
-                    if (await this.showConfirm("⚠️ Drop Item", `Drop ${item.name}?`)) {
-                        p.inventory.splice(index, 1);
-                        item.x = p.x;
-                        item.y = p.y;
-                        item.life = 60000;
-                        if (this.game.isHost) {
-                            this.game.items.push(item);
-                        } else {
-                            const netItem = { ...item, icon: (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) ? '📦' : item.icon };
-                            this.game.net.send_cmd('set_data', { spawnItem: netItem });
-                        }
-                        this.game.saveLocalProgression();
-                        this.game.broadcastState();
-                        this.renderInventory();
-                        this.updateHUD(p);
-                    }
+                    showDetails(item, false, index, cell);
+                    const btnDrop = document.getElementById('btn-inv-action-drop');
+                    if (btnDrop) btnDrop.click();
                 });
                 invContainer.appendChild(cell);
             });
@@ -2866,7 +2848,7 @@ export default class UI {
         }
     }
 
-    showConfirm(title, message, onYes, onNo) {
+    showRebirthConfirm(title, message, onYes, onNo) {
         const modal = document.getElementById('rebirth-modal');
         const titleEl = modal ? modal.querySelector('h2') : null;
         const textEl = document.getElementById('rebirth-modal-text');
