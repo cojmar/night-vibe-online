@@ -2648,26 +2648,44 @@ export default class UI {
             dStats.innerHTML = item.stats ? Object.entries(item.stats).map(([k, v]) => `<div><strong style="color:#fff;">${k.toUpperCase()}:</strong> +${v.toFixed(1)}</div>`).join('') : 'No stats';
             
             btnPrimary.textContent = isEquipped ? 'Unequip' : 'Equip';
+            
+            let canEquip = true;
+            let targetSlotForValidation = null;
+            if (!isEquipped) {
+                const fallbackSlots = "Weapon,Armor,Ring 1,Ring 2,Amulet";
+                const rawSlots = ConfigModule.EQUIPMENT_SLOTS || fallbackSlots;
+                const slotNames = String(rawSlots).split(',').map(s => s.trim());
+                const itemType = (item.gearType || item.type || '').toLowerCase();
+                if (ConfigModule.ENFORCE_GEAR_SLOTS) {
+                    targetSlotForValidation = slotNames.find(s => s.toLowerCase().includes(itemType) && !p.equipment[s]) || slotNames.find(s => s.toLowerCase().includes(itemType));
+                } else {
+                    targetSlotForValidation = slotNames.find(s => s.toLowerCase().includes(itemType)) || slotNames.find(s => !p.equipment[s]) || slotNames[0];
+                }
+                if (!targetSlotForValidation) canEquip = false;
+            }
+            
+            if (canEquip) {
+                btnPrimary.disabled = false;
+                btnPrimary.style.opacity = '1';
+                btnPrimary.style.cursor = 'pointer';
+            } else {
+                btnPrimary.disabled = true;
+                btnPrimary.style.opacity = '0.5';
+                btnPrimary.style.cursor = 'not-allowed';
+            }
+            
             btnPrimary.onclick = () => {
+                if (!canEquip) return;
+                
                 if (isEquipped) {
                     p.inventory.push(item);
                     delete p.equipment[slotNameOrIndex];
                 } else {
-                    const fallbackSlots = "Weapon,Armor,Ring 1,Ring 2,Amulet";
-                    const rawSlots = ConfigModule.EQUIPMENT_SLOTS || fallbackSlots;
-                    const slotNames = String(rawSlots).split(',').map(s => s.trim());
-                    let targetSlot;
-                    const itemType = (item.gearType || item.type || '').toLowerCase();
-                    if (ConfigModule.ENFORCE_GEAR_SLOTS) {
-                        targetSlot = slotNames.find(s => s.toLowerCase().includes(itemType) && !p.equipment[s]) || slotNames.find(s => s.toLowerCase().includes(itemType));
-                    } else {
-                        targetSlot = slotNames.find(s => s.toLowerCase().includes(itemType)) || slotNames.find(s => !p.equipment[s]) || slotNames[0];
-                    }
-                    if (targetSlot) {
-                        if (p.equipment[targetSlot]) {
-                            p.inventory.push(p.equipment[targetSlot]);
+                    if (targetSlotForValidation) {
+                        if (p.equipment[targetSlotForValidation]) {
+                            p.inventory.push(p.equipment[targetSlotForValidation]);
                         }
-                        p.equipment[targetSlot] = item;
+                        p.equipment[targetSlotForValidation] = item;
                         p.inventory.splice(slotNameOrIndex, 1);
                     }
                 }
