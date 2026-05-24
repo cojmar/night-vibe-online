@@ -288,39 +288,29 @@ export default class Game {
       return;
     }
 
-    let currentHost = null;
-    let currentHostInputTime = 0;
+    let currentHosts = [];
 
     for (const u of hostCandidates) {
       if (u === (this.net.me && this.net.me.info ? this.net.me.info.user : null)) {
         if (this.isHost) {
-          currentHost = u;
-          currentHostInputTime = this.player ? (this.player.lastInputTime || 0) : 0;
+          currentHosts.push(u);
         }
       } else {
         const op = this.otherPlayers[u] || (this.net.room && this.net.room.users[u] && this.net.room.users[u].data);
         if (op && op.isHost) {
-          currentHost = u;
-          currentHostInputTime = this.otherPlayers[u] ? (this.otherPlayers[u].lastInputTime || 0) : 0;
+          currentHosts.push(u);
         }
       }
     }
 
     let bestHost = null;
-    const now = Date.now();
 
-    if (currentHost && (now - currentHostInputTime <= 5000)) {
-      bestHost = currentHost; // Keep current host if they gave input in last 5s
+    if (currentHosts.length > 0) {
+      // Keep the current host (or resolve ties alphabetically if multiple claim to be host)
+      bestHost = currentHosts.sort((a, b) => a.localeCompare(b))[0];
     } else if (hostCandidates.length > 0) {
-      // Find player with most recent input
-      bestHost = hostCandidates.sort((a, b) => {
-        let aTime = (a === (this.net.me && this.net.me.info ? this.net.me.info.user : null) && this.player)
-          ? (this.player.lastInputTime || 0) : (this.otherPlayers[a] ? this.otherPlayers[a].lastInputTime || 0 : 0);
-        let bTime = (b === (this.net.me && this.net.me.info ? this.net.me.info.user : null) && this.player)
-          ? (this.player.lastInputTime || 0) : (this.otherPlayers[b] ? this.otherPlayers[b].lastInputTime || 0 : 0);
-        if (bTime === aTime) return a.localeCompare(b);
-        return bTime - aTime;
-      })[0];
+      // No current host exists among active players, pick a new one alphabetically
+      bestHost = hostCandidates.sort((a, b) => a.localeCompare(b))[0];
     } else {
       bestHost = null; // No one is playing
     }
