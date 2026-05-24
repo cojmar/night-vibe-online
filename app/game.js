@@ -1965,7 +1965,7 @@ export default class Game {
             let stats = {}; let icon = '💎';
             let category = 'Ring'; let itemName = 'Unknown Item';
 
-            const useCustom = (ConfigModule.ITEMS_DB && ConfigModule.ITEMS_DB.length > 0 && Math.random() < 0.5);
+            const useCustom = (ConfigModule.ITEMS_DB && ConfigModule.ITEMS_DB.length > 0);
             if (useCustom) {
               const template = ConfigModule.ITEMS_DB[Math.floor(Math.random() * ConfigModule.ITEMS_DB.length)];
               category = template.gearType;
