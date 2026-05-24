@@ -54,6 +54,8 @@ export default class Game {
     this.syncTimer = 0;
     this.pendingHits = [];
     this.lastProcessedKill = null;
+    this.sessionSeed = Math.floor(Math.random() * 2000000000);
+    this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
 
     const saved = JSON.parse(localStorage.getItem('nightvibe-settings') || '{}');
     this.settings = {
@@ -698,7 +700,8 @@ export default class Game {
     if (ConfigModule.CLEAR_ITEMS_ON_START) this.items = [];
     this.s2Cooldown = 0;
     this.ui.recentLogs = [];
-    this.prng = new PRNG(this.wave * 12345);
+    this.sessionSeed = Math.floor(Math.random() * 2000000000);
+    this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
 
     // Attempt to inherit current room state and gameplay configuration if a host exists
     let hostFound = false;
@@ -732,7 +735,8 @@ export default class Game {
             this.waveEnemiesToSpawn = userData.hostData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
             this.bossActive = userData.hostData.bossActive || false;
             this.selectedEnv = userData.hostData.env || ENV_LIST[0];
-            this.prng = new PRNG(userData.hostData.seed || (this.wave * 12345));
+            this.sessionSeed = userData.hostData.sessionSeed || 0;
+            this.prng = new PRNG(userData.hostData.seed !== undefined ? userData.hostData.seed : (this.sessionSeed + this.wave * 12345));
           }
           break;
         }
