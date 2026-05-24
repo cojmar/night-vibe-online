@@ -2871,29 +2871,36 @@ export default class UI {
         const titleEl = modal ? modal.querySelector('h2') : null;
         const textEl = document.getElementById('rebirth-modal-text');
 
-        if (!modal || !textEl) return;
+        if (!modal || !textEl) {
+            if (onYes) onYes();
+            return Promise.resolve(false);
+        }
 
         if (titleEl) titleEl.innerText = title;
         textEl.innerText = message;
         modal.style.display = 'flex';
 
-        const confirmBtn = document.getElementById('btn-rebirth-confirm');
-        const cancelBtn = document.getElementById('btn-rebirth-cancel');
+        return new Promise((resolve) => {
+            const confirmBtn = document.getElementById('btn-rebirth-confirm');
+            const cancelBtn = document.getElementById('btn-rebirth-cancel');
 
-        const newConfirmBtn = confirmBtn.cloneNode(true);
-        const newCancelBtn = cancelBtn.cloneNode(true);
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
 
-        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
 
-        newConfirmBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-            if (onYes) onYes();
-        });
+            newConfirmBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+                if (onYes) onYes();
+                resolve(true);
+            });
 
-        newCancelBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-            if (onNo) onNo();
+            newCancelBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+                if (onNo) onNo();
+                resolve(false);
+            });
         });
     }
 
