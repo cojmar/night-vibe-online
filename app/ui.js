@@ -2566,9 +2566,13 @@ export default class UI {
         }
 
         const detailsPanel = document.getElementById('inventory-details-panel');
-        if (detailsPanel) detailsPanel.style.display = 'none'; // reset panel on re-render
+        if (detailsPanel) detailsPanel.style.display = 'flex'; // always visible
 
-        const showDetails = (item, isEquipped, slotNameOrIndex, element) => {
+        let selectedItem = null;
+        let selectedItemData = null;
+
+        const updateDetailsPanel = (item, isEquipped, slotNameOrIndex, element) => {
+            // Highlight selected item
             document.querySelectorAll('.inv-active-highlight').forEach(el => {
                 el.classList.remove('inv-active-highlight');
                 el.style.transform = 'scale(1)';
@@ -2584,8 +2588,8 @@ export default class UI {
                 element.classList.add('inv-active-highlight');
                 element.style.setProperty('--highlight-color', item.color || '#f1c40f');
             }
+
             if (!detailsPanel) return;
-            detailsPanel.style.display = 'flex';
 
             const dIcon = document.getElementById('inv-details-icon');
             const dName = document.getElementById('inv-details-name');
@@ -2593,6 +2597,9 @@ export default class UI {
             const dStats = document.getElementById('inv-details-stats');
             const btnPrimary = document.getElementById('btn-inv-action-primary');
             const btnDrop = document.getElementById('btn-inv-action-drop');
+
+            selectedItem = item;
+            selectedItemData = { isEquipped, slotNameOrIndex };
 
             let resolvedIcon = item.icon || '💎';
             if (resolvedIcon === '📦') {
@@ -2609,7 +2616,7 @@ export default class UI {
             dName.style.color = item.color || '#fff';
             dType.textContent = item.gearType || item.type || 'Consumable';
 
-            dStats.innerHTML = item.stats ? Object.entries(item.stats).map(([k, v]) => `<div><strong style="color:#fff;">${k.toUpperCase()}:</strong> +${v.toFixed(1)}</div>`).join('') : 'No stats';
+            dStats.innerHTML = item.stats ? Object.entries(item.stats).map(([k, v]) => `<span style="color:#fff;">${k.toUpperCase()}:+${v.toFixed(1)}</span> `) : '<span style="color:#7f8c8d;">No stats</span>';
 
             btnPrimary.textContent = isEquipped ? 'Unequip' : 'Equip';
 
@@ -2756,7 +2763,7 @@ export default class UI {
                     slotDiv.style.boxShadow = `0 0 10px ${itemData.color || '#2ecc71'}66`;
 
                     slotDiv.addEventListener('click', () => {
-                        if (itemData) showDetails(itemData, true, slotName, slotDiv);
+                        if (itemData) updateDetailsPanel(itemData, true, slotName, slotDiv);
                     });
                     slotDiv.addEventListener('dblclick', () => {
                         const btn = document.getElementById('btn-inv-action-primary');
@@ -2765,7 +2772,7 @@ export default class UI {
                     slotDiv.addEventListener('contextmenu', (e) => {
                         e.preventDefault();
                         if (itemData) {
-                            showDetails(itemData, true, slotName, slotDiv);
+                            updateDetailsPanel(itemData, true, slotName, slotDiv);
                             const btnDrop = document.getElementById('btn-inv-action-drop');
                             if (btnDrop) btnDrop.click();
                         }
@@ -2819,7 +2826,7 @@ export default class UI {
                 cell.onmouseout = () => { if (!cell.classList.contains('inv-active-highlight')) { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; } };
 
                 cell.addEventListener('click', () => {
-                    showDetails(item, false, index, cell);
+                    updateDetailsPanel(item, false, index, cell);
                 });
                 cell.addEventListener('dblclick', () => {
                     const btn = document.getElementById('btn-inv-action-primary');
@@ -2827,7 +2834,7 @@ export default class UI {
                 });
                 cell.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
-                    showDetails(item, false, index, cell);
+                    updateDetailsPanel(item, false, index, cell);
                     const btnDrop = document.getElementById('btn-inv-action-drop');
                     if (btnDrop) btnDrop.click();
                 });
