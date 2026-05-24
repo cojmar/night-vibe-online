@@ -19,7 +19,7 @@ export default class UI {
         this.loadBuiltInConfigs();
         this.bindEvents();
         this.updateClassCarousel();
-        
+
         this.customDialogResolver = null;
         this.bindCustomDialogEvents();
     }
@@ -29,7 +29,7 @@ export default class UI {
         const btnCancel = document.getElementById('btn-custom-dialog-cancel');
         const inputEl = document.getElementById('custom-dialog-input');
         const modal = document.getElementById('custom-dialog-modal');
-        
+
         if (btnConfirm) {
             btnConfirm.addEventListener('click', () => {
                 if (this.customDialogResolver) {
@@ -42,7 +42,7 @@ export default class UI {
                 }
             });
         }
-        
+
         if (btnCancel) {
             btnCancel.addEventListener('click', () => {
                 if (this.customDialogResolver) {
@@ -75,20 +75,20 @@ export default class UI {
             const inputContainer = document.getElementById('custom-dialog-input-container');
             const inputEl = document.getElementById('custom-dialog-input');
             const btnCancel = document.getElementById('btn-custom-dialog-cancel');
-            
+
             if (!modal) {
                 resolve(prompt(text, defaultValue));
                 return;
             }
-            
+
             titleEl.textContent = title;
             textEl.textContent = text;
             inputContainer.style.display = 'block';
             inputEl.value = defaultValue;
             btnCancel.style.display = 'block';
-            
+
             this.customDialogResolver = resolve;
-            
+
             modal.style.display = 'flex';
             inputEl.focus();
             inputEl.select();
@@ -102,21 +102,21 @@ export default class UI {
             const textEl = document.getElementById('custom-dialog-text');
             const inputContainer = document.getElementById('custom-dialog-input-container');
             const btnCancel = document.getElementById('btn-custom-dialog-cancel');
-            
+
             if (!modal) {
                 resolve(confirm(text));
                 return;
             }
-            
+
             titleEl.textContent = title;
             textEl.textContent = text;
             inputContainer.style.display = 'none';
             btnCancel.style.display = 'block';
-            
+
             this.customDialogResolver = (val) => {
                 resolve(val === true);
             };
-            
+
             modal.style.display = 'flex';
         });
     }
@@ -128,22 +128,22 @@ export default class UI {
             const textEl = document.getElementById('custom-dialog-text');
             const inputContainer = document.getElementById('custom-dialog-input-container');
             const btnCancel = document.getElementById('btn-custom-dialog-cancel');
-            
+
             if (!modal) {
                 alert(text);
                 resolve();
                 return;
             }
-            
+
             titleEl.textContent = title;
             textEl.textContent = text;
             inputContainer.style.display = 'none';
             btnCancel.style.display = 'none';
-            
+
             this.customDialogResolver = () => {
                 resolve();
             };
-            
+
             modal.style.display = 'flex';
         });
     }
@@ -201,7 +201,7 @@ export default class UI {
             btn.addEventListener('click', (e) => {
                 const val = e.currentTarget.getAttribute('data-val');
                 this.statMultiplier = val === 'all' ? 'all' : parseInt(val, 10) || 1;
-                
+
                 // Update active visual styles on buttons
                 multButtons.forEach(b => {
                     b.classList.remove('active');
@@ -300,7 +300,7 @@ export default class UI {
         this.builtInConfigs = {
             'default': { name: 'Default Mode', values: { ...ConfigModule.DEFAULTS } }
         };
-        
+
         let manifest = ['default.json', 'hardcore.json', 'rapidfire.json', 'sandbox.json'];
         try {
             const response = await fetch('configs/manifest.json');
@@ -329,7 +329,7 @@ export default class UI {
                 console.error(`Failed to load built-in config ${file}:`, err);
             }
         }
-        
+
         this.populateConfigSelector();
         this.applySavedPreset();
     }
@@ -345,36 +345,36 @@ export default class UI {
             items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB))
         };
         ConfigModule.saveCustomPresets(customPresets);
-        
+
         ConfigModule.setActivePresetId('custom:last_game_config');
         ConfigModule.setActivePresetName('Last Game Config');
-        
+
         this.populateConfigSelector();
         this.selectPreset('custom:last_game_config');
     }
 
     populateConfigSelector() {
         const ids = ['config-preset-selector', 'config-editor-preset-selector'];
-        
+
         for (const targetId of ids) {
             const selector = document.getElementById(targetId);
             if (!selector) continue;
-            
+
             selector.innerHTML = '';
-            
+
             // 1. Last Game Config optgroup
             const customPresets = ConfigModule.getCustomPresets();
             if (customPresets['last_game_config']) {
                 const groupLast = document.createElement('optgroup');
                 groupLast.label = 'Last Game Config';
-                
+
                 const opt = document.createElement('option');
                 opt.value = 'custom:last_game_config';
                 opt.textContent = `🕒 Last Game Config`;
                 groupLast.appendChild(opt);
                 selector.appendChild(groupLast);
             }
-            
+
             // 2. Default optgroup
             const groupDefault = document.createElement('optgroup');
             groupDefault.label = 'Default';
@@ -383,7 +383,7 @@ export default class UI {
             optDefault.textContent = '🎮 Default Rules';
             groupDefault.appendChild(optDefault);
             selector.appendChild(groupDefault);
-            
+
             // 3. Built-in Game Modes optgroup
             const groupBuiltin = document.createElement('optgroup');
             groupBuiltin.label = 'Built-in Game Modes';
@@ -400,7 +400,7 @@ export default class UI {
                 groupBuiltin.appendChild(opt);
             }
             selector.appendChild(groupBuiltin);
-            
+
             // 4. Custom User Presets optgroup
             const groupCustom = document.createElement('optgroup');
             groupCustom.label = 'My Custom Presets';
@@ -420,7 +420,7 @@ export default class UI {
                 groupCustom.appendChild(optNone);
             }
             selector.appendChild(groupCustom);
-            
+
             // Set selected option
             selector.value = ConfigModule.activePresetId;
             if (!selector.value) {
@@ -433,23 +433,23 @@ export default class UI {
     applySavedPreset() {
         const selector = document.getElementById('config-preset-selector');
         if (!selector) return;
-        
+
         const presetId = selector.value || ConfigModule.activePresetId;
         this.selectPreset(presetId);
     }
 
     selectPreset(presetId) {
         if (!presetId) return;
-        
+
         ConfigModule.setActivePresetId(presetId);
-        
+
         let valuesToApply = null;
         let classesToApply = null;
         let monstersToApply = null;
         let itemsToApply = null;
         let isCustom = false;
         let presetName = 'Default';
-        
+
         if (presetId.startsWith('built-in:')) {
             const key = presetId.split('built-in:')[1];
             if (this.builtInConfigs && this.builtInConfigs[key]) {
@@ -468,59 +468,59 @@ export default class UI {
                 isCustom = true;
             }
         }
-        
+
         ConfigModule.setActivePresetName(presetName);
-        
+
         if (valuesToApply) {
             ConfigModule.updateConfig(valuesToApply);
-            
+
             // Revert or apply custom classes
             const defaultClasses = {
-              warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
-              mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
-              archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
-              magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
+                warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
+                mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
+                archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
+                magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
             };
-            
+
             const targetClasses = classesToApply || defaultClasses;
             for (const k in ConfigModule.CLASS_DATA) delete ConfigModule.CLASS_DATA[k];
             Object.assign(ConfigModule.CLASS_DATA, targetClasses);
             localStorage.setItem('nightvibe-custom-classes', JSON.stringify(ConfigModule.CLASS_DATA));
-            
+
             // Revert or apply custom monsters
             const defaultMonsters = [
-              { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-              { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
-              { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-              { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
-              { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-              { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
-              { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-              { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+                { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+                { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
+                { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+                { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
+                { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+                { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
+                { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+                { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
             ];
-            
+
             const targetMonsters = monstersToApply || defaultMonsters;
             ConfigModule.ENEMY_TYPES.length = 0;
             ConfigModule.ENEMY_TYPES.push(...targetMonsters);
             localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ConfigModule.ENEMY_TYPES));
-            
+
             // Revert or apply custom items
             const defaultItems = [
-              { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
-              { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
-              { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
+                { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
+                { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
+                { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
             ];
-            
+
             const targetItems = itemsToApply || defaultItems;
             ConfigModule.ITEMS_DB.length = 0;
             ConfigModule.ITEMS_DB.push(...targetItems);
             localStorage.setItem('nightvibe-custom-items', JSON.stringify(ConfigModule.ITEMS_DB));
-            
+
             // Re-render editor tabs and lists
             this.buildClassesTab();
             this.buildMonstersTab();
             this.buildItemsTab();
-            
+
             if (this.game) {
                 if (this.game.updateLayout) this.game.updateLayout();
                 if (this.game.player) {
@@ -537,14 +537,14 @@ export default class UI {
                 if (this.game.generateScenery) this.game.generateScenery(this.game.selectedEnv);
                 if (this.game.broadcastState) this.game.broadcastState();
             }
-            
+
             this.updateLobbyRulesText();
             this.updateClassCarousel();
         }
-        
+
         const badgeEl = document.getElementById('active-preset-badge');
         const btnDelete = document.getElementById('btn-preset-delete');
-        
+
         if (badgeEl) {
             badgeEl.textContent = isCustom ? 'Custom' : 'Built-in';
             badgeEl.style.background = '#ffd700';
@@ -553,12 +553,12 @@ export default class UI {
         if (btnDelete) {
             btnDelete.style.display = (isCustom && presetId !== 'custom:last_game_config') ? 'inline-block' : 'none';
         }
-        
+
         const sel = document.getElementById('config-preset-selector');
         if (sel && sel.value !== presetId) {
             sel.value = presetId;
         }
-        
+
         const selEditor = document.getElementById('config-editor-preset-selector');
         if (selEditor && selEditor.value !== presetId) {
             selEditor.value = presetId;
@@ -655,7 +655,7 @@ export default class UI {
         const configEditorModal = document.getElementById('config-editor-modal');
         const btnConfigEditorCloseIcon = document.getElementById('btn-config-editor-close-icon');
         const btnConfigSave = document.getElementById('btn-config-save');
-        
+
         if (btnConfigSave) {
             btnConfigSave.addEventListener('click', async () => {
                 const presetId = ConfigModule.activePresetId;
@@ -665,7 +665,7 @@ export default class UI {
                     if (btnSaveAs) btnSaveAs.click();
                     return;
                 }
-                
+
                 saveConfigFromUI();
                 const originalText = btnConfigSave.innerText;
                 btnConfigSave.innerText = '✔️ SAVED!';
@@ -711,12 +711,12 @@ export default class UI {
             btnSaveAs.addEventListener('click', async () => {
                 const name = await this.showPrompt("💾 Save Preset As", "Enter a name for the new custom preset:", "My Custom Preset");
                 if (!name || !name.trim()) return;
-                
+
                 const customPresets = ConfigModule.getCustomPresets();
                 const newId = 'preset_' + Date.now();
-                
+
                 const valuesCopy = { ...ConfigModule.activeConfig };
-                
+
                 customPresets[newId] = {
                     id: newId,
                     name: name.trim(),
@@ -724,14 +724,14 @@ export default class UI {
                     classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
                     monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
                 };
-                
+
                 ConfigModule.saveCustomPresets(customPresets);
                 ConfigModule.setActivePresetId(`custom:${newId}`);
-                
+
                 this.populateConfigSelector();
                 this.selectPreset(`custom:${newId}`);
                 buildConfigFields();
-                
+
                 this.addLog(`💾 Saved preset as "${name.trim()}"`);
             });
         }
@@ -749,14 +749,14 @@ export default class UI {
                     const presets = ConfigModule.getCustomPresets();
                     if (presets[key]) currentName = presets[key].name;
                 }
-                
+
                 const name = await this.showPrompt("📋 Duplicate Preset", "Enter name for duplicated preset:", currentName + " (Copy)");
                 if (!name || !name.trim()) return;
-                
+
                 const customPresets = ConfigModule.getCustomPresets();
                 const newId = 'preset_' + Date.now();
                 const valuesCopy = { ...ConfigModule.activeConfig };
-                
+
                 customPresets[newId] = {
                     id: newId,
                     name: name.trim(),
@@ -764,14 +764,14 @@ export default class UI {
                     classes: JSON.parse(JSON.stringify(ConfigModule.CLASS_DATA)),
                     monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES))
                 };
-                
+
                 ConfigModule.saveCustomPresets(customPresets);
                 ConfigModule.setActivePresetId(`custom:${newId}`);
-                
+
                 this.populateConfigSelector();
                 this.selectPreset(`custom:${newId}`);
                 buildConfigFields();
-                
+
                 this.addLog(`📋 Duplicated preset to "${name.trim()}"`);
             });
         }
@@ -782,19 +782,19 @@ export default class UI {
                 const presetId = ConfigModule.activePresetId;
                 if (!presetId.startsWith('custom:')) return;
                 const key = presetId.split('custom:')[1];
-                
+
                 const customPresets = ConfigModule.getCustomPresets();
                 if (customPresets[key]) {
                     const name = customPresets[key].name;
                     if (await this.showConfirm("🗑️ Delete Preset", `Are you sure you want to delete the preset "${name}"?`)) {
                         delete customPresets[key];
                         ConfigModule.saveCustomPresets(customPresets);
-                        
+
                         ConfigModule.setActivePresetId('built-in:default');
                         this.populateConfigSelector();
                         this.selectPreset('built-in:default');
                         buildConfigFields();
-                        
+
                         this.addLog(`🗑️ Deleted preset "${name}"`);
                     }
                 }
@@ -806,28 +806,28 @@ export default class UI {
             btnNewPreset.addEventListener('click', async () => {
                 const name = await this.showPrompt("➕ New Preset", "Enter a name for the new custom preset:", "My New Preset");
                 if (!name || !name.trim()) return;
-                
+
                 const customPresets = ConfigModule.getCustomPresets();
                 const newId = 'preset_' + Date.now();
-                
+
                 const valuesCopy = { ...ConfigModule.DEFAULTS };
                 const defaultClasses = {
-                  warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
-                  mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
-                  archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
-                  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
+                    warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
+                    mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
+                    archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
+                    magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
                 };
                 const defaultMonsters = [
-                  { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-                  { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
-                  { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-                  { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
-                  { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-                  { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
-                  { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-                  { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+                    { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+                    { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
+                    { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+                    { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
+                    { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+                    { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
+                    { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+                    { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
                 ];
-                
+
                 customPresets[newId] = {
                     id: newId,
                     name: name.trim(),
@@ -835,19 +835,19 @@ export default class UI {
                     classes: defaultClasses,
                     monsters: defaultMonsters,
                     items: [
-                      { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
-                      { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
-                      { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
+                        { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
+                        { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
+                        { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
                     ]
                 };
-                
+
                 ConfigModule.saveCustomPresets(customPresets);
                 ConfigModule.setActivePresetId(`custom:${newId}`);
-                
+
                 this.populateConfigSelector();
                 this.selectPreset(`custom:${newId}`);
                 buildConfigFields();
-                
+
                 this.addLog(`➕ Created custom preset "${name.trim()}"`);
             });
         }
@@ -857,11 +857,11 @@ export default class UI {
             btnImportGameSession.addEventListener('click', async () => {
                 const name = await this.showPrompt("📥 Import Session", "Enter a name for the imported preset:", ConfigModule.activePresetName || "Imported Preset");
                 if (!name || !name.trim()) return;
-                
+
                 const customPresets = ConfigModule.getCustomPresets();
                 const newId = 'preset_' + Date.now();
                 const valuesCopy = { ...ConfigModule.activeConfig };
-                
+
                 customPresets[newId] = {
                     id: newId,
                     name: name.trim(),
@@ -870,14 +870,14 @@ export default class UI {
                     monsters: JSON.parse(JSON.stringify(ConfigModule.ENEMY_TYPES)),
                     items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB))
                 };
-                
+
                 ConfigModule.saveCustomPresets(customPresets);
                 ConfigModule.setActivePresetId(`custom:${newId}`);
-                
+
                 this.populateConfigSelector();
                 this.selectPreset(`custom:${newId}`);
                 buildConfigFields();
-                
+
                 this.addLog(`📥 Imported session preset as "${name.trim()}"`);
             });
         }
@@ -979,7 +979,7 @@ export default class UI {
                             </div>
                         `;
                     } else if (meta.type === 'string') {
-                        if (meta.key === 'EQUIPMENT_SLOTS') {
+                        if (meta.key === 'EQUIPMENT_SLOTS' && currentValue) {
                             const slots = currentValue.split(',').map(s => s.trim()).filter(s => s);
                             let badgesHtml = slots.map((s, idx) => `
                                 <div style="display:inline-flex; align-items:center; background:#3498db; color:#fff; padding:4px 8px; border-radius:4px; margin-right:5px; margin-bottom:5px; font-size:0.9em;">
@@ -987,10 +987,10 @@ export default class UI {
                                     <button class="btn-del-equip-slot" data-idx="${idx}" ${isPlaying ? 'disabled' : ''} style="background:none; border:none; color:#ffb8b8; cursor:${isPlaying ? 'not-allowed' : 'pointer'}; margin-left:5px; padding:0 2px; font-weight:bold;">×</button>
                                 </div>
                             `).join('');
-                            
+
                             const availableTypes = ['Weapon', 'Armor', 'Ring', 'Amulet', 'Helmet', 'Boots', 'Shield'];
                             let addOptions = availableTypes.map(t => `<option value="${t}">+ ${t}</option>`).join('');
-                            
+
                             fieldDiv.innerHTML = `
                                 <label style="display:block; font-size:0.9em; color:#bdc3c7; margin-bottom:4px; opacity:${isPlaying ? '0.7' : '1'};">${meta.label.replace(' (comma separated)', '')}</label>
                                 <div style="margin-bottom:8px; display:flex; flex-wrap:wrap;">
@@ -1004,26 +1004,26 @@ export default class UI {
                                 </div>
                                 <input type="hidden" id="cfg-${meta.key}" value="${currentValue}">
                             `;
-                            
+
                             if (!isPlaying) {
                                 const addBtn = fieldDiv.querySelector('.btn-add-equip-slot');
                                 const sel = fieldDiv.querySelector('.equip-slot-add-select');
                                 const hiddenInput = fieldDiv.querySelector(`#cfg-${meta.key}`);
-                                
+
                                 addBtn.addEventListener('click', () => {
                                     const newType = sel.value;
-                                    let currentArr = hiddenInput.value.split(',').map(s=>s.trim()).filter(s=>s);
+                                    let currentArr = hiddenInput.value.split(',').map(s => s.trim()).filter(s => s);
                                     currentArr.push(newType);
                                     hiddenInput.value = currentArr.join(',');
                                     hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
                                     buildConfigFields();
                                 });
-                                
+
                                 const delBtns = fieldDiv.querySelectorAll('.btn-del-equip-slot');
                                 delBtns.forEach(btn => {
                                     btn.addEventListener('click', (e) => {
                                         const idx = parseInt(e.currentTarget.getAttribute('data-idx'));
-                                        let currentArr = hiddenInput.value.split(',').map(s=>s.trim()).filter(s=>s);
+                                        let currentArr = hiddenInput.value.split(',').map(s => s.trim()).filter(s => s);
                                         currentArr.splice(idx, 1);
                                         hiddenInput.value = currentArr.join(',');
                                         hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1099,33 +1099,33 @@ export default class UI {
             const searchInput = document.getElementById('config-search-input');
             if (searchInput) {
                 searchInput.value = this.configSearchQuery || '';
-                
+
                 const applyFilter = () => {
                     const query = searchInput.value.toLowerCase().trim();
                     this.configSearchQuery = searchInput.value; // Persist search query in UI class instance
                     const container = document.getElementById('config-fields-container');
                     if (!container) return;
-                    
+
                     const queryTokens = query.split(/\s+/).filter(token => token.length > 0);
-                    
+
                     const categories = container.children;
                     for (let i = 0; i < categories.length; i++) {
                         const cat = categories[i];
                         if (cat.tagName !== 'DIV' || !cat.style.borderLeft) continue; // Skip warn banner
-                        
+
                         const catHeader = cat.children[0];
                         const catName = catHeader ? catHeader.textContent.toLowerCase() : '';
-                        
+
                         let hasVisibleChild = false;
                         const fields = cat.children;
                         for (let j = 1; j < fields.length; j++) { // Skip header at index 0
                             const field = fields[j];
                             const label = field.textContent.toLowerCase();
                             const combinedLabel = `${catName} ${label}`;
-                            
+
                             // A field matches if query is empty, or combined text contains ALL search tokens
                             const fieldMatches = queryTokens.length === 0 || queryTokens.every(token => combinedLabel.includes(token));
-                            
+
                             if (fieldMatches) {
                                 field.style.display = '';
                                 hasVisibleChild = true;
@@ -1133,13 +1133,13 @@ export default class UI {
                                 field.style.display = 'none';
                             }
                         }
-                        
+
                         cat.style.display = (queryTokens.length === 0 || hasVisibleChild) ? 'block' : 'none';
                     }
                 };
 
                 searchInput.oninput = applyFilter;
-                
+
                 // If there's an existing query, apply the filter immediately upon rebuilding fields!
                 if (this.configSearchQuery) {
                     applyFilter();
@@ -1196,7 +1196,7 @@ export default class UI {
             }
 
             if (this.game && this.game.isHost && this.game.net) {
-                this.game.net.send_cmd('set_data', { 
+                this.game.net.send_cmd('set_data', {
                     gameplayConfig: ConfigModule.activeConfig,
                     gameplayConfigName: ConfigModule.activePresetName || 'Default'
                 });
@@ -1232,54 +1232,54 @@ export default class UI {
                 resetConfig();
                 buildConfigFields();
                 saveConfigFromUI();
-                
+
                 // Also reset classes config to defaults!
                 localStorage.removeItem('nightvibe-custom-classes');
                 const defaults = {
-                  warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
-                  mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
-                  archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
-                  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
+                    warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
+                    mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
+                    archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
+                    magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
                 };
                 for (const key in ConfigModule.CLASS_DATA) {
                     delete ConfigModule.CLASS_DATA[key];
                 }
                 Object.assign(ConfigModule.CLASS_DATA, defaults);
-                
+
                 this.saveClassesToStorage();
                 this.buildClassesTab();
 
                 // Also reset monsters config to defaults!
                 localStorage.removeItem('nightvibe-custom-monsters');
                 const defaultMonsters = [
-                  { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-                  { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
-                  { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-                  { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
-                  { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-                  { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
-                  { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-                  { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+                    { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+                    { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
+                    { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+                    { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
+                    { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+                    { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
+                    { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+                    { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
                 ];
                 ConfigModule.ENEMY_TYPES.length = 0;
                 ConfigModule.ENEMY_TYPES.push(...defaultMonsters);
-                
+
                 this.saveMonstersToStorage();
                 this.buildMonstersTab();
-                
+
                 // Also reset items config to defaults!
                 localStorage.removeItem('nightvibe-custom-items');
                 const defaultItems = [
-                  { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
-                  { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
-                  { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
+                    { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
+                    { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
+                    { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
                 ];
                 ConfigModule.ITEMS_DB.length = 0;
                 ConfigModule.ITEMS_DB.push(...defaultItems);
-                
+
                 this.saveItemsToStorage();
                 this.buildItemsTab();
-                
+
                 this.addLog("🛠️ Custom configurations, classes, monsters and gear reset to defaults.");
             });
         }
@@ -1297,7 +1297,7 @@ export default class UI {
                     items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB))
                 };
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-                
+
                 let filename = 'nightvibe-gameplay-config.json';
                 const presetId = ConfigModule.activePresetId;
                 if (presetId.startsWith('built-in:')) {
@@ -1309,7 +1309,7 @@ export default class UI {
                         filename = `nightvibe-config-${presets[key].name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
                     }
                 }
-                
+
                 const downloadAnchor = document.createElement('a');
                 downloadAnchor.setAttribute("href", dataStr);
                 downloadAnchor.setAttribute("download", filename);
@@ -1335,15 +1335,15 @@ export default class UI {
                         defaultName = defaultName.charAt(0).toUpperCase() + defaultName.slice(1);
                         const name = await this.showPrompt("📥 Import Preset File", "Enter a name for the imported preset:", defaultName);
                         if (!name || !name.trim()) return;
-                        
+
                         const customPresets = ConfigModule.getCustomPresets();
                         const newId = 'preset_' + Date.now();
-                        
+
                         const mergedValues = Object.assign({}, ConfigModule.DEFAULTS, imported.values || imported);
                         const importedClasses = imported.classes || null;
                         const importedMonsters = imported.monsters || null;
                         const importedItems = imported.items || null;
-                        
+
                         customPresets[newId] = {
                             id: newId,
                             name: name.trim(),
@@ -1352,14 +1352,14 @@ export default class UI {
                             monsters: importedMonsters,
                             items: importedItems
                         };
-                        
+
                         ConfigModule.saveCustomPresets(customPresets);
                         ConfigModule.setActivePresetId(`custom:${newId}`);
-                        
+
                         this.populateConfigSelector();
                         this.selectPreset(`custom:${newId}`);
                         buildConfigFields();
-                        
+
                         this.addLog(`📤 Imported configuration preset "${name.trim()}" successfully!`);
                     } catch (err) {
                         await this.showAlert("❌ Import Failed", "Failed to parse configuration JSON: " + err.message);
@@ -1372,7 +1372,7 @@ export default class UI {
         // Bind Config Tabs
         const tabBtns = document.querySelectorAll('.config-tab-btn');
         const tabContents = document.querySelectorAll('.config-tab-content');
-        
+
         tabBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 tabBtns.forEach(b => {
@@ -1383,12 +1383,12 @@ export default class UI {
                 e.currentTarget.classList.add('active');
                 e.currentTarget.style.background = '#3498db';
                 e.currentTarget.style.color = '#fff';
-                
+
                 const targetId = e.currentTarget.getAttribute('data-tab');
                 tabContents.forEach(tc => {
                     tc.style.display = tc.id === targetId ? 'flex' : 'none';
                 });
-                
+
                 if (targetId === 'tab-char-classes') {
                     this.buildClassesTab();
                 } else if (targetId === 'tab-monsters') {
@@ -1462,7 +1462,7 @@ export default class UI {
     saveClassesToStorage() {
         localStorage.setItem('nightvibe-custom-classes', JSON.stringify(ConfigModule.CLASS_DATA));
         this.updateClassCarousel(); // Refresh main menu UI classes
-        
+
         // Also update inside the active custom preset
         const presetId = ConfigModule.activePresetId;
         if (presetId && presetId.startsWith('custom:')) {
@@ -1473,7 +1473,7 @@ export default class UI {
                 ConfigModule.saveCustomPresets(presets);
             }
         }
-        
+
         if (this.game && this.game.isHost && this.game.net) {
             this.game.net.send_cmd('set_data', { classData: ConfigModule.CLASS_DATA });
         }
@@ -1483,7 +1483,7 @@ export default class UI {
         const container = document.getElementById('visual-char-classes-container');
         if (!container) return;
         container.innerHTML = '';
-        
+
         const isPlaying = this.game && this.game.state === 'PLAYING';
 
         if (isPlaying) {
@@ -1511,35 +1511,35 @@ export default class UI {
             classCard.style.display = 'flex';
             classCard.style.flexDirection = 'column';
             classCard.style.gap = '10px';
-            
+
             const headerRow = document.createElement('div');
             headerRow.style.display = 'flex';
             headerRow.style.justifyContent = 'space-between';
             headerRow.style.alignItems = 'center';
             headerRow.style.borderBottom = '1px solid #34495e';
             headerRow.style.paddingBottom = '8px';
-            
-            const iconHtml = (classData.icon.startsWith('data:image/') || classData.icon.startsWith('http')) ? 
-                `<img src="${classData.icon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+
+            const iconHtml = (classData.icon.startsWith('data:image/') || classData.icon.startsWith('http')) ?
+                `<img src="${classData.icon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` :
                 `<span style="font-size:1.8em;">${classData.icon}</span>`;
             const titleHtml = `<div style="display:flex; align-items:center; gap:10px;">
                 <div class="class-icon-preview">${iconHtml}</div>
                 <h3 style="margin:0; color:${classData.color}; font-size:1.3em;">${classData.name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(${classId})</span></h3>
             </div>`;
-            
+
             headerRow.innerHTML = titleHtml;
             classCard.appendChild(headerRow);
-            
+
             const grid = document.createElement('div');
             grid.style.display = 'grid';
             grid.style.gridTemplateColumns = '1fr 1fr';
             grid.style.gap = '10px';
-            
+
             const addField = (label, key, type, step = 1, options = null) => {
                 const wrapper = document.createElement('div');
                 const disabledAttr = isPlaying ? 'disabled' : '';
                 const opacityStyle = isPlaying ? 'opacity: 0.6; cursor: not-allowed;' : '';
-                
+
                 let inputHtml = '';
                 if (type === 'color') {
                     inputHtml = `<div style="display:flex; gap:10px; align-items:center;">
@@ -1561,7 +1561,7 @@ export default class UI {
                 } else if (type === 'custom-icon') {
                     const currentIcon = classData[key] || '👤';
                     const displayEmoji = (currentIcon.startsWith('data:image/') || currentIcon.startsWith('http')) ? '👤' : currentIcon;
-                    
+
                     inputHtml = `<div class="custom-icon-picker-container" style="position:relative; display:flex; flex-direction:column; gap:6px; ${opacityStyle}">
                         <div style="display:flex; gap:6px; align-items:center;">
                             <!-- Styled Custom Emoji Toggle Button -->
@@ -1597,7 +1597,7 @@ export default class UI {
                 } else {
                     inputHtml = `<input type="text" data-key="${key}" value="${classData[key] || ''}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">`;
                 }
-                
+
                 wrapper.innerHTML = `<label style="display:block; font-size:0.85em; color:#bdc3c7; margin-bottom:4px;">${label}</label>${inputHtml}`;
                 grid.appendChild(wrapper);
 
@@ -1704,7 +1704,7 @@ export default class UI {
                             btn.style.alignItems = 'center';
                             btn.style.justifyContent = 'center';
                             btn.style.transition = 'all 0.15s ease';
-                            
+
                             btn.onmouseover = () => {
                                 btn.style.background = '#34495e';
                                 btn.style.borderColor = '#1abc9c';
@@ -1713,7 +1713,7 @@ export default class UI {
                                 btn.style.background = '#2c3e50';
                                 btn.style.borderColor = '#34495e';
                             };
-                            
+
                             btn.onclick = () => {
                                 textInput.value = item.char;
                                 emojiBtn.innerText = item.char;
@@ -1732,7 +1732,7 @@ export default class UI {
                         emojiBtn.addEventListener('click', (e) => {
                             e.stopPropagation();
                             const isVisible = popover.style.display === 'flex';
-                            
+
                             // Close any other open popovers first
                             document.querySelectorAll('.custom-emoji-picker-popover').forEach(p => {
                                 p.style.display = 'none';
@@ -1780,13 +1780,13 @@ export default class UI {
                                         const MAX_SIZE = 128;
                                         let w = img.width;
                                         let h = img.height;
-                                        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } 
+                                        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } }
                                         else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
                                         canvas.width = w; canvas.height = h;
                                         const ctx = canvas.getContext('2d');
                                         ctx.drawImage(img, 0, 0, w, h);
                                         const dataUrl = canvas.toDataURL('image/png', 0.8);
-                                        
+
                                         textInput.value = dataUrl;
                                         emojiBtn.innerText = '👤'; // fallback smiley for images
                                         textInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1816,7 +1816,7 @@ export default class UI {
             addField('Skill 2 Color', 's2Color', 'color');
 
             classCard.appendChild(grid);
-            
+
             if (!isPlaying) {
                 // Event listener to save dynamically
                 const inputs = classCard.querySelectorAll('input, select');
@@ -1833,14 +1833,14 @@ export default class UI {
                         const iconPreview = headerRow.querySelector('.class-icon-preview');
                         if (iconPreview) {
                             const newIcon = ConfigModule.CLASS_DATA[classId].icon;
-                            iconPreview.innerHTML = (newIcon.startsWith('data:image/') || newIcon.startsWith('http')) ? 
-                                `<img src="${newIcon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+                            iconPreview.innerHTML = (newIcon.startsWith('data:image/') || newIcon.startsWith('http')) ?
+                                `<img src="${newIcon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` :
                                 `<span style="font-size:1.8em;">${newIcon}</span>`;
                         }
                         this.saveClassesToStorage();
                     });
                 });
-                
+
                 const btnDelete = document.createElement('button');
                 btnDelete.innerText = '🗑️ Delete Class';
                 btnDelete.style.background = '#e74c3c';
@@ -1858,14 +1858,14 @@ export default class UI {
                 };
                 classCard.appendChild(btnDelete);
             }
-            
+
             container.appendChild(classCard);
         }
     }
 
     saveMonstersToStorage() {
         localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ConfigModule.ENEMY_TYPES));
-        
+
         // Also update inside the active custom preset
         const presetId = ConfigModule.activePresetId;
         if (presetId && presetId.startsWith('custom:')) {
@@ -1876,7 +1876,7 @@ export default class UI {
                 ConfigModule.saveCustomPresets(presets);
             }
         }
-        
+
         if (this.game && this.game.isHost && this.game.net) {
             this.game.net.send_cmd('set_data', { enemyTypes: ConfigModule.ENEMY_TYPES });
         }
@@ -1889,7 +1889,7 @@ export default class UI {
         const container = document.getElementById('visual-monsters-container');
         if (!container) return;
         container.innerHTML = '';
-        
+
         const isPlaying = this.game && this.game.state === 'PLAYING';
 
         if (isPlaying) {
@@ -1917,35 +1917,35 @@ export default class UI {
             monsterCard.style.display = 'flex';
             monsterCard.style.flexDirection = 'column';
             monsterCard.style.gap = '10px';
-            
+
             const headerRow = document.createElement('div');
             headerRow.style.display = 'flex';
             headerRow.style.justifyContent = 'space-between';
             headerRow.style.alignItems = 'center';
             headerRow.style.borderBottom = '1px solid #34495e';
             headerRow.style.paddingBottom = '8px';
-            
-            const iconHtml = (monster.icon.startsWith('data:image/') || monster.icon.startsWith('http')) ? 
-                `<img src="${monster.icon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+
+            const iconHtml = (monster.icon.startsWith('data:image/') || monster.icon.startsWith('http')) ?
+                `<img src="${monster.icon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` :
                 `<span style="font-size:1.8em;">${monster.icon}</span>`;
             const titleHtml = `<div style="display:flex; align-items:center; gap:10px;">
                 <div class="monster-icon-preview">${iconHtml}</div>
                 <h3 style="margin:0; color:${monster.color}; font-size:1.3em;">${monster.name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(index: ${index})</span></h3>
             </div>`;
-            
+
             headerRow.innerHTML = titleHtml;
             monsterCard.appendChild(headerRow);
-            
+
             const grid = document.createElement('div');
             grid.style.display = 'grid';
             grid.style.gridTemplateColumns = '1fr 1fr';
             grid.style.gap = '10px';
-            
+
             const addField = (label, key, type, step = 1, options = null) => {
                 const wrapper = document.createElement('div');
                 const disabledAttr = isPlaying ? 'disabled' : '';
                 const opacityStyle = isPlaying ? 'opacity: 0.6; cursor: not-allowed;' : '';
-                
+
                 let inputHtml = '';
                 if (type === 'color') {
                     inputHtml = `<div style="display:flex; gap:10px; align-items:center;">
@@ -1956,7 +1956,7 @@ export default class UI {
                 } else if (type === 'custom-icon') {
                     const currentIcon = monster[key] || '👾';
                     const displayEmoji = (currentIcon.startsWith('data:image/') || currentIcon.startsWith('http')) ? '👾' : currentIcon;
-                    
+
                     inputHtml = `<div class="custom-icon-picker-container" style="position:relative; display:flex; flex-direction:column; gap:6px; ${opacityStyle}">
                         <div style="display:flex; gap:6px; align-items:center;">
                             <!-- Styled Custom Emoji Toggle Button -->
@@ -1992,7 +1992,7 @@ export default class UI {
                 } else {
                     inputHtml = `<input type="text" data-key="${key}" value="${monster[key] || ''}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">`;
                 }
-                
+
                 wrapper.innerHTML = `<label style="display:block; font-size:0.85em; color:#bdc3c7; margin-bottom:4px;">${label}</label>${inputHtml}`;
                 grid.appendChild(wrapper);
 
@@ -2059,7 +2059,7 @@ export default class UI {
                             btn.style.alignItems = 'center';
                             btn.style.justifyContent = 'center';
                             btn.style.transition = 'all 0.15s ease';
-                            
+
                             btn.onmouseover = () => {
                                 btn.style.background = '#34495e';
                                 btn.style.borderColor = '#1abc9c';
@@ -2068,7 +2068,7 @@ export default class UI {
                                 btn.style.background = '#2c3e50';
                                 btn.style.borderColor = '#34495e';
                             };
-                            
+
                             btn.onclick = () => {
                                 textInput.value = item.char;
                                 emojiBtn.innerText = item.char;
@@ -2085,7 +2085,7 @@ export default class UI {
                         emojiBtn.addEventListener('click', (e) => {
                             e.stopPropagation();
                             const isVisible = popover.style.display === 'flex';
-                            
+
                             document.querySelectorAll('.custom-emoji-picker-popover').forEach(p => {
                                 p.style.display = 'none';
                             });
@@ -2128,13 +2128,13 @@ export default class UI {
                                         const MAX_SIZE = 128;
                                         let w = img.width;
                                         let h = img.height;
-                                        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } } 
+                                        if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } }
                                         else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
                                         canvas.width = w; canvas.height = h;
                                         const ctx = canvas.getContext('2d');
                                         ctx.drawImage(img, 0, 0, w, h);
                                         const dataUrl = canvas.toDataURL('image/png', 0.8);
-                                        
+
                                         textInput.value = dataUrl;
                                         emojiBtn.innerText = '👾'; // fallback smiley for images
                                         textInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -2158,7 +2158,7 @@ export default class UI {
             addField('Physical Size', 'size', 'number', 1);
 
             monsterCard.appendChild(grid);
-            
+
             if (!isPlaying) {
                 const inputs = monsterCard.querySelectorAll('input');
                 inputs.forEach(input => {
@@ -2174,14 +2174,14 @@ export default class UI {
                         const iconPreview = headerRow.querySelector('.monster-icon-preview');
                         if (iconPreview) {
                             const newIcon = ConfigModule.ENEMY_TYPES[index].icon;
-                            iconPreview.innerHTML = (newIcon.startsWith('data:image/') || newIcon.startsWith('http')) ? 
-                                `<img src="${newIcon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+                            iconPreview.innerHTML = (newIcon.startsWith('data:image/') || newIcon.startsWith('http')) ?
+                                `<img src="${newIcon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` :
                                 `<span style="font-size:1.8em;">${newIcon}</span>`;
                         }
                         this.saveMonstersToStorage();
                     });
                 });
-                
+
                 const btnDelete = document.createElement('button');
                 btnDelete.innerText = '🗑️ Delete Monster';
                 btnDelete.style.background = '#e74c3c';
@@ -2199,14 +2199,14 @@ export default class UI {
                 };
                 monsterCard.appendChild(btnDelete);
             }
-            
+
             container.appendChild(monsterCard);
         });
     }
 
     saveItemsToStorage() {
         localStorage.setItem('nightvibe-custom-items', JSON.stringify(ConfigModule.ITEMS_DB));
-        
+
         const presetId = ConfigModule.activePresetId;
         if (presetId && presetId.startsWith('custom:')) {
             const key = presetId.split('custom:')[1];
@@ -2216,7 +2216,7 @@ export default class UI {
                 ConfigModule.saveCustomPresets(presets);
             }
         }
-        
+
         if (this.game && this.game.isHost && this.game.net) {
             this.game.net.send_cmd('set_data', { itemsDb: ConfigModule.ITEMS_DB });
         }
@@ -2229,7 +2229,7 @@ export default class UI {
         const container = document.getElementById('visual-items-container');
         if (!container) return;
         container.innerHTML = '';
-        
+
         const isPlaying = this.game && this.game.state === 'PLAYING';
 
         if (isPlaying) {
@@ -2257,35 +2257,35 @@ export default class UI {
             itemCard.style.display = 'flex';
             itemCard.style.flexDirection = 'column';
             itemCard.style.gap = '10px';
-            
+
             const headerRow = document.createElement('div');
             headerRow.style.display = 'flex';
             headerRow.style.justifyContent = 'space-between';
             headerRow.style.alignItems = 'center';
             headerRow.style.borderBottom = '1px solid #34495e';
             headerRow.style.paddingBottom = '8px';
-            
-            const iconHtml = (item.icon.startsWith('data:image/') || item.icon.startsWith('http')) ? 
-                `<img src="${item.icon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+
+            const iconHtml = (item.icon.startsWith('data:image/') || item.icon.startsWith('http')) ?
+                `<img src="${item.icon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` :
                 `<span style="font-size:1.8em;">${item.icon}</span>`;
             const titleHtml = `<div style="display:flex; align-items:center; gap:10px;">
                 <div class="item-icon-preview">${iconHtml}</div>
                 <h3 style="margin:0; color:${item.color}; font-size:1.3em;">${item.name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(index: ${index})</span></h3>
             </div>`;
-            
+
             headerRow.innerHTML = titleHtml;
             itemCard.appendChild(headerRow);
-            
+
             const grid = document.createElement('div');
             grid.style.display = 'grid';
             grid.style.gridTemplateColumns = '1fr 1fr';
             grid.style.gap = '10px';
-            
+
             const addField = (label, key, type, step = 1, options = null) => {
                 const wrapper = document.createElement('div');
                 const disabledAttr = isPlaying ? 'disabled' : '';
                 const opacityStyle = isPlaying ? 'opacity: 0.6; cursor: not-allowed;' : '';
-                
+
                 let inputHtml = '';
                 if (type === 'color') {
                     inputHtml = `<div style="display:flex; gap:10px; align-items:center;">
@@ -2307,7 +2307,7 @@ export default class UI {
                 } else if (type === 'custom-icon') {
                     const currentIcon = item[key] || '💎';
                     const displayEmoji = (currentIcon.startsWith('data:image/') || currentIcon.startsWith('http')) ? '💎' : currentIcon;
-                    
+
                     inputHtml = `<div class="custom-icon-picker-container" style="position:relative; display:flex; flex-direction:column; gap:6px; ${opacityStyle}">
                         <div style="display:flex; gap:6px; align-items:center;">
                             <button type="button" class="custom-emoji-btn" ${disabledAttr} style="width:60px; height:34px; padding:0; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; cursor:pointer; font-size:1.4em; display:flex; align-items:center; justify-content:center; transition: all 0.2s ease;">
@@ -2332,7 +2332,7 @@ export default class UI {
                 } else {
                     inputHtml = `<input type="text" data-key="${key}" value="${item[key] || ''}" ${disabledAttr} style="width:100%; box-sizing:border-box; padding:6px 10px; background:#2c3e50; border:1px solid #34495e; color:#fff; border-radius:5px; ${opacityStyle}">`;
                 }
-                
+
                 wrapper.innerHTML = `<label style="display:block; font-size:0.85em; color:#bdc3c7; margin-bottom:4px;">${label}</label>${inputHtml}`;
                 grid.appendChild(wrapper);
 
@@ -2378,7 +2378,7 @@ export default class UI {
                             btn.style.transition = '0.2s';
                             btn.onmouseover = () => btn.style.background = 'rgba(255,255,255,0.1)';
                             btn.onmouseout = () => btn.style.background = 'none';
-                            
+
                             btn.onclick = () => {
                                 textInput.value = em.char;
                                 textInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -2441,7 +2441,7 @@ export default class UI {
             addField('SPD Scaling Multiplier', 'stats.spd', 'number', 0.5);
 
             itemCard.appendChild(grid);
-            
+
             if (!isPlaying) {
                 const inputs = itemCard.querySelectorAll('input, select');
                 inputs.forEach(input => {
@@ -2450,28 +2450,28 @@ export default class UI {
                         const key = e.target.getAttribute('data-key');
                         let val = e.target.value;
                         if (e.target.type === 'number') val = parseFloat(val) || 0;
-                        
+
                         if (key.startsWith('stats.')) {
                             const statKey = key.split('.')[1];
                             ConfigModule.ITEMS_DB[index].stats[statKey] = val;
                         } else {
                             ConfigModule.ITEMS_DB[index][key] = val;
                         }
-                        
+
                         itemCard.style.borderColor = ConfigModule.ITEMS_DB[index].color || '#e67e22';
                         headerRow.querySelector('h3').style.color = ConfigModule.ITEMS_DB[index].color || '#e67e22';
                         headerRow.querySelector('h3').innerHTML = `${ConfigModule.ITEMS_DB[index].name} <span style="font-size:0.6em; color:#95a5a6; font-family:monospace;">(index: ${index})</span>`;
                         const iconPreview = headerRow.querySelector('.item-icon-preview');
                         if (iconPreview) {
                             const newIcon = ConfigModule.ITEMS_DB[index].icon;
-                            iconPreview.innerHTML = (newIcon.startsWith('data:image/') || newIcon.startsWith('http')) ? 
-                                `<img src="${newIcon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` : 
+                            iconPreview.innerHTML = (newIcon.startsWith('data:image/') || newIcon.startsWith('http')) ?
+                                `<img src="${newIcon}" style="width:1.8em; height:1.8em; object-fit:contain; border-radius:4px;" />` :
                                 `<span style="font-size:1.8em;">${newIcon}</span>`;
                         }
                         this.saveItemsToStorage();
                     });
                 });
-                
+
                 const btnDelete = document.createElement('button');
                 btnDelete.innerText = '🗑️ Delete Gear';
                 btnDelete.style.background = '#e74c3c';
@@ -2489,7 +2489,7 @@ export default class UI {
                 };
                 itemCard.appendChild(btnDelete);
             }
-            
+
             container.appendChild(itemCard);
         });
     }
@@ -2512,7 +2512,7 @@ export default class UI {
 
         if (btnInventory) btnInventory.addEventListener('click', toggleInventory);
         if (btnMenuInventory) btnMenuInventory.addEventListener('click', toggleInventory);
-        
+
         const closeModal = () => { if (inventoryModal) inventoryModal.style.display = 'none'; };
         if (btnInventoryClose) btnInventoryClose.addEventListener('click', closeModal);
         if (btnInventoryCloseIcon) btnInventoryCloseIcon.addEventListener('click', closeModal);
@@ -2532,7 +2532,7 @@ export default class UI {
                 p = { inventory: [], equipment: {} };
             }
         }
-        
+
         // Render Equipment Slots
         const eqContainer = document.getElementById('equipment-slots-container');
         if (eqContainer) {
@@ -2555,7 +2555,7 @@ export default class UI {
                 slotDiv.style.transition = '0.2s';
                 slotDiv.onmouseover = () => { slotDiv.style.transform = 'scale(1.05)'; };
                 slotDiv.onmouseout = () => { slotDiv.style.transform = 'scale(1)'; };
-                
+
                 const label = document.createElement('div');
                 label.innerText = slotName;
                 label.style.fontSize = '0.65em';
@@ -2573,11 +2573,11 @@ export default class UI {
                     itemVisual.style.display = 'flex';
                     itemVisual.style.alignItems = 'center';
                     itemVisual.style.justifyContent = 'center';
-                    
+
                     let resolvedIcon = itemData.icon || '💎';
                     if (resolvedIcon === '📦') {
-                      const template = ConfigModule.ITEMS_DB.find(t => t.name === itemData.name);
-                      if (template && template.icon) resolvedIcon = template.icon;
+                        const template = ConfigModule.ITEMS_DB.find(t => t.name === itemData.name);
+                        if (template && template.icon) resolvedIcon = template.icon;
                     }
 
                     if (resolvedIcon && typeof resolvedIcon === 'string' && (resolvedIcon.startsWith('data:image/') || resolvedIcon.startsWith('http'))) {
@@ -2586,14 +2586,14 @@ export default class UI {
                         itemVisual.innerText = resolvedIcon || '💎';
                         itemVisual.style.fontSize = '2.5em';
                     }
-                    
+
                     let statText = itemData.stats ? Object.entries(itemData.stats).map(([k, v]) => `${k.toUpperCase()}: +${v.toFixed(1)}`).join(', ') : '';
                     itemVisual.title = `${itemData.name || 'Equipped Item'}\n${statText}`;
                     slotDiv.appendChild(itemVisual);
                     slotDiv.style.border = `2px solid ${itemData.color || '#2ecc71'}`;
                     slotDiv.style.background = 'rgba(46, 204, 113, 0.15)';
                     slotDiv.style.boxShadow = `0 0 10px ${itemData.color || '#2ecc71'}66`;
-                    
+
                     slotDiv.style.position = 'relative';
                     const dropBtn = document.createElement('div');
                     dropBtn.innerHTML = '✖';
@@ -2618,7 +2618,7 @@ export default class UI {
                         itemData.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : GAME_W / 2 + (Math.random() * 60 - 30);
                         itemData.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : GAME_H / 2 + (Math.random() * 60 - 30) + 20;
                         itemData.life = 60000;
-                        
+
                         if (this.game && this.game.player) {
                             if (this.game.isHost) {
                                 this.game.items.push(itemData);
@@ -2691,7 +2691,7 @@ export default class UI {
         const invContainer = document.getElementById('inventory-grid');
         if (invContainer) {
             invContainer.innerHTML = '';
-            
+
             p.inventory.forEach((item, index) => {
                 const cell = document.createElement('div');
                 cell.style.width = '100%';
@@ -2704,7 +2704,7 @@ export default class UI {
                 cell.style.justifyContent = 'center';
                 cell.style.fontSize = '2em';
                 cell.style.cursor = 'pointer';
-                
+
                 let statText = item.stats ? Object.entries(item.stats).map(([k, v]) => `${k.toUpperCase()}: +${v.toFixed(1)}`).join('\n') : '';
                 cell.title = `${item.name || 'Item'}\n${statText}`;
                 let resolvedIcon = item.icon || '💎';
@@ -2712,7 +2712,7 @@ export default class UI {
                     const template = ConfigModule.ITEMS_DB.find(t => t.name === item.name);
                     if (template && template.icon) resolvedIcon = template.icon;
                 }
-                
+
                 if (resolvedIcon && typeof resolvedIcon === 'string' && (resolvedIcon.startsWith('data:image/') || resolvedIcon.startsWith('http'))) {
                     cell.innerHTML = `<img src="${resolvedIcon}" style="width:40px; height:40px; object-fit:contain; border-radius:4px;" />`;
                 } else {
@@ -2721,7 +2721,7 @@ export default class UI {
                 cell.style.transition = '0.2s';
                 cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; cell.style.borderColor = '#f1c40f'; cell.style.boxShadow = `0 0 10px ${item.color || '#f1c40f'}99`; };
                 cell.onmouseout = () => { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; };
-                
+
                 cell.style.position = 'relative';
                 const dropBtn = document.createElement('div');
                 dropBtn.innerHTML = '✖';
@@ -2746,7 +2746,7 @@ export default class UI {
                     item.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : GAME_W / 2 + (Math.random() * 60 - 30);
                     item.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : GAME_H / 2 + (Math.random() * 60 - 30) + 20;
                     item.life = 60000;
-                    
+
                     if (this.game && this.game.player) {
                         if (this.game.isHost) {
                             this.game.items.push(item);
@@ -2764,7 +2764,7 @@ export default class UI {
                     this.renderInventory();
                 };
                 cell.appendChild(dropBtn);
-                
+
                 // Click to equip
                 cell.addEventListener('click', () => {
                     const fallbackSlots = "Weapon,Armor,Ring 1,Ring 2,Amulet";
@@ -2778,7 +2778,7 @@ export default class UI {
                     } else {
                         targetSlot = slotNames.find(s => s.toLowerCase().includes(itemType)) || slotNames.find(s => !p.equipment[s]) || slotNames[0];
                     }
-                    
+
                     if (targetSlot) {
                         if (p.equipment[targetSlot]) {
                             p.inventory.push(p.equipment[targetSlot]); // unequip existing
@@ -2878,7 +2878,7 @@ export default class UI {
     updateClassCarousel() {
         this.classes = Object.keys(ConfigModule.CLASS_DATA);
         if (this.currentCarouselIndex >= this.classes.length) this.currentCarouselIndex = 0;
-        
+
         this.selectedClass = this.classes[this.currentCarouselIndex];
         localStorage.setItem('night-vibe-online_selected-class', this.selectedClass);
         const cd = ConfigModule.CLASS_DATA[this.selectedClass];
