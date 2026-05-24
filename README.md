@@ -35,6 +35,8 @@
 - **Multiplayer Arena** — Real-time co-op via WebSocket with shared enemy states
 - **Endless Wave System** — Progressive difficulty with boss fights every 5 waves
 - **Roguelike Progression** — Rebirth system with permanent stat bonuses
+- **Inventory & Loot** — Defeat enemies to collect and equip gear with stat bonuses
+- **Dynamic Config Editor** — Fully customize classes, monsters, gear, and gameplay presets
 - **Dynamic Environments** — 6 hand-crafted biomes with day/night cycles
 - **Stat Building** — Allocate points across ATK, SPD, and HP to shape your playstyle
 - **Boss Fights** — Elite enemies with unique attacks every 5 waves
@@ -209,6 +211,17 @@ When you reach the required level (base requirement + resets * scaling step, ful
 
 ---
 
+## Inventory & Loot
+
+As you defeat enemies, they have a chance to drop unique gear caches.
+- **Loot Drops:** Defeated enemies leave behind items in the arena. Walk over them to collect.
+- **Inventory Panel:** Accessible directly from the main menu or the in-game HUD (using the 🎒 icon).
+- **Equipping Gear:** Select an item in your inventory to view its detailed stats (HP, ATK, SPD, CRIT bonuses) and equip it to your character.
+- **Stats Scaling:** Items boost your base stats permanently as long as they are equipped. Unwanted items can be dropped back into the world for other players.
+- **Mobile Friendly:** Fully optimized touch interactions and details panels for managing your inventory on mobile devices without relying on hover states.
+
+---
+
 ## Multiplayer
 
 - Connect to a shared arena with other players via **BSON WebSocket**
@@ -264,33 +277,27 @@ Each environment features a **day/night cycle** — the sun and moon traverse th
 
 ---
 
-## Settings & Dynamic Balance Editor
+## Config Editor & Sandbox Mods
 
-The configuration suite is fully accessible directly from the **Main Menu Lobby** (via the premium "Settings & Balance Editor" panel) and **In-Game Overlay**:
+The game features an incredibly powerful **Config Editor** accessible from the main menu, allowing you to completely mod the game without touching code.
 
-### 1. Performance & Graphics Optimization
-An **auto-graphics system** monitors FPS in real-time and dynamically scales visual effects to maintain smooth performance:
-- **Particles Multiplier** — Death explosions, hit sparks, trails, buff auras
-- **Background Elements** — Sky decorations (trees, walls, mountains, etc.)
-- **Ground Elements** — Grass, stones, shells, mud, and foliage
-- **Atmospheric Effects** — Rain, clouds, fog, and smoke
+### 1. General Settings
+- **Gameplay Dimensions & Depth:** Rescale canvas dimensions and playfield Y-sorting horizons.
+- **Player & Class Dynamics:** Configure starting level, resets, melee/ranged attack ranges, and XP formulas.
+- **Enemy & Boss Attributes:** Dynamic difficulty scaling, wave size increments, and elite boss variables.
 
-The system reduces effects when FPS drops below 40 and restores them when above 55.
+### 2. Custom Data (Classes, Gear, Monsters)
+- **Visuals & Assets:** Use Base64-encoded strings to seamlessly inject custom images for classes, gear, and enemies.
+- **Custom Classes:** Add completely new character classes, defining their base stats (HP, ATK, SPD), skills, and visual icons.
+- **Gear System:** Create new equippable items, set their drop rates, stat bonuses, and rarities.
+- **Custom Monsters:** Define your own bestiary, adjusting enemy health, damage, speed, scale, and visual assets.
 
-### 2. Live Sandbox Balance Editor
-A completely dynamic engine configuration editor built directly from the system's parameter metadata. It allows players to edit over 30 variables:
-- **Gameplay Dimensions & Depth:** Rescale canvas dimensions and playfield Y-sorting horizons in real-time.
-- **Player & Class Dynamics:** Configure starting level, resets, melee/ranged attack ranges, base move speeds, and XP level up formulas.
-- **Enemy & Boss Attributes:** Dynamic difficulty scaling, wave size increments, spawn intervals, and elite boss variables.
-- **Zero-Delay Saving:** Removing any old "Save & Apply" delays, all adjustments (checkbox ticks, slider drags, text inputs, color pickers) apply **automatically and instantly** to active gameplay elements and broadcast over the network to all clients in real-time.
-- **Export & Import JSON:** One-click options to export the entire custom gameplay balance configuration to a local JSON file or import a shared gameplay mode file.
+### 3. Presets & Multiplayer Sync
+- **Export & Import JSON:** One-click export of your entire custom configuration (including assets) to a local JSON file. Import community presets (like Hardcore, Sandbox, or Fun modes).
+- **Host Authoritative Sync:** When hosting a multiplayer lobby, your active preset is automatically broadcast to all clients. Joining players will see a "Loading host config" screen as the custom Base64 assets and balancing rules are synchronized over the network. 
 
-### 3. Local Preferences Saving
-- Class selections (Warrior, Mage, Archer, Magic Gladiator) are automatically persisted in local browser storage and fully restored on page refresh.
-- Custom game performance and graphics profiles are seamlessly backed up.
-
-### 4. Unified Premium Modal Dialogs
-- Replaced traditional native browser alerts with a high-end, unified Yes/No confirmation dialog panel, matching the cyber-fantasy UI theme for rebirth and default-settings restores.
+### 4. Local Preferences Saving
+- Class selections and game performance profiles are seamlessly backed up in your browser's local storage and restored on page refresh.
 
 ---
 
