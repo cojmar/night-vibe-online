@@ -1509,15 +1509,7 @@ export default class Game {
       });
     }
 
-    // 3. Glowing vaporizing shockwave puff
-    this.particles.push({
-      x: e.x, y: e.y - size * 0.4,
-      vx: 0, vy: 0,
-      life: 20, maxLife: 20,
-      color: e.color || '#e74c3c',
-      size: size * 1.6,
-      isShockwave: true
-    });
+
   }
 
   triggerLevelUpAnimation(p) {
