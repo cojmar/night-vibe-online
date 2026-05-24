@@ -345,13 +345,19 @@ export default class Game {
       this.globalTime = hostData.time;
     }
 
+    if (hostData.sessionSeed !== undefined) {
+      this.sessionSeed = hostData.sessionSeed;
+    }
+    if (hostData.seed !== undefined) {
+      if (!this.prng) this.prng = new PRNG(hostData.seed);
+      else this.prng.seed = hostData.seed;
+    }
+
     if (this.wave !== hostData.wave && hostData.wave) {
       if (this.player && !this.player.alive) {
         this.respawnPlayer();
       }
       this.wave = hostData.wave;
-      if (!this.prng) this.prng = new PRNG(hostData.seed);
-      else this.prng.seed = hostData.seed;
     }
 
     // Always sync these, so a new host doesn't lose spawn state
@@ -407,6 +413,10 @@ export default class Game {
       if (eData.alive !== undefined) e.alive = eData.alive;
       if (eData.name !== undefined) e.name = eData.name;
       if (eData.size !== undefined) e.size = eData.size;
+      if (eData.bossState !== undefined) e.bossState = eData.bossState;
+      if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
+      if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
+      if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
       // Icons and colors are locally deterministic or default, no need to sync from network
       if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
     });
@@ -668,6 +678,9 @@ export default class Game {
     if (this.ui && this.ui.saveLastGameConfig) {
       this.ui.saveLastGameConfig();
     }
+    // Ensure all menu/previous session parameters are fully reset
+    this._resetSessionData();
+    
     this.state = 'PLAYING';
     this.selectedEnv = ENV_LIST[0];
     this.kills = GAME_INITIAL_KILLS;
@@ -737,6 +750,45 @@ export default class Game {
             this.selectedEnv = userData.hostData.env || ENV_LIST[0];
             this.sessionSeed = userData.hostData.sessionSeed || 0;
             this.prng = new PRNG(userData.hostData.seed !== undefined ? userData.hostData.seed : (this.sessionSeed + this.wave * 12345));
+            
+            // Sync ground items and monsters instantly on game entry
+            if (userData.hostData.enemies) {
+              this.enemies = [];
+              userData.hostData.enemies.forEach(eData => {
+                let isBoss = eData.name === 'BOSS';
+                let spawnIndex = 0;
+                if (eData.id && eData.id.startsWith('E_')) {
+                  const parts = eData.id.split('_');
+                  if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+                }
+                const e = new Enemy(this, isBoss, false, spawnIndex);
+                e.id = eData.id;
+                if (eData.id && eData.id.startsWith('M_')) {
+                  e.name = 'MISSILE';
+                  e.icon = '🚀';
+                  e.size = 20;
+                  e.color = '#e74c3c';
+                }
+                e.x = eData.x || e.x;
+                e.y = eData.y || e.y;
+                e.serverX = eData.x || e.x;
+                e.serverY = eData.y || e.y;
+                e.hp = eData.hp;
+                e.maxHp = eData.maxHp;
+                e.alive = eData.alive;
+                e.name = eData.name;
+                e.size = eData.size;
+                if (eData.bossState !== undefined) e.bossState = eData.bossState;
+                if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
+                if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
+                if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
+                if (eData.deathTime) e.deathTime = eData.deathTime;
+                this.enemies.push(e);
+              });
+            }
+            if (userData.hostData.items) {
+              this.items = userData.hostData.items.map(item => ({ ...item }));
+            }
           }
           break;
         }
