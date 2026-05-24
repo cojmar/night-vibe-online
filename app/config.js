@@ -213,7 +213,27 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
 // ==========================================
 export function getCustomPresets() {
   try {
-    return JSON.parse(localStorage.getItem('nightvibe-config-presets') || '{}');
+    const raw = localStorage.getItem('nightvibe-config-presets') || '{}';
+    if (raw.length > 2 * 1024 * 1024) {
+      console.warn("Presets are suspiciously large (>2MB), sanitizing base64 images...");
+      let presets = JSON.parse(raw);
+      let changed = false;
+      for (const k in presets) {
+        const p = presets[k];
+        if (p.items) p.items.forEach(i => { if (i.icon && i.icon.length > 50000) { i.icon = '💎'; changed = true; } });
+        if (p.monsters) p.monsters.forEach(m => { if (m.icon && m.icon.length > 50000) { m.icon = '👾'; changed = true; } });
+        if (p.classes) {
+          for (const c in p.classes) {
+             if (p.classes[c].icon && p.classes[c].icon.length > 50000) { p.classes[c].icon = '👤'; changed = true; }
+          }
+        }
+      }
+      if (changed) {
+        localStorage.setItem('nightvibe-config-presets', JSON.stringify(presets));
+      }
+      return presets;
+    }
+    return JSON.parse(raw);
   } catch (e) {
     console.error("Failed parsing custom presets", e);
     return {};
@@ -221,7 +241,12 @@ export function getCustomPresets() {
 }
 
 export function saveCustomPresets(presets) {
-  localStorage.setItem('nightvibe-config-presets', JSON.stringify(presets));
+  try {
+    localStorage.setItem('nightvibe-config-presets', JSON.stringify(presets));
+  } catch (e) {
+    console.error('Failed to save presets, quota exceeded:', e);
+    alert('Failed to save: Storage quota exceeded! You have uploaded too many large images.');
+  }
 }
 
 export let activePresetId = localStorage.getItem('nightvibe-active-preset-id') || 'built-in:default';

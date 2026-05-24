@@ -2436,9 +2436,22 @@ export default class UI {
                             if (!file) return;
                             const reader = new FileReader();
                             reader.onload = (event) => {
-                                const base64 = event.target.result;
-                                textInput.value = base64;
-                                textInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                const img = new Image();
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const MAX_SIZE = 128;
+                                    let w = img.width, h = img.height;
+                                    if (w > h && w > MAX_SIZE) { h = h * (MAX_SIZE / w); w = MAX_SIZE; }
+                                    else if (h > MAX_SIZE) { w = w * (MAX_SIZE / h); h = MAX_SIZE; }
+                                    canvas.width = w;
+                                    canvas.height = h;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0, w, h);
+                                    const base64 = canvas.toDataURL('image/webp', 0.8);
+                                    textInput.value = base64;
+                                    textInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                };
+                                img.src = event.target.result;
                             };
                             reader.readAsDataURL(file);
                         };
