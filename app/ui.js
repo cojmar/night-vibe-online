@@ -2600,32 +2600,30 @@ export default class UI {
                 this.renderInventory();
             };
             
-            btnDrop.onclick = async () => {
-                if (await this.showConfirm("⚠️ Drop Item", `Drop ${item.name}?`)) {
-                    if (isEquipped) {
-                        delete p.equipment[slotNameOrIndex];
-                    } else {
-                        p.inventory.splice(slotNameOrIndex, 1);
-                    }
-                    item.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : ConfigModule.GAME_W / 2 + (Math.random() * 60 - 30);
-                    item.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : ConfigModule.GAME_H / 2 + (Math.random() * 60 - 30) + 20;
-                    item.life = 60000;
-                    if (this.game && this.game.player) {
-                        if (this.game.isHost) {
-                            this.game.items.push(item);
-                        } else {
-                            const netItem = { ...item, icon: (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) ? '📦' : item.icon };
-                            this.game.net.send_cmd('set_data', { spawnItem: netItem });
-                        }
-                        this.game.saveLocalProgression();
-                        this.game.broadcastState();
-                        this.updateHUD(p);
-                    } else {
-                        localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
-                        localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
-                    }
-                    this.renderInventory();
+            btnDrop.onclick = () => {
+                if (isEquipped) {
+                    delete p.equipment[slotNameOrIndex];
+                } else {
+                    p.inventory.splice(slotNameOrIndex, 1);
                 }
+                item.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : ConfigModule.GAME_W / 2 + (Math.random() * 60 - 30);
+                item.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : ConfigModule.GAME_H / 2 + (Math.random() * 60 - 30) + 20;
+                item.life = 60000;
+                if (this.game && this.game.player) {
+                    if (this.game.isHost) {
+                        this.game.items.push(item);
+                    } else {
+                        const netItem = { ...item, icon: (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) ? '📦' : item.icon };
+                        this.game.net.send_cmd('set_data', { spawnItem: netItem });
+                    }
+                    this.game.saveLocalProgression();
+                    this.game.broadcastState();
+                    this.updateHUD(p);
+                } else {
+                    localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
+                    localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
+                }
+                this.renderInventory();
             };
         };
         
