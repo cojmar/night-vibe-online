@@ -2565,7 +2565,14 @@ export default class Game {
           this.ctx.beginPath();
           if (ef.type === 'rain') {
             this.ctx.fillRect(ef.x, ef.y, ef.size, ef.size * 6);
-          } else if (ef.type === 'cloud' || ef.type === 'smoke') {
+          } else if (ef.type === 'cloud') {
+            this.ctx.arc(ef.x, ef.y, ef.size * 0.6, 0, Math.PI * 2);
+            this.ctx.arc(ef.x + ef.size * 0.5, ef.y - ef.size * 0.2, ef.size * 0.5, 0, Math.PI * 2);
+            this.ctx.arc(ef.x - ef.size * 0.5, ef.y - ef.size * 0.1, ef.size * 0.4, 0, Math.PI * 2);
+            this.ctx.arc(ef.x + ef.size * 0.8, ef.y + ef.size * 0.2, ef.size * 0.35, 0, Math.PI * 2);
+            this.ctx.arc(ef.x - ef.size * 0.8, ef.y + ef.size * 0.2, ef.size * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
+          } else if (ef.type === 'smoke') {
             this.ctx.arc(ef.x, ef.y, ef.size, 0, Math.PI * 2);
             this.ctx.fill();
           }
