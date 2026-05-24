@@ -56,6 +56,7 @@ const FALLBACK_DEFAULTS = {
   ENEMY_ATTACK_COOLDOWN_BASE: 35,
   ENEMY_ATTACK_COOLDOWN_RAND: 20,
   ENEMY_BASE_SIZE_MULT: 1.0,
+  ENEMY_SIZE_WAVE_MULT: 0.02,
 
   // 8. Boss Balance
   BOSS_BASE_HP: 350,
@@ -167,6 +168,7 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   ENEMY_ATTACK_COOLDOWN_BASE: { label: "Enemy Attack Delay Base (frames)", type: "number", min: 20, max: 200, step: 5, category: "Enemy Dynamics" },
   ENEMY_ATTACK_COOLDOWN_RAND: { label: "Enemy Attack Delay Variance", type: "number", min: 0, max: 100, step: 5, category: "Enemy Dynamics" },
   ENEMY_BASE_SIZE_MULT: { label: "Enemy Base Size Multiplier", type: "number", min: 0.5, max: 3.0, step: 0.1, category: "Enemy Dynamics" },
+  ENEMY_SIZE_WAVE_MULT: { label: "Enemy Size Wave Scaling", type: "number", min: 0.0, max: 0.5, step: 0.01, category: "Enemy Dynamics" },
 
   // 7. Boss Battles
   BOSS_BASE_HP: { label: "Boss Base HP", type: "number", min: 50, max: 2000, step: 50, category: "Boss Battles" },
@@ -322,6 +324,7 @@ export let BOSS_PROJECTILE_LIFETIME = activeConfig.BOSS_PROJECTILE_LIFETIME;
 export let ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
 export let ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
 export let ENEMY_BASE_SIZE_MULT = activeConfig.ENEMY_BASE_SIZE_MULT;
+export let ENEMY_SIZE_WAVE_MULT = activeConfig.ENEMY_SIZE_WAVE_MULT;
 
 export let POTION_BUFF_DURATION = activeConfig.POTION_BUFF_DURATION;
 export let POTION_LIFESTEAL_PERCENT = activeConfig.POTION_LIFESTEAL_PERCENT;
@@ -514,6 +517,7 @@ export function applyPreset(presetValues) {
   ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
   ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
   ENEMY_BASE_SIZE_MULT = activeConfig.ENEMY_BASE_SIZE_MULT;
+  ENEMY_SIZE_WAVE_MULT = activeConfig.ENEMY_SIZE_WAVE_MULT;
 
   BOSS_BASE_HP = activeConfig.BOSS_BASE_HP;
   BOSS_BASE_ATK = activeConfig.BOSS_BASE_ATK;

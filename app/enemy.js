@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_LASER_DAMAGE_PER_SEC, BOSS_LASER_DAMAGE_LEVEL_SCALE, BOSS_PROJECTILE_LIFETIME, ENEMY_BASE_SIZE_MULT, getCachedImage } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_LASER_DAMAGE_PER_SEC, BOSS_LASER_DAMAGE_LEVEL_SCALE, BOSS_PROJECTILE_LIFETIME, ENEMY_BASE_SIZE_MULT, ENEMY_SIZE_WAVE_MULT, getCachedImage } from './utils.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -38,7 +38,8 @@ export default class Enemy {
       this.maxHp = this.hp;
       this.atk = Math.round(BOSS_BASE_ATK * scale);
       this.speed = BOSS_BASE_SPEED;
-      this.size = BOSS_BASE_SIZE * Math.min(1 + (wave - 1) * 0.1, 4.0); // Scale massively with waves (up to 4x)
+      const exponentialSizeScale = Math.min(Math.pow(1 + (ENEMY_SIZE_WAVE_MULT || 0), wave - 1), 4.0);
+      this.size = BOSS_BASE_SIZE * exponentialSizeScale;
       this.color = BOSS_BASE_COLOR;
       this.bossState = 'IDLE';
       
@@ -59,7 +60,8 @@ export default class Enemy {
       this.maxHp = this.hp;
       this.atk = Math.round(type.atk * scale);
       this.speed = type.speed * (0.8 + localPrng.nextFloat() * 0.4);
-      this.size = type.size * (ENEMY_BASE_SIZE_MULT || 1.0);
+      const exponentialSizeScale = Math.min(Math.pow(1 + (ENEMY_SIZE_WAVE_MULT || 0), wave - 1), 4.0);
+      this.size = type.size * (ENEMY_BASE_SIZE_MULT || 1.0) * exponentialSizeScale;
       this.color = type.color;
       
       const pos = this.getSafeSpawnPosition(localPrng);
