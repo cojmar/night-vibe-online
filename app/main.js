@@ -20,6 +20,7 @@ window.app = new class {
         this.net = new Network();
         this.ui = new UI(null); // Will set game instance later
         this.game = null;
+        // this.net.on("cmd", data => console.log(data))
 
         // Setup Nickname
         let nick = localStorage.getItem('night-vibe-online_nick');
