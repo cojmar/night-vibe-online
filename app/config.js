@@ -85,6 +85,7 @@ const FALLBACK_DEFAULTS = {
 
   // 11. Inventory & Gear
   EQUIPMENT_SLOTS: 'Weapon,Armor,Ring 1,Ring 2,Amulet',
+  ENFORCE_GEAR_SLOTS: true,
 
   // 12. Gear Drops & Stats
   GEAR_DROP_RATE: 0.10,
@@ -194,6 +195,7 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
 
   // 10. Inventory & Gear
   EQUIPMENT_SLOTS: { label: "Equipment Slots (comma separated)", type: "string", category: "Inventory & Gear" },
+  ENFORCE_GEAR_SLOTS: { label: "Enforce Gear Slot Types", type: "boolean", category: "Inventory & Gear" },
 
   // 11. Gear Drops & Stats
   GEAR_DROP_RATE: { label: "Gear Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
@@ -330,6 +332,7 @@ export let CHAT_MESSAGE_DURATION = activeConfig.CHAT_MESSAGE_DURATION;
 export let CHAT_FADE_OUT_DURATION = activeConfig.CHAT_FADE_OUT_DURATION;
 export let NETWORK_ROOM_NAME = activeConfig.NETWORK_ROOM_NAME;
 export let EQUIPMENT_SLOTS = activeConfig.EQUIPMENT_SLOTS;
+export let ENFORCE_GEAR_SLOTS = activeConfig.ENFORCE_GEAR_SLOTS;
 
 export let GEAR_DROP_RATE = activeConfig.GEAR_DROP_RATE;
  export let GEAR_RARITY_NORMAL = activeConfig.GEAR_RARITY_NORMAL;
@@ -516,6 +519,7 @@ export function applyPreset(presetValues) {
   CHAT_FADE_OUT_DURATION = activeConfig.CHAT_FADE_OUT_DURATION;
   NETWORK_ROOM_NAME = activeConfig.NETWORK_ROOM_NAME;
   EQUIPMENT_SLOTS = activeConfig.EQUIPMENT_SLOTS;
+  ENFORCE_GEAR_SLOTS = activeConfig.ENFORCE_GEAR_SLOTS;
 
   GEAR_DROP_RATE = activeConfig.GEAR_DROP_RATE;
   GEAR_RARITY_NORMAL = activeConfig.GEAR_RARITY_NORMAL;

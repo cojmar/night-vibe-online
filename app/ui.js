@@ -1116,17 +1116,15 @@ export default class UI {
                         const catHeader = cat.children[0];
                         const catName = catHeader ? catHeader.textContent.toLowerCase() : '';
                         
-                        // Check if the entire category name matches all query tokens
-                        const catMatches = queryTokens.every(token => catName.includes(token));
-                        
                         let hasVisibleChild = false;
                         const fields = cat.children;
                         for (let j = 1; j < fields.length; j++) { // Skip header at index 0
                             const field = fields[j];
                             const label = field.textContent.toLowerCase();
+                            const combinedLabel = `${catName} ${label}`;
                             
-                            // A field matches if query is empty, category matches, or field text contains ALL search tokens
-                            const fieldMatches = queryTokens.length === 0 || catMatches || queryTokens.every(token => label.includes(token));
+                            // A field matches if query is empty, or combined text contains ALL search tokens
+                            const fieldMatches = queryTokens.length === 0 || queryTokens.every(token => combinedLabel.includes(token));
                             
                             if (fieldMatches) {
                                 field.style.display = '';
@@ -1136,7 +1134,7 @@ export default class UI {
                             }
                         }
                         
-                        cat.style.display = (queryTokens.length === 0 || catMatches || hasVisibleChild) ? 'block' : 'none';
+                        cat.style.display = (queryTokens.length === 0 || hasVisibleChild) ? 'block' : 'none';
                     }
                 };
 
@@ -2773,7 +2771,13 @@ export default class UI {
                     const rawSlots = ConfigModule.EQUIPMENT_SLOTS || fallbackSlots;
                     const slotNames = String(rawSlots).split(',').map(s => s.trim());
                     // Find a slot that matches the item type, or just the first empty slot if none matches
-                    let targetSlot = slotNames.find(s => s.toLowerCase().includes((item.type || '').toLowerCase())) || slotNames.find(s => !p.equipment[s]);
+                    let targetSlot;
+                    const itemType = (item.gearType || item.type || '').toLowerCase();
+                    if (ConfigModule.ENFORCE_GEAR_SLOTS) {
+                        targetSlot = slotNames.find(s => s.toLowerCase().includes(itemType) && !p.equipment[s]) || slotNames.find(s => s.toLowerCase().includes(itemType));
+                    } else {
+                        targetSlot = slotNames.find(s => s.toLowerCase().includes(itemType)) || slotNames.find(s => !p.equipment[s]) || slotNames[0];
+                    }
                     
                     if (targetSlot) {
                         if (p.equipment[targetSlot]) {
