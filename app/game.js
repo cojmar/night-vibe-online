@@ -1853,23 +1853,51 @@ export default class Game {
         }
 
         if (Math.random() < 0.005 * this.settings.atmos * dt) {
-          const groundY = getGroundY(this.selectedEnv);
-          const size = 60 + Math.random() * 80;
-          // Ensure the cloud is strictly at sky level and doesn't reach the ground/foliage.
-          // Bottom-most boundary of the cloud is at: y + size * 0.6.
-          // We add 20 pixels padding to guarantee it stays fully in the sky.
-          const maxCloudY = groundY - size * 0.6 - 20;
+          const clouds = this.atmosEffects.filter(ef => ef.type === 'cloud');
+          const maxClouds = Math.max(1, Math.floor(4 * this.settings.atmos));
 
-          this.atmosEffects.push({
-            type: 'cloud',
-            x: Math.random() < 0.5 ? -150 : this.gameW + 150,
-            y: Math.random() * maxCloudY,
-            vx: (Math.random() < 0.5 ? 1 : -1) * (0.1 + Math.random() * 0.3),
-            vy: 0,
-            color: isNight ? `rgba(255,255,255,${0.03 + Math.random() * 0.05})` : `rgba(0,0,0,${0.03 + Math.random() * 0.05})`,
-            size: size,
-            life: 1.0
-          });
+          if (clouds.length < maxClouds) {
+            const groundY = getGroundY(this.selectedEnv);
+            const size = 60 + Math.random() * 80;
+            const maxCloudY = groundY - size * 0.6 - 20;
+
+            // Divide the sky into 3 horizontal lanes to prevent overlaps
+            const laneHeight = maxCloudY / 3;
+            const laneCounts = [0, 0, 0];
+            for (let c of clouds) {
+              const laneIndex = Math.min(2, Math.floor(c.y / laneHeight));
+              laneCounts[laneIndex]++;
+            }
+
+            // Choose the lane with the fewest clouds
+            let minLane = 0;
+            let minVal = Infinity;
+            for (let i = 0; i < 3; i++) {
+              if (laneCounts[i] < minVal) {
+                minVal = laneCounts[i];
+                minLane = i;
+              }
+            }
+
+            // Calculate vertical position inside the chosen lane with random offset
+            const spawnedY = minLane * laneHeight + Math.random() * (laneHeight - 10) + 5;
+
+            // Align cloud spawn side and vx vector to cross the screen without immediate deletion
+            const spawnLeft = Math.random() < 0.5;
+            const x = spawnLeft ? -150 : this.gameW + 150;
+            const vx = (spawnLeft ? 1 : -1) * (0.1 + Math.random() * 0.3);
+
+            this.atmosEffects.push({
+              type: 'cloud',
+              x: x,
+              y: spawnedY,
+              vx: vx,
+              vy: 0,
+              color: isNight ? `rgba(255,255,255,${0.03 + Math.random() * 0.05})` : `rgba(0,0,0,${0.03 + Math.random() * 0.05})`,
+              size: size,
+              life: 1.0
+            });
+          }
         }
 
         if (Math.random() < 0.02 * this.settings.atmos * dt) {
