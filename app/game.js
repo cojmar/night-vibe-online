@@ -2314,7 +2314,7 @@ export default class Game {
               if (item.type === 'gear') {
                 // Gear Aura
                 ctx.beginPath();
-                ctx.arc(0, 0, 14 + pulse * 6, 0, Math.PI * 2);
+                ctx.ellipse(0, 10 - floatOffset, 16 + pulse * 6, 8 + pulse * 3, 0, 0, Math.PI * 2);
                 ctx.fillStyle = item.color || '#ecf0f1';
                 ctx.globalAlpha = (0.2 + pulse * 0.3) * Math.min(1, item.life / 1000);
                 ctx.fill();
@@ -2359,7 +2359,7 @@ export default class Game {
               } else {
                 // Pulsating Aura for Potions
                 ctx.beginPath();
-                ctx.arc(0, 0, 10 + pulse * 6, 0, Math.PI * 2);
+                ctx.ellipse(0, 10 - floatOffset, 12 + pulse * 6, 6 + pulse * 3, 0, 0, Math.PI * 2);
                 ctx.fillStyle = item.type === 'red' ? `rgba(231, 76, 60, ${0.3 + pulse * 0.3})` : `rgba(52, 152, 219, ${0.3 + pulse * 0.3})`;
                 ctx.fill();
 
