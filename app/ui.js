@@ -2576,10 +2576,10 @@ export default class UI {
         const invMain = document.getElementById('inv-details-main');
 
         const updateDetailsPanel = (item, isEquipped, slotNameOrIndex, element) => {
-            // Highlight selected item
             document.querySelectorAll('.inv-active-highlight').forEach(el => {
                 el.classList.remove('inv-active-highlight');
                 el.style.transform = 'scale(1)';
+                el.style.zIndex = '';
                 if (el.dataset.isEquipped === 'true') {
                     el.style.borderColor = el.dataset.itemColor;
                     el.style.boxShadow = `0 0 10px ${el.dataset.itemColor}66`;
@@ -2594,7 +2594,8 @@ export default class UI {
                 element.style.setProperty('--highlight-color', targetColor);
                 element.style.borderColor = targetColor;
                 element.style.boxShadow = `0 0 18px ${targetColor}`;
-                element.style.transform = 'scale(1.05)';
+                element.style.transform = 'scale(1.15)';
+                element.style.zIndex = '5';
             }
 
             if (!detailsPanel) return;
