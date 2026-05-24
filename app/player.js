@@ -61,6 +61,8 @@ export default class Player {
 
     this.buffHpTimer = 0;
     this.buffManaTimer = 0;
+    this.isChargingS2 = false;
+    this.s2ChargeCount = 0;
   }
 
   get atk() {

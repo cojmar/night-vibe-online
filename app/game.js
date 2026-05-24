@@ -2196,7 +2196,6 @@ export default class Game {
                   if (item.type === 'gear') {
                     if (p.id === 'host' || p.id === (this.net.me ? this.net.me.info.user : null)) {
                       p.obj.inventory.push(item);
-                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🎒 Looted: ${item.name}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
                       let statsStr = '';
                       if (item.stats) {
                         let parts = [];
@@ -2205,6 +2204,7 @@ export default class Game {
                         if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
                         if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
                       }
+                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🎒 Looted: ${item.name}${statsStr}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
                       this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
                       if (this.ui) this.ui.renderInventory();
                       this.saveLocalProgression();
@@ -2272,7 +2272,6 @@ export default class Game {
                 if (gi.target === (this.net.me ? this.net.me.info.user : null) && gi.id !== this.lastProcessedItemId) {
                   this.lastProcessedItemId = gi.id;
                   this.player.inventory.push(gi.item);
-                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${gi.item.name}!`, color: gi.item.color, life: 60, maxLife: 60, isCrit: false });
                   let statsStr = '';
                   if (gi.item.stats) {
                     let parts = [];
@@ -2281,6 +2280,7 @@ export default class Game {
                     if (gi.item.stats.spd) parts.push(`+${Number(gi.item.stats.spd).toFixed(1)} SPD`);
                     if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
                   }
+                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${gi.item.name}${statsStr}!`, color: gi.item.color, life: 60, maxLife: 60, isCrit: false });
                   this.ui.addLog(`🎒 You picked up a ${gi.item.name}${statsStr}!`, 'reward');
                   if (this.ui) this.ui.renderInventory();
                   this.saveLocalProgression();
@@ -2556,10 +2556,16 @@ export default class Game {
       if (this.player && this.player.alive && this.state === 'PLAYING') {
         if (this.player.buffHpTimer > 0) {
           this.player.buffHpTimer -= 16.67 * dt;
+          if (this.player.buffHpTimer <= 0) {
+            this.ui.addLog('💔 Vampirism buff expired!', 'system');
+          }
           if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#e74c3c', 1, 3);
         }
         if (this.player.buffManaTimer > 0) {
           this.player.buffManaTimer -= 16.67 * dt;
+          if (this.player.buffManaTimer <= 0) {
+            this.ui.addLog('⚡ Skill Cooldown buff expired!', 'system');
+          }
           cdSpeedMultiplier = ConfigModule.POTION_BLUE_CD_MULTIPLIER; // Configurable cooldown recovery speed
           if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#3498db', 1, 3);
         }
