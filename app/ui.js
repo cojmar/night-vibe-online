@@ -2794,6 +2794,18 @@ export default class UI {
                     slotDiv.addEventListener('click', () => {
                         if (itemData) showDetails(itemData, true, slotName, slotDiv);
                     });
+                    slotDiv.addEventListener('dblclick', () => {
+                        const btn = document.getElementById('btn-inv-action-primary');
+                        if (btn && !btn.disabled) btn.click();
+                    });
+                    slotDiv.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        if (itemData) {
+                            showDetails(itemData, true, slotName, slotDiv);
+                            const btnDrop = document.getElementById('btn-inv-action-drop');
+                            if (btnDrop) btnDrop.click();
+                        }
+                    });
                 } else {
                     const emptyVisual = document.createElement('div');
                     emptyVisual.innerText = '🔒';
@@ -2844,6 +2856,16 @@ export default class UI {
                 
                 cell.addEventListener('click', () => {
                     showDetails(item, false, index, cell);
+                });
+                cell.addEventListener('dblclick', () => {
+                    const btn = document.getElementById('btn-inv-action-primary');
+                    if (btn && !btn.disabled) btn.click();
+                });
+                cell.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    showDetails(item, false, index, cell);
+                    const btnDrop = document.getElementById('btn-inv-action-drop');
+                    if (btnDrop) btnDrop.click();
                 });
                 invContainer.appendChild(cell);
             });
