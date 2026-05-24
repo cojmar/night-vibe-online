@@ -2370,7 +2370,7 @@ export default class Game {
                 ctx.beginPath();
                 ctx.ellipse(0, 8, (14 + pulse * 6) * 1.3, (14 + pulse * 6) * 0.5, 0, 0, Math.PI * 2);
                 ctx.fillStyle = item.color || '#ecf0f1';
-                ctx.globalAlpha = (0.2 + pulse * 0.3) * Math.min(1, item.life / 1000);
+                ctx.globalAlpha = (0.0125 + pulse * 0.01875) * Math.min(1, item.life / 1000);
                 ctx.fill();
 
                 ctx.globalAlpha = Math.min(1, item.life / 1000);
