@@ -346,14 +346,17 @@ export default class Player {
     const walkBob = (this.isMoving || this.action === 'walk') ? Math.sin(Date.now() / 100) * 2 : 0;
     const groundY = getGroundY(gameInstance.selectedEnv);
 
-    // Shadow
-    const depthRatio = Math.max(0, (this.y - groundY) / (gameInstance.gameH - groundY));
+    // Shadow at feet
+    const feetOffsets = { warrior: 20, mage: 22, archer: 22, magicgladiator: 20 };
+    const feetOffset = feetOffsets[renderType] || 38;
+    const feetY = py + feetOffset;
+    const depthRatio = Math.max(0, (feetY - groundY) / (gameInstance.gameH - groundY));
     const shadowAlpha = (0.2 + depthRatio * 0.3) * baseAlpha;
     const shadowWidth = 22 + depthRatio * 8 + ((this.isMoving || this.action === 'walk') ? 3 : 0);
     const shadowHeight = 6 + depthRatio * 4;
     ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
     ctx.beginPath();
-    ctx.ellipse(px, py, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, feetY, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
     ctx.fill();
 
     if (isDead) {
