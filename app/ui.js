@@ -2590,7 +2590,11 @@ export default class UI {
             });
             if (element) {
                 element.classList.add('inv-active-highlight');
-                element.style.setProperty('--highlight-color', item.color || '#f1c40f');
+                const targetColor = item.color || '#95a5a6';
+                element.style.setProperty('--highlight-color', targetColor);
+                element.style.borderColor = targetColor;
+                element.style.boxShadow = `0 0 18px ${targetColor}`;
+                element.style.transform = 'scale(1.05)';
             }
 
             if (!detailsPanel) return;
@@ -2884,7 +2888,7 @@ export default class UI {
                     cell.innerText = resolvedIcon || '💎';
                 }
                 cell.style.transition = '0.2s';
-                cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; cell.style.borderColor = '#f1c40f'; cell.style.boxShadow = `0 0 10px ${item.color || '#f1c40f'}99`; };
+                cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; const c = item.color || '#95a5a6'; cell.style.borderColor = c; cell.style.boxShadow = `0 0 10px ${c}`; };
                 cell.onmouseout = () => { if (!cell.classList.contains('inv-active-highlight')) { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; } };
 
                 cell.addEventListener('click', () => {
