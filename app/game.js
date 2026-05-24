@@ -1946,7 +1946,7 @@ export default class Game {
             // boss projectiles don't drop gear
           } else if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
             // do nothing
-          } else if (Math.random() < ConfigModule.GEAR_DROP_RATE) {
+          } else if (e.name === 'BOSS' || Math.random() < ConfigModule.GEAR_DROP_RATE) {
             let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
             let randRarity = Math.random();
             const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
@@ -1965,7 +1965,8 @@ export default class Game {
             let stats = {}; let icon = '💎';
             let category = 'Ring'; let itemName = 'Unknown Item';
 
-            if (ConfigModule.ITEMS_DB && ConfigModule.ITEMS_DB.length > 0) {
+            const useCustom = (ConfigModule.ITEMS_DB && ConfigModule.ITEMS_DB.length > 0 && Math.random() < 0.5);
+            if (useCustom) {
               const template = ConfigModule.ITEMS_DB[Math.floor(Math.random() * ConfigModule.ITEMS_DB.length)];
               category = template.gearType;
               itemName = template.name;
@@ -1974,9 +1975,17 @@ export default class Game {
               color = template.color || color;
               // Scale custom base stats by finalStat/10 (so an atk:10 item scales up linearly)
               let scale = finalStat / 10;
-              if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
-              if (template.stats.maxHp) stats.maxHp = Math.max(1, Math.floor(template.stats.maxHp * scale));
-              if (template.stats.spd) stats.spd = Math.max(0.01, template.stats.spd * scale);
+              if (template.stats) {
+                if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
+                if (template.stats.maxHp) stats.maxHp = Math.max(1, Math.floor(template.stats.maxHp * scale));
+                if (template.stats.spd) stats.spd = Math.max(0.01, template.stats.spd * scale);
+              }
+              // Safeguard to ensure every item has at least one stat populated
+              if (Object.keys(stats).length === 0) {
+                if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); }
+                else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); }
+                else { stats.spd = Math.max(0.1, finalStat * 0.1); }
+              }
             } else {
               const categories = ['Weapon', 'Armor', 'Ring'];
               category = categories[Math.floor(Math.random() * categories.length)];
@@ -2304,10 +2313,29 @@ export default class Game {
                 ctx.globalAlpha = Math.min(1, item.life / 1000);
                 ctx.shadowColor = item.color || '#ecf0f1';
                 ctx.shadowBlur = 10 + pulse * 10;
-                ctx.font = '22px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(item.icon || '💎', 0, 0);
+
+                let resolvedIcon = item.icon || '💎';
+                if (resolvedIcon === '📦') {
+                  const template = ConfigModule.ITEMS_DB.find(t => t.name === item.name);
+                  if (template && template.icon) resolvedIcon = template.icon;
+                }
+
+                if (resolvedIcon && typeof resolvedIcon === 'string' && (resolvedIcon.startsWith('data:image/') || resolvedIcon.startsWith('http'))) {
+                  const img = getCachedImage(resolvedIcon);
+                  if (img) {
+                    ctx.drawImage(img, -15, -15, 30, 30);
+                  } else {
+                    ctx.font = '22px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('📦', 0, 0);
+                  }
+                } else {
+                  ctx.font = '22px sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(resolvedIcon || '💎', 0, 0);
+                }
 
                 // Gear Stats Hover
                 ctx.shadowBlur = 4;

@@ -28,6 +28,7 @@ export default class Enemy {
     const scale = 1 + (wave - 1) * ENEMY_SCALE_WAVE_MULT + (avgLevel - 1) * ENEMY_SCALE_LVL_MULT;
     
     if (isBoss) {
+      this.isBoss = true;
       const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
       const baseMonster = available[available.length - 1]; // Pick strongest current monster
       this.name = 'BOSS';
@@ -49,6 +50,7 @@ export default class Enemy {
       const groundY = getGroundY(gameInstance.selectedEnv);
       this.y = groundY - this.size + (spawnIndex % 2 === 0 ? 0 : 20);
     } else {
+      this.isBoss = false;
       const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
       const type = available[Math.floor(localPrng.nextFloat() * available.length)];
       this.name = type.name;

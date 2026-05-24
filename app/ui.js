@@ -2516,8 +2516,24 @@ export default class UI {
                 const itemData = p.equipment[slotName];
                 if (itemData) {
                     const itemVisual = document.createElement('div');
-                    itemVisual.innerText = itemData.icon || '💎';
-                    itemVisual.style.fontSize = '2em';
+                    itemVisual.style.width = '100%';
+                    itemVisual.style.height = '100%';
+                    itemVisual.style.display = 'flex';
+                    itemVisual.style.alignItems = 'center';
+                    itemVisual.style.justifyContent = 'center';
+                    
+                    let resolvedIcon = itemData.icon || '💎';
+                    if (resolvedIcon === '📦') {
+                      const template = ConfigModule.ITEMS_DB.find(t => t.name === itemData.name);
+                      if (template && template.icon) resolvedIcon = template.icon;
+                    }
+
+                    if (resolvedIcon && typeof resolvedIcon === 'string' && (resolvedIcon.startsWith('data:image/') || resolvedIcon.startsWith('http'))) {
+                        itemVisual.innerHTML = `<img src="${resolvedIcon}" style="width:40px; height:40px; object-fit:contain; border-radius:4px;" />`;
+                    } else {
+                        itemVisual.innerText = resolvedIcon || '💎';
+                        itemVisual.style.fontSize = '2.5em';
+                    }
                     
                     let statText = itemData.stats ? Object.entries(itemData.stats).map(([k, v]) => `${k.toUpperCase()}: +${v.toFixed(1)}`).join(', ') : '';
                     itemVisual.title = `${itemData.name || 'Equipped Item'}\n${statText}`;
@@ -2639,7 +2655,17 @@ export default class UI {
                 
                 let statText = item.stats ? Object.entries(item.stats).map(([k, v]) => `${k.toUpperCase()}: +${v.toFixed(1)}`).join('\n') : '';
                 cell.title = `${item.name || 'Item'}\n${statText}`;
-                cell.innerText = item.icon || '💎';
+                let resolvedIcon = item.icon || '💎';
+                if (resolvedIcon === '📦') {
+                    const template = ConfigModule.ITEMS_DB.find(t => t.name === item.name);
+                    if (template && template.icon) resolvedIcon = template.icon;
+                }
+                
+                if (resolvedIcon && typeof resolvedIcon === 'string' && (resolvedIcon.startsWith('data:image/') || resolvedIcon.startsWith('http'))) {
+                    cell.innerHTML = `<img src="${resolvedIcon}" style="width:40px; height:40px; object-fit:contain; border-radius:4px;" />`;
+                } else {
+                    cell.innerText = resolvedIcon || '💎';
+                }
                 cell.style.transition = '0.2s';
                 cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; cell.style.borderColor = '#f1c40f'; cell.style.boxShadow = `0 0 10px ${item.color || '#f1c40f'}99`; };
                 cell.onmouseout = () => { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; };
