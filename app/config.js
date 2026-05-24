@@ -63,6 +63,8 @@ const FALLBACK_DEFAULTS = {
   BOSS_BASE_ATK: 22,
   BOSS_BASE_SPEED: 0.25,
   BOSS_BASE_SIZE: 52,
+  BOSS_BASE_SIZE_MULT: 1.0,
+  BOSS_SIZE_WAVE_MULT: 0.02,
   BOSS_BASE_COLOR: '#8e44ad',
   BOSS_ATTACK_COOLDOWN: 60,
   BOSS_WAVE_INTERVAL: 5,
@@ -175,6 +177,8 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   BOSS_BASE_ATK: { label: "Boss Base ATK", type: "number", min: 5, max: 100, step: 5, category: "Boss Battles" },
   BOSS_BASE_SPEED: { label: "Boss Base Speed Factor", type: "number", min: 0.05, max: 2.0, step: 0.05, category: "Boss Battles" },
   BOSS_BASE_SIZE: { label: "Boss Base Physical Size (px)", type: "number", min: 20, max: 100, step: 4, category: "Boss Battles" },
+  BOSS_BASE_SIZE_MULT: { label: "Boss Base Size Multiplier", type: "number", min: 0.5, max: 3.0, step: 0.1, category: "Boss Battles" },
+  BOSS_SIZE_WAVE_MULT: { label: "Boss Size Wave Scaling", type: "number", min: 0.0, max: 0.5, step: 0.01, category: "Boss Battles" },
   BOSS_BASE_COLOR: { label: "Boss Accent Color", type: "color", category: "Boss Battles" },
   BOSS_ATTACK_COOLDOWN: { label: "Boss Attack Delay (frames)", type: "number", min: 20, max: 300, step: 10, category: "Boss Battles" },
   BOSS_WAVE_INTERVAL: { label: "Boss Spawn Wave Interval", type: "number", min: 1, max: 20, step: 1, category: "Boss Battles" },
@@ -310,6 +314,8 @@ export let BOSS_BASE_HP = activeConfig.BOSS_BASE_HP;
 export let BOSS_BASE_ATK = activeConfig.BOSS_BASE_ATK;
 export let BOSS_BASE_SPEED = activeConfig.BOSS_BASE_SPEED;
 export let BOSS_BASE_SIZE = activeConfig.BOSS_BASE_SIZE;
+export let BOSS_BASE_SIZE_MULT = activeConfig.BOSS_BASE_SIZE_MULT;
+export let BOSS_SIZE_WAVE_MULT = activeConfig.BOSS_SIZE_WAVE_MULT;
 export let BOSS_BASE_COLOR = activeConfig.BOSS_BASE_COLOR;
 export let BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
 export let BOSS_WAVE_INTERVAL = activeConfig.BOSS_WAVE_INTERVAL;
@@ -523,6 +529,8 @@ export function applyPreset(presetValues) {
   BOSS_BASE_ATK = activeConfig.BOSS_BASE_ATK;
   BOSS_BASE_SPEED = activeConfig.BOSS_BASE_SPEED;
   BOSS_BASE_SIZE = activeConfig.BOSS_BASE_SIZE;
+  BOSS_BASE_SIZE_MULT = activeConfig.BOSS_BASE_SIZE_MULT;
+  BOSS_SIZE_WAVE_MULT = activeConfig.BOSS_SIZE_WAVE_MULT;
   BOSS_BASE_COLOR = activeConfig.BOSS_BASE_COLOR;
   BOSS_ATTACK_COOLDOWN = activeConfig.BOSS_ATTACK_COOLDOWN;
   BOSS_WAVE_INTERVAL = activeConfig.BOSS_WAVE_INTERVAL;
