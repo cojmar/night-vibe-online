@@ -992,7 +992,7 @@ export default class UI {
                         `;
                     } else if (meta.type === 'string') {
                         if (meta.key === 'EQUIPMENT_SLOTS') {
-                            const slots = currentValue.split(',').map(s => s.trim()).filter(s => s);
+                            const slots = (currentValue || '').split(',').map(s => s.trim()).filter(s => s);
                             let badgesHtml = slots.map((s, idx) => `
                                 <div style="display:inline-flex; align-items:center; background:#3498db; color:#fff; padding:4px 8px; border-radius:4px; margin-right:5px; margin-bottom:5px; font-size:0.9em;">
                                     ${s}
