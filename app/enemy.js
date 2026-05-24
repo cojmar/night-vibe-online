@@ -367,8 +367,20 @@ export default class Enemy {
     }
     if (this.name === 'BOSS') {
         const originalFont = ctx.font;
-        ctx.font = `${Math.floor(this.size * 0.7)}px sans-serif`;
+        let crownSize = Math.floor(this.size * 0.7);
+        if (this.bossState === 'CHANNELING_LASER') {
+            const glowPhase = Math.abs(Math.sin(now / 100));
+            ctx.shadowColor = '#e74c3c';
+            ctx.shadowBlur = 10 + glowPhase * 20;
+            crownSize = Math.floor(this.size * 0.7) + glowPhase * 8;
+        } else if (this.bossState === 'FIRING_LASER') {
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 25;
+            crownSize = Math.floor(this.size * 0.85);
+        }
+        ctx.font = `${crownSize}px sans-serif`;
         ctx.fillText('👑', this.x, drawY - this.size * 0.75);
+        ctx.shadowBlur = 0;
         ctx.font = originalFont;
     }
     ctx.textBaseline = 'alphabetic';

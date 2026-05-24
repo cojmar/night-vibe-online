@@ -160,8 +160,11 @@ export default class Game {
                   }
                   this.waveEnemiesKilled++;
                   if (this.bossActive && e.name === 'BOSS') {
-                    this.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
-                    this.waveTransitionTimer = 120;
+                    const aliveBosses = this.enemies.filter(ex => ex.name === 'BOSS' && ex.alive);
+                    if (aliveBosses.length === 0) {
+                      this.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
+                      this.waveTransitionTimer = 120;
+                    }
                   } else if (!this.bossActive && this.waveEnemiesKilled >= this.waveTotalEnemies) {
                     this.waveTransitionTimer = 120;
                   }
@@ -1435,8 +1438,11 @@ export default class Game {
           this.net.send_cmd('set_data', { enemyKilled: this.net.me.info.user + '_' + Math.random() });
           this.waveEnemiesKilled++;
           if (this.bossActive && e.name === 'BOSS') {
-            this.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
-            this.waveTransitionTimer = 120;
+            const aliveBosses = this.enemies.filter(ex => ex.name === 'BOSS' && ex.alive);
+            if (aliveBosses.length === 0) {
+              this.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
+              this.waveTransitionTimer = 120;
+            }
           } else if (!this.bossActive && this.waveEnemiesKilled >= this.waveTotalEnemies) {
             this.waveTransitionTimer = 120;
           }
