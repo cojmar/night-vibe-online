@@ -63,16 +63,41 @@ window.app = new class {
 
 
         window.addEventListener('keydown', (e) => {
-            if (this.game && this.game.state === 'PLAYING' && e.key === 'Enter') {
-                if (gameChatModal.style.display === 'flex') {
-                    sendGameChat();
-                } else {
-                    gameChatModal.style.display = 'flex';
-                    gameChatInput.focus();
+            const activeEl = document.activeElement;
+            const isTyping = activeEl && (
+                activeEl.tagName === 'INPUT' ||
+                activeEl.tagName === 'TEXTAREA' ||
+                activeEl.isContentEditable
+            );
+
+            if (this.game && this.game.state === 'PLAYING') {
+                if (!isTyping) {
+                    if (e.key.toLowerCase() === 'i') {
+                        e.preventDefault();
+                        if (this.ui && typeof this.ui.toggleInventory === 'function') {
+                            this.ui.toggleInventory();
+                        }
+                    }
+                }
+
+                if (e.key === 'Enter') {
+                    if (gameChatModal.style.display === 'flex') {
+                        sendGameChat();
+                    } else {
+                        gameChatModal.style.display = 'flex';
+                        gameChatInput.focus();
+                    }
                 }
             }
-            if (e.key === 'Escape' && gameChatModal.style.display === 'flex') {
-                gameChatModal.style.display = 'none';
+            if (e.key === 'Escape') {
+                if (gameChatModal.style.display === 'flex') {
+                    gameChatModal.style.display = 'none';
+                } else {
+                    const inventoryModal = document.getElementById('inventory-modal');
+                    if (inventoryModal && inventoryModal.style.display === 'flex') {
+                        inventoryModal.style.display = 'none';
+                    }
+                }
             }
         });
 

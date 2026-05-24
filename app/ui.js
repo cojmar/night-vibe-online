@@ -2541,6 +2541,7 @@ export default class UI {
                 this.renderInventory();
             }
         };
+        this.toggleInventory = toggleInventory;
 
         if (btnInventory) btnInventory.addEventListener('click', toggleInventory);
         if (btnMenuInventory) btnMenuInventory.addEventListener('click', toggleInventory);
