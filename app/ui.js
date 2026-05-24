@@ -2691,7 +2691,58 @@ export default class UI {
                     localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
                     localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
                 }
-                this.renderInventory();
+
+                // Select next item in inventory or equipment after dropping
+                let nextItem = null;
+                let nextIsEquipped = false;
+                let nextSlotNameOrIndex = null;
+                let nextElement = null;
+
+                if (slotNameOrIndex !== null && slotNameOrIndex !== undefined) {
+                    if (p.inventory.length > slotNameOrIndex) {
+                        nextItem = p.inventory[slotNameOrIndex];
+                        nextIsEquipped = false;
+                        nextSlotNameOrIndex = slotNameOrIndex;
+                    } else if (p.inventory.length > 0) {
+                        nextItem = p.inventory[p.inventory.length - 1];
+                        nextIsEquipped = false;
+                        nextSlotNameOrIndex = p.inventory.length - 1;
+                    }
+                }
+
+                if (!nextItem) {
+                    const fallbackSlots = "Weapon,Armor,Ring 1,Ring 2,Amulet";
+                    const rawSlots = ConfigModule.EQUIPMENT_SLOTS || fallbackSlots;
+                    const slotNames = String(rawSlots).split(',').map(s => s.trim());
+                    for (const slotName of slotNames) {
+                        if (p.equipment[slotName]) {
+                            nextItem = p.equipment[slotName];
+                            nextIsEquipped = true;
+                            nextSlotNameOrIndex = slotName;
+                            break;
+                        }
+                    }
+                }
+
+                if (nextItem) {
+                    this.renderInventory();
+                    if (nextIsEquipped) {
+                        const eqContainer = document.getElementById('equipment-slots-container');
+                        if (eqContainer) nextElement = eqContainer.querySelector(`[data-equip-slot="${nextSlotNameOrIndex}"]`);
+                    } else {
+                        const invContainer = document.getElementById('inventory-grid');
+                        if (invContainer) nextElement = invContainer.querySelector(`[data-inv-index="${nextSlotNameOrIndex}"]`);
+                    }
+                    updateDetailsPanel(nextItem, nextIsEquipped, nextSlotNameOrIndex, nextElement);
+                } else {
+                    this.renderInventory();
+                    if (detailsPanel) {
+                        const invMain = document.getElementById('inv-details-main');
+                        const invPlaceholder = detailsPanel.querySelector('div[style*="Select an item"]');
+                        if (invMain) invMain.style.display = 'none';
+                        if (invPlaceholder) invPlaceholder.style.display = 'flex';
+                    }
+                }
             };
         };
 
@@ -2780,6 +2831,7 @@ export default class UI {
                     emptyVisual.style.fontSize = '1.5em';
                     slotDiv.appendChild(emptyVisual);
                 }
+                slotDiv.dataset.equipSlot = slotName;
                 eqContainer.appendChild(slotDiv);
             });
         }
@@ -2834,6 +2886,7 @@ export default class UI {
                     const btnDrop = document.getElementById('btn-inv-action-drop');
                     if (btnDrop) btnDrop.click();
                 });
+                cell.dataset.invIndex = index;
                 invContainer.appendChild(cell);
             });
 
