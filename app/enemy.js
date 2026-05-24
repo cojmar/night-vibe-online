@@ -76,53 +76,53 @@ export default class Enemy {
   getSafeSpawnPosition(localPrng) {
     const groundY = getGroundY(this.game.selectedEnv);
     const minDim = Math.min(this.game.gameW, this.game.gameH);
+    const aspectRatio = this.game.gameW / this.game.gameH;
     const safeMargin = Math.max(40, minDim * 0.12);
     const minDist = minDim * 0.25;
-    
-    // Consume PRNG exactly 3 times deterministically
-    const roll = localPrng.nextFloat();
-    const float1 = localPrng.nextFloat();
-    const float2 = localPrng.nextFloat();
-    
-    let sx, sy;
-    const aspectRatio = this.game.gameW / this.game.gameH;
-    
-    if (aspectRatio < 0.6) {
-      if (roll < 0.5) {
-        sx = safeMargin + float1 * (this.game.gameW - safeMargin * 2);
-        sy = -30 - float2 * 40;
-      } else {
-        sx = safeMargin + float1 * (this.game.gameW - safeMargin * 2);
-        sy = this.game.gameH + 30 + float2 * 40;
-      }
-    } else {
-      if (roll < 0.45) {
-        sx = safeMargin + float1 * (this.game.gameW - safeMargin * 2);
-        sy = -30 - float2 * 40;
-      } else if (roll < 0.7) {
-        sx = -40 - float1 * 50;
-        sy = safeMargin + float2 * (this.game.gameH - safeMargin * 2);
-      } else {
-        sx = this.game.gameW + 40 + float1 * 50;
-        sy = safeMargin + float2 * (this.game.gameH - safeMargin * 2);
-      }
-    }
-    
-    // Mathematically offset coordinates away from player if too close
+    let attempts = 0;
     const player = this.game.player;
-    if (player) {
-      const dx = sx - player.x;
-      const dy = sy - player.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist < minDist) {
-        const angle = dist > 0.01 ? Math.atan2(dy, dx) : (roll * Math.PI * 2);
-        sx = player.x + Math.cos(angle) * (minDist + 30);
-        sy = player.y + Math.sin(angle) * (minDist + 30);
+    
+    while (attempts < 40) {
+      attempts++;
+      let sx, sy;
+      if (aspectRatio < 0.6) {
+        const edge = localPrng.nextFloat();
+        if (edge < 0.5) {
+          sx = safeMargin + localPrng.nextFloat() * (this.game.gameW - safeMargin * 2);
+          sy = -30 - localPrng.nextFloat() * 40;
+        } else {
+          sx = safeMargin + localPrng.nextFloat() * (this.game.gameW - safeMargin * 2);
+          sy = this.game.gameH + 30 + localPrng.nextFloat() * 40;
+        }
+      } else {
+        const roll = localPrng.nextFloat();
+        if (roll < 0.45) {
+          sx = safeMargin + localPrng.nextFloat() * (this.game.gameW - safeMargin * 2);
+          sy = -30 - localPrng.nextFloat() * 40;
+        } else if (roll < 0.7) {
+          sx = -40 - localPrng.nextFloat() * 50;
+          sy = safeMargin + localPrng.nextFloat() * (this.game.gameH - safeMargin * 2);
+        } else {
+          sx = this.game.gameW + 40 + localPrng.nextFloat() * 50;
+          sy = safeMargin + localPrng.nextFloat() * (this.game.gameH - safeMargin * 2);
+        }
       }
+      
+      if(!player) return {x: sx, y: sy};
+      
+      const dx = sx - player.x, dy = sy - player.y, dist = Math.hypot(dx, dy);
+      if (dist > minDist) return { x: sx, y: sy };
+      const angle = Math.atan2(dy, dx);
+      sx += Math.cos(angle) * (minDist + 30);
+      sy += Math.sin(angle) * (minDist + 30);
     }
     
-    sy = Math.min(sy, groundY - 50);
-    return { x: sx, y: sy };
+    if(!player) return {x: this.game.gameW/2, y: groundY - 50};
+    
+    return {
+      x: player.x + (localPrng.nextFloat() < 0.5 ? -1 : 1) * (minDist + 50),
+      y: Math.min(player.y - minDist * 0.6, groundY - 50)
+    };
   }
 
   update(dt, players) {
