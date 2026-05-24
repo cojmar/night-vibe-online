@@ -355,12 +355,14 @@ export const PLAYER_MOVE_SPEEDS = {
   default: 2.5
 };
 
-export const CLASS_DATA = {
+export const FALLBACK_CLASS_DATA = {
   warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
   mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
   archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
   magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
 };
+
+export const CLASS_DATA = JSON.parse(JSON.stringify(FALLBACK_CLASS_DATA));
 
 try {
   const customClasses = JSON.parse(localStorage.getItem('nightvibe-custom-classes'));
@@ -374,7 +376,7 @@ try {
   console.error("Failed loading custom classes", e);
 }
 
-export const ENEMY_TYPES = [
+export const FALLBACK_ENEMY_TYPES = [
   { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
   { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
   { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
@@ -384,6 +386,8 @@ export const ENEMY_TYPES = [
   { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
   { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
 ];
+
+export const ENEMY_TYPES = JSON.parse(JSON.stringify(FALLBACK_ENEMY_TYPES));
 
 try {
   const customMonsters = JSON.parse(localStorage.getItem('nightvibe-custom-monsters'));
@@ -395,12 +399,14 @@ try {
   console.error("Failed loading custom monsters", e);
 }
 
-export const ITEMS_DB = [
+export const FALLBACK_ITEMS_DB = [
   { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
   { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
   { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } },
   { name: 'Silver Amulet', icon: '📿', gearType: 'Amulet', rarity: 'magic', color: '#e74c3c', stats: { atk: 5, maxHp: 30, spd: 1 } }
 ];
+
+export const ITEMS_DB = JSON.parse(JSON.stringify(FALLBACK_ITEMS_DB));
 
 try {
   const customItems = JSON.parse(localStorage.getItem('nightvibe-custom-items'));

@@ -459,44 +459,19 @@ export default class UI {
             ConfigModule.updateConfig(valuesToApply);
 
             // Revert or apply custom classes
-            const defaultClasses = {
-                warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
-                mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
-                archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
-                magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
-            };
-
-            const targetClasses = classesToApply || defaultClasses;
+            const targetClasses = classesToApply || JSON.parse(JSON.stringify(ConfigModule.FALLBACK_CLASS_DATA));
             for (const k in ConfigModule.CLASS_DATA) delete ConfigModule.CLASS_DATA[k];
             Object.assign(ConfigModule.CLASS_DATA, targetClasses);
             localStorage.setItem('nightvibe-custom-classes', JSON.stringify(ConfigModule.CLASS_DATA));
 
             // Revert or apply custom monsters
-            const defaultMonsters = [
-                { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-                { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
-                { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-                { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
-                { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-                { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
-                { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-                { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
-            ];
-
-            const targetMonsters = monstersToApply || defaultMonsters;
+            const targetMonsters = monstersToApply || JSON.parse(JSON.stringify(ConfigModule.FALLBACK_ENEMY_TYPES));
             ConfigModule.ENEMY_TYPES.length = 0;
             ConfigModule.ENEMY_TYPES.push(...targetMonsters);
             localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ConfigModule.ENEMY_TYPES));
 
             // Revert or apply custom items
-            const defaultItems = [
-                { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
-                { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
-                { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } },
-                { name: 'Silver Amulet', icon: '📿', gearType: 'Amulet', rarity: 'magic', color: '#e74c3c', stats: { atk: 5, maxHp: 30, spd: 1 } }
-            ];
-
-            const targetItems = itemsToApply || defaultItems;
+            const targetItems = itemsToApply || JSON.parse(JSON.stringify(ConfigModule.FALLBACK_ITEMS_DB));
             ConfigModule.ITEMS_DB.length = 0;
             ConfigModule.ITEMS_DB.push(...targetItems);
             localStorage.setItem('nightvibe-custom-items', JSON.stringify(ConfigModule.ITEMS_DB));
