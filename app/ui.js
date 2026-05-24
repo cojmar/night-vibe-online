@@ -22,6 +22,19 @@ export default class UI {
         
         this.customDialogResolver = null;
         this.bindCustomDialogEvents();
+
+        ConfigModule.registerConfigListener(() => {
+            if (this.validateGearSlots()) {
+                const modal = document.getElementById('inventory-modal');
+                if (modal && modal.style.display !== 'none') {
+                    this.renderInventory();
+                }
+                if (this.game && this.game.player) {
+                    this.updateHUD(this.game.player);
+                }
+            }
+        });
+
     }
 
     bindCustomDialogEvents() {
@@ -2518,6 +2531,61 @@ export default class UI {
         if (btnInventoryCloseIcon) btnInventoryCloseIcon.addEventListener('click', closeModal);
     }
 
+
+    validateGearSlots() {
+        let p = null;
+        if (this.game && this.game.player) {
+            p = this.game.player;
+        } else {
+            try {
+                const savedInv = JSON.parse(localStorage.getItem('nightvibe-inventory') || '[]');
+                const savedEq = JSON.parse(localStorage.getItem('nightvibe-equipment') || '{}');
+                p = { inventory: savedInv, equipment: savedEq };
+            } catch (e) {
+                p = { inventory: [], equipment: {} };
+            }
+        }
+
+        const fallbackSlots = "Weapon,Armor,Ring 1,Ring 2,Amulet";
+        const rawSlots = ConfigModule.EQUIPMENT_SLOTS || fallbackSlots;
+        const validSlotNames = String(rawSlots).split(',').map(s => s.trim());
+        let changed = false;
+
+        for (const slot in p.equipment) {
+            const item = p.equipment[slot];
+            if (!item) continue;
+            
+            let valid = validSlotNames.includes(slot);
+            
+            if (valid && ConfigModule.ENFORCE_GEAR_SLOTS) {
+                const itemType = (item.gearType || item.type || '').toLowerCase();
+                if (!slot.toLowerCase().includes(itemType)) {
+                    valid = false;
+                }
+            }
+            
+            if (!valid) {
+                p.inventory.push(item);
+                delete p.equipment[slot];
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            if (this.game && this.game.player) {
+                this.game.saveLocalProgression();
+                this.game.broadcastState();
+            } else {
+                localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
+                localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
+            }
+            if (this.addLog) {
+                 this.addLog(`⚠️ Invalid gear unequipped due to config changes.`);
+            }
+        }
+        return changed;
+    }
+
     renderInventory() {
         let p = null;
         if (this.game && this.game.player) {
@@ -2536,7 +2604,22 @@ export default class UI {
         const detailsPanel = document.getElementById('inventory-details-panel');
         if (detailsPanel) detailsPanel.style.display = 'none'; // reset panel on re-render
         
-        const showDetails = (item, isEquipped, slotNameOrIndex) => {
+        const showDetails = (item, isEquipped, slotNameOrIndex, element) => {
+            document.querySelectorAll('.inv-active-highlight').forEach(el => {
+                el.classList.remove('inv-active-highlight');
+                el.style.transform = 'scale(1)';
+                if (el.dataset.isEquipped === 'true') {
+                    el.style.borderColor = el.dataset.itemColor;
+                    el.style.boxShadow = `0 0 10px ${el.dataset.itemColor}66`;
+                } else {
+                    el.style.borderColor = el.dataset.itemColor;
+                    el.style.boxShadow = 'none';
+                }
+            });
+            if (element) {
+                element.classList.add('inv-active-highlight');
+                element.style.setProperty('--highlight-color', item.color || '#f1c40f');
+            }
             if (!detailsPanel) return;
             detailsPanel.style.display = 'flex';
             
@@ -2648,7 +2731,7 @@ export default class UI {
                 slotDiv.style.cursor = 'pointer';
                 slotDiv.style.transition = '0.2s';
                 slotDiv.onmouseover = () => { slotDiv.style.transform = 'scale(1.05)'; };
-                slotDiv.onmouseout = () => { slotDiv.style.transform = 'scale(1)'; };
+                slotDiv.onmouseout = () => { if (!slotDiv.classList.contains('inv-active-highlight')) slotDiv.style.transform = 'scale(1)'; };
                 
                 const label = document.createElement('div');
                 label.innerText = slotName;
@@ -2686,10 +2769,12 @@ export default class UI {
                     slotDiv.appendChild(itemVisual);
                     slotDiv.style.border = `2px solid ${itemData.color || '#2ecc71'}`;
                     slotDiv.style.background = 'rgba(46, 204, 113, 0.15)';
+                    slotDiv.dataset.isEquipped = 'true';
+                    slotDiv.dataset.itemColor = itemData.color || '#2ecc71';
                     slotDiv.style.boxShadow = `0 0 10px ${itemData.color || '#2ecc71'}66`;
                     
                     slotDiv.addEventListener('click', () => {
-                        if (itemData) showDetails(itemData, true, slotName);
+                        if (itemData) showDetails(itemData, true, slotName, slotDiv);
                     });
                 } else {
                     const emptyVisual = document.createElement('div');
@@ -2722,6 +2807,8 @@ export default class UI {
                 
                 let statText = item.stats ? Object.entries(item.stats).map(([k, v]) => `${k.toUpperCase()}: +${v.toFixed(1)}`).join('\n') : '';
                 cell.title = `${item.name || 'Item'}\n${statText}`;
+                cell.dataset.isEquipped = 'false';
+                cell.dataset.itemColor = item.color || '#95a5a6';
                 let resolvedIcon = item.icon || '💎';
                 if (resolvedIcon === '📦') {
                     const template = ConfigModule.ITEMS_DB.find(t => t.name === item.name);
@@ -2735,10 +2822,10 @@ export default class UI {
                 }
                 cell.style.transition = '0.2s';
                 cell.onmouseover = () => { cell.style.transform = 'scale(1.1)'; cell.style.borderColor = '#f1c40f'; cell.style.boxShadow = `0 0 10px ${item.color || '#f1c40f'}99`; };
-                cell.onmouseout = () => { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; };
+                cell.onmouseout = () => { if (!cell.classList.contains('inv-active-highlight')) { cell.style.transform = 'scale(1)'; cell.style.borderColor = item.color || '#95a5a6'; cell.style.boxShadow = 'none'; } };
                 
                 cell.addEventListener('click', () => {
-                    showDetails(item, false, index);
+                    showDetails(item, false, index, cell);
                 });
                 invContainer.appendChild(cell);
             });

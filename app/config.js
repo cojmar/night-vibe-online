@@ -533,7 +533,14 @@ export function applyPreset(presetValues) {
   POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
 }
 
+
+export const configListeners = [];
+export function registerConfigListener(cb) {
+  configListeners.push(cb);
+}
+
 export function updateConfig(newValues) {
+
   for (const key in newValues) {
     if (DEFAULTS[key] !== undefined) {
       activeConfig[key] = newValues[key];
@@ -543,6 +550,7 @@ export function updateConfig(newValues) {
   applyPreset(activeConfig);
 
   // Save updated values to persistent preset if custom, or scratch space if built-in
+// Save updated values to persistent preset if custom, or scratch space if built-in
   if (activePresetId && activePresetId.startsWith('custom:')) {
     const customId = activePresetId.split('custom:')[1];
     const presets = getCustomPresets();
@@ -553,6 +561,9 @@ export function updateConfig(newValues) {
   } else {
     localStorage.setItem('nightvibe-scratch-config', JSON.stringify(activeConfig));
   }
+  
+  // Notify listeners
+  configListeners.forEach(cb => cb(activeConfig));
 }
 
 export function updateClassData(newClasses) {
