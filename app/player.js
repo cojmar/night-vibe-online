@@ -42,6 +42,7 @@ export default class Player {
 
     // Multiplayer sync fields
     this.input_data = null;
+    this.targetedItemId = null;
 
     // Inventory & Gear
     this.inventory = []; // Unlimited grid items

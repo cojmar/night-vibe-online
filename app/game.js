@@ -1176,6 +1176,7 @@ export default class Game {
     if (this.s2Cooldown > 0 || !this.player) return;
     this.player.lastInputTime = Date.now();
     this.player.autoAttackTarget = null;
+    this.player.targetedItemId = null;
     this.player.stopWalking(this);
     this.player.isChargingS2 = true;
     this.player.s2ChargeTime = 0;
@@ -2196,7 +2197,15 @@ export default class Game {
                     if (p.id === 'host' || p.id === (this.net.me ? this.net.me.info.user : null)) {
                       p.obj.inventory.push(item);
                       this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🎒 Looted: ${item.name}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
-                      this.ui.addLog(`🎒 You picked up a ${item.name}!`, 'reward');
+                      let statsStr = '';
+                      if (item.stats) {
+                        let parts = [];
+                        if (item.stats.atk) parts.push(`+${item.stats.atk} ATK`);
+                        if (item.stats.maxHp) parts.push(`+${item.stats.maxHp} HP`);
+                        if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
+                        if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
+                      }
+                      this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
                       if (this.ui) this.ui.renderInventory();
                       this.saveLocalProgression();
                       this.broadcastState();
@@ -2264,7 +2273,15 @@ export default class Game {
                   this.lastProcessedItemId = gi.id;
                   this.player.inventory.push(gi.item);
                   this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${gi.item.name}!`, color: gi.item.color, life: 60, maxLife: 60, isCrit: false });
-                  this.ui.addLog(`🎒 You picked up a ${gi.item.name}!`, 'reward');
+                  let statsStr = '';
+                  if (gi.item.stats) {
+                    let parts = [];
+                    if (gi.item.stats.atk) parts.push(`+${gi.item.stats.atk} ATK`);
+                    if (gi.item.stats.maxHp) parts.push(`+${gi.item.stats.maxHp} HP`);
+                    if (gi.item.stats.spd) parts.push(`+${Number(gi.item.stats.spd).toFixed(1)} SPD`);
+                    if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
+                  }
+                  this.ui.addLog(`🎒 You picked up a ${gi.item.name}${statsStr}!`, 'reward');
                   if (this.ui) this.ui.renderInventory();
                   this.saveLocalProgression();
                   this.broadcastState();
