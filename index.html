@@ -1425,33 +1425,38 @@
         </div>
       </div>
 
-      <div
-        style="flex:1; overflow-y:auto; border:1px solid #34495e; border-radius:8px; padding:10px; background:#1a252f;">
-        <h3 style="margin-top:0; color:#bdc3c7; font-size:1.1em; margin-bottom:10px; text-align:center;">📦 Backpack
-        </h3>
-        <div id="inventory-grid"
-          style="display:grid; grid-template-columns:repeat(auto-fill, minmax(55px, 1fr)); gap:10px; min-height: 200px; align-content: start;">
-          <!-- Dynamically generated inventory cells -->
+      <div style="flex:1; display:flex; gap:15px; overflow:hidden;">
+        <div
+          style="flex:1; overflow-y:auto; border:1px solid #34495e; border-radius:8px; padding:10px; background:#1a252f; display:flex; flex-direction:column;">
+          <h3 style="margin:0 0 10px 0; color:#bdc3c7; font-size:1em; text-align:center;">📦 Backpack</h3>
+          <div id="inventory-grid"
+            style="display:grid; grid-template-columns:repeat(auto-fill, minmax(55px, 1fr)); gap:8px; align-content: start; flex:1;">
+            <!-- Dynamically generated inventory cells -->
+          </div>
         </div>
-      </div>
 
-      <div id="inventory-details-panel"
-        style="margin-top:15px; padding:15px; background:#1e272e; border-radius:8px; display:none; flex-direction:column; gap:10px; border:1px solid #34495e;">
-        <div style="display:flex; align-items:center; gap:15px;">
-          <div id="inv-details-icon"
-            style="width:50px; height:50px; background:#2c3e50; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:1.8em; border:1px solid #4a4a6a;">
+        <div id="inventory-details-panel"
+          style="width:220px; min-width:220px; background:#1e272e; border-radius:8px; border:1px solid #34495e; display:flex; flex-direction:column; padding:12px; gap:8px;">
+          <div style="font-size:0.75em; color:#7f8c8d; text-align:center; padding:20px 0;">Select an item to view details</div>
+
+          <div id="inv-details-main" style="display:none; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div id="inv-details-icon"
+                style="width:36px; height:36px; min-width:36px; background:#2c3e50; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:1.3em; border:1px solid #4a4a6a;">
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div id="inv-details-name" style="font-size:0.9em; font-weight:bold; color:#fff; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+                <div id="inv-details-type" style="font-size:0.7em; color:#95a5a6; margin-top:1px;"></div>
+              </div>
+            </div>
+            <div id="inv-details-stats" style="font-size:0.75em; color:#bdc3c7; line-height:1.6;"></div>
+            <div style="display:flex; gap:6px; margin-top:4px;">
+              <button id="btn-inv-action-primary"
+                style="flex:1; background:#2ecc71; color:#fff; border:none; padding:6px 12px; font-weight:bold; cursor:pointer; border-radius:4px; font-size:0.8em;">Equip</button>
+              <button id="btn-inv-action-drop"
+                style="flex:1; background:#e74c3c; color:#fff; border:none; padding:6px 12px; font-weight:bold; cursor:pointer; border-radius:4px; font-size:0.8em;">Drop</button>
+            </div>
           </div>
-          <div>
-            <div id="inv-details-name" style="font-size:1.2em; font-weight:bold; color:#fff; margin:0;"></div>
-            <div id="inv-details-type" style="font-size:0.85em; color:#bdc3c7; margin-top:2px;"></div>
-          </div>
-        </div>
-        <div id="inv-details-stats" style="font-size:0.9em; color:#ecf0f1;"></div>
-        <div style="display:flex; gap:10px; justify-content:center; margin-top:5px;">
-          <button id="btn-inv-action-primary"
-            style="background:#2ecc71; color:#fff; border:none; padding:8px 25px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s; font-size:0.95em;">Equip</button>
-          <button id="btn-inv-action-drop"
-            style="background:#e74c3c; color:#fff; border:none; padding:8px 25px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s; font-size:0.95em;">Drop</button>
         </div>
       </div>
 

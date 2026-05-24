@@ -2566,10 +2566,13 @@ export default class UI {
         }
 
         const detailsPanel = document.getElementById('inventory-details-panel');
-        if (detailsPanel) detailsPanel.style.display = 'flex'; // always visible
+        if (detailsPanel) detailsPanel.style.display = 'flex';
 
         let selectedItem = null;
         let selectedItemData = null;
+
+        const invPlaceholder = detailsPanel?.querySelector('div[style*="Select an item"]');
+        const invMain = document.getElementById('inv-details-main');
 
         const updateDetailsPanel = (item, isEquipped, slotNameOrIndex, element) => {
             // Highlight selected item
@@ -2590,6 +2593,10 @@ export default class UI {
             }
 
             if (!detailsPanel) return;
+
+            // Show main details, hide placeholder
+            if (invPlaceholder) invPlaceholder.style.display = 'none';
+            if (invMain) invMain.style.display = 'flex';
 
             const dIcon = document.getElementById('inv-details-icon');
             const dName = document.getElementById('inv-details-name');
@@ -2616,7 +2623,9 @@ export default class UI {
             dName.style.color = item.color || '#fff';
             dType.textContent = item.gearType || item.type || 'Consumable';
 
-            dStats.innerHTML = item.stats ? Object.entries(item.stats).map(([k, v]) => `<span style="color:#fff;">${k.toUpperCase()}:+${v.toFixed(1)}</span> `) : '<span style="color:#7f8c8d;">No stats</span>';
+            dStats.innerHTML = item.stats
+                ? Object.entries(item.stats).map(([k, v]) => `<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid #2c3e50;"><span style="color:#95a5a6;">${k.toUpperCase()}:</span><span style="color:#fff; font-weight:bold;">+${v.toFixed(1)}</span></div>`).join('')
+                : '<div style="color:#7f8c8d; padding:4px 0;">No stats</div>';
 
             btnPrimary.textContent = isEquipped ? 'Unequip' : 'Equip';
 
