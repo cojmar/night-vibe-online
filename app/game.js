@@ -434,7 +434,13 @@ export default class Game {
     this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
 
     if (hostData.items) {
-      this.items = hostData.items.map(item => ({ ...item }));
+      this.items = hostData.items.map(item => {
+        const dbItem = ConfigModule.ITEMS_DB.find(db => db.name === item.name);
+        return { 
+           ...item, 
+           icon: (dbItem && dbItem.icon) ? dbItem.icon : item.icon 
+        };
+      });
     }
   }
 
@@ -684,52 +690,22 @@ export default class Game {
     this.ctx.scale(this.viewScale, this.viewScale);
   }
 
-  startGame(selectedClass) {
+  async startGame(selectedClass) {
     if (this.ui && this.ui.saveLastGameConfig) {
       this.ui.saveLastGameConfig();
     }
-    this.state = 'PLAYING';
-    this.selectedEnv = ENV_LIST[0];
-    this.kills = GAME_INITIAL_KILLS;
-    this.wave = ConfigModule.GAME_INITIAL_WAVE;
-    if (this.wave % ConfigModule.BOSS_WAVE_INTERVAL === 0) {
-      this.bossActive = true;
-      let numBosses = 1;
-      if (ConfigModule.BOSS_WAVE_INTERVAL > 0) {
-        const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
-        if (bossWaveNum > 1) {
-          numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
-        }
-      }
-      this.waveTotalEnemies = numBosses;
-      this.waveEnemiesToSpawn = numBosses;
-    } else {
-      this.bossActive = false;
-      this.waveTotalEnemies = ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
-      this.waveEnemiesToSpawn = ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
-    }
-    this.waveEnemiesKilled = 0;
-    this.waveTransitionTimer = 0;
-    this.emptyWaveTimer = 0;
-    this.enemySpawnInterval = ENEMY_SPAWN_INTERVAL;
-    this.enemySpawnTimer = 0;
-    this.enemies = [];
-    this.projectiles = [];
-    this.particles = [];
-    this.floatingTexts = [];
-    if (ConfigModule.CLEAR_ITEMS_ON_START) this.items = [];
-    this.s2Cooldown = 0;
-    this.ui.recentLogs = [];
-    this.prng = new PRNG(this.wave * 12345);
-
-    // Attempt to inherit current room state and gameplay configuration if a host exists
+    
+    // Check host and config first
     let hostFound = false;
+    let hostName = null;
+    let hostDataObj = null;
     if (this.net && this.net.room && this.net.room.users) {
       for (const u in this.net.room.users) {
         if (this.net.me && this.net.me.info && u === this.net.me.info.user) continue;
         const userData = this.net.room.users[u].data;
         if (userData && userData.isHost && userData.inGame && userData.state === 'PLAYING') {
           hostFound = true;
+          hostName = u;
           this.isHost = false;
           if (userData.gameplayConfig) {
             ConfigModule.updateConfig(userData.gameplayConfig);
@@ -748,10 +724,11 @@ export default class Game {
             this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
           }
           if (userData.hostData) {
-            this.wave = userData.hostData.wave || GAME_INITIAL_WAVE;
-            this.waveTotalEnemies = userData.hostData.waveTotal || GAME_INITIAL_WAVE_ENEMIES;
+            hostDataObj = userData.hostData;
+            this.wave = userData.hostData.wave || ConfigModule.GAME_INITIAL_WAVE;
+            this.waveTotalEnemies = userData.hostData.waveTotal || ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
             this.waveEnemiesKilled = userData.hostData.waveKilled || 0;
-            this.waveEnemiesToSpawn = userData.hostData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
+            this.waveEnemiesToSpawn = userData.hostData.waveSpawn || ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
             this.bossActive = userData.hostData.bossActive || false;
             this.selectedEnv = userData.hostData.env || ENV_LIST[0];
             this.prng = new PRNG(userData.hostData.seed || (this.wave * 12345));
@@ -774,7 +751,96 @@ export default class Game {
             itemsDb: ConfigModule.ITEMS_DB
         });
       }
+      this.selectedEnv = ENV_LIST[0];
+      this.wave = ConfigModule.GAME_INITIAL_WAVE;
+      if (this.wave % ConfigModule.BOSS_WAVE_INTERVAL === 0) {
+        this.bossActive = true;
+        let numBosses = 1;
+        if (ConfigModule.BOSS_WAVE_INTERVAL > 0) {
+          const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
+          if (bossWaveNum > 1) {
+            numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
+          }
+        }
+        this.waveTotalEnemies = numBosses;
+        this.waveEnemiesToSpawn = numBosses;
+      } else {
+        this.bossActive = false;
+        this.waveTotalEnemies = ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
+        this.waveEnemiesToSpawn = ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
+      }
+      this.waveEnemiesKilled = 0;
+      this.prng = new PRNG(this.wave * 12345);
     }
+
+    // Show Loading Modal
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.style.position = 'fixed';
+    loadingOverlay.style.top = '0'; loadingOverlay.style.left = '0';
+    loadingOverlay.style.width = '100%'; loadingOverlay.style.height = '100%';
+    loadingOverlay.style.backgroundColor = 'rgba(0,0,0,0.95)';
+    loadingOverlay.style.color = '#fff';
+    loadingOverlay.style.display = 'flex';
+    loadingOverlay.style.flexDirection = 'column';
+    loadingOverlay.style.justifyContent = 'center';
+    loadingOverlay.style.alignItems = 'center';
+    loadingOverlay.style.zIndex = '9999999';
+    loadingOverlay.style.fontFamily = 'Outfit, sans-serif';
+    
+    const loadingMessage = hostFound ? `Loading config from host (${hostName})...` : `Hosting game...`;
+    
+    loadingOverlay.innerHTML = `
+        <div style="width: 50px; height: 50px; border: 5px solid rgba(255,215,0,0.3); border-top-color: #ffd700; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+        <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+        <h2 style="margin: 0; color: #ffd700; text-align: center;">${loadingMessage}</h2>
+        <p style="color: #aaa; margin-top: 10px; font-size: 1.1em;">Caching graphical assets...</p>
+    `;
+    document.body.appendChild(loadingOverlay);
+
+    await new Promise(r => setTimeout(r, 50)); // Allow browser to render the modal
+
+    // Cache Images asynchronously
+    const cachePromises = [];
+    const cacheImageAsync = (src) => {
+       if (!src || typeof src !== 'string' || !(src.startsWith('data:image/') || src.startsWith('http'))) return Promise.resolve();
+       return new Promise(resolve => {
+           const img = new Image();
+           img.onload = () => resolve();
+           img.onerror = () => resolve();
+           img.src = src;
+           if (typeof getCachedImage !== 'undefined') getCachedImage(src); 
+       });
+    };
+
+    if (ConfigModule.CLASS_DATA) {
+      for (const k in ConfigModule.CLASS_DATA) cachePromises.push(cacheImageAsync(ConfigModule.CLASS_DATA[k].icon));
+    }
+    if (ConfigModule.ENEMY_TYPES) {
+      for (const e of ConfigModule.ENEMY_TYPES) cachePromises.push(cacheImageAsync(e.icon));
+    }
+    if (ConfigModule.ITEMS_DB) {
+      for (const i of ConfigModule.ITEMS_DB) cachePromises.push(cacheImageAsync(i.icon));
+    }
+    
+    await Promise.all(cachePromises);
+    await new Promise(r => setTimeout(r, 200)); // Small visual delay so it doesn't just flash instantly
+    
+    if (loadingOverlay.parentNode) loadingOverlay.parentNode.removeChild(loadingOverlay);
+
+    // Initialize remaining game state
+    this.state = 'PLAYING';
+    this.kills = ConfigModule.GAME_INITIAL_KILLS || 0;
+    this.waveTransitionTimer = 0;
+    this.emptyWaveTimer = 0;
+    this.enemySpawnInterval = ConfigModule.ENEMY_SPAWN_INTERVAL || 2000;
+    this.enemySpawnTimer = 0;
+    this.enemies = [];
+    this.projectiles = [];
+    this.particles = [];
+    this.floatingTexts = [];
+    if (ConfigModule.CLEAR_ITEMS_ON_START) this.items = [];
+    this.s2Cooldown = 0;
+    this.ui.recentLogs = [];
 
     this.generateScenery();
 
@@ -784,10 +850,11 @@ export default class Game {
     }
 
     this.player = new Player(this.net.me.info.user, true, selectedClass, this.gameW / 2, (getGroundY(this.selectedEnv) + this.gameH) / 2);
-
     this.checkHost();
-
     this.restoreWebsocketStats(this.player, myData, selectedClass);
+    if (hostFound && hostDataObj) {
+      this.syncHostData(hostDataObj);
+    }
 
     const nickInput = document.getElementById('nick-input');
     if (nickInput) this.player.nick = nickInput.value;
