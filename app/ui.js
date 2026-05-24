@@ -216,19 +216,6 @@ export default class UI {
         const btnRebirth = document.getElementById('btn-rebirth');
         if (btnRebirth) btnRebirth.addEventListener('click', () => { if (this.game) this.game.requestRebirth(); });
 
-        const btnRebirthConfirm = document.getElementById('btn-rebirth-confirm');
-        const btnRebirthCancel = document.getElementById('btn-rebirth-cancel');
-        const rebirthModal = document.getElementById('rebirth-modal');
-
-        if (btnRebirthConfirm) btnRebirthConfirm.addEventListener('click', () => {
-            if (rebirthModal) rebirthModal.style.display = 'none';
-            if (this.game) this.game.performRebirth();
-        });
-
-        if (btnRebirthCancel) btnRebirthCancel.addEventListener('click', () => {
-            if (rebirthModal) rebirthModal.style.display = 'none';
-        });
-
         const compactLog = document.getElementById('compact-log');
         compactLog.addEventListener('mouseenter', () => this.logHoldTimer = setTimeout(() => this.showTooltip(), 300));
         compactLog.addEventListener('mouseleave', () => { clearTimeout(this.logHoldTimer); this.hideTooltip(); });
