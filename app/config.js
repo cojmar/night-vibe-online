@@ -398,7 +398,8 @@ try {
 export const ITEMS_DB = [
   { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
   { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
-  { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
+  { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } },
+  { name: 'Silver Amulet', icon: '📿', gearType: 'Amulet', rarity: 'magic', color: '#e74c3c', stats: { atk: 5, maxHp: 30, spd: 1 } }
 ];
 
 try {
