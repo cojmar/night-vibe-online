@@ -1700,6 +1700,22 @@ export default class Game {
     const brightnessAmt = 100 + (dayAlpha * 50) - (nightAlpha * 75);
     this.ctx.filter = `sepia(${sepiaAmt}%) grayscale(${grayscaleAmt}%) brightness(${brightnessAmt}%)`;
 
+    // Draw background clouds affected by biome atmospheric filters
+    if (this.atmosEffects && this.atmosEffects.length > 0) {
+      for (let ef of this.atmosEffects) {
+        if (ef.type === 'cloud') {
+          this.ctx.fillStyle = ef.color;
+          this.ctx.beginPath();
+          this.ctx.arc(ef.x, ef.y, ef.size * 0.6, 0, Math.PI * 2);
+          this.ctx.arc(ef.x + ef.size * 0.5, ef.y - ef.size * 0.2, ef.size * 0.5, 0, Math.PI * 2);
+          this.ctx.arc(ef.x - ef.size * 0.5, ef.y - ef.size * 0.1, ef.size * 0.4, 0, Math.PI * 2);
+          this.ctx.arc(ef.x + ef.size * 0.8, ef.y + ef.size * 0.2, ef.size * 0.35, 0, Math.PI * 2);
+          this.ctx.arc(ef.x - ef.size * 0.8, ef.y + ef.size * 0.2, ef.size * 0.3, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+      }
+    }
+
     if (!this.scenery) this.generateScenery();
     for (let s of this.scenery) {
       this.ctx.fillStyle = s.color;
@@ -1837,14 +1853,21 @@ export default class Game {
         }
 
         if (Math.random() < 0.005 * this.settings.atmos * dt) {
+          const groundY = getGroundY(this.selectedEnv);
+          const size = 60 + Math.random() * 80;
+          // Ensure the cloud is strictly at sky level and doesn't reach the ground/foliage.
+          // Bottom-most boundary of the cloud is at: y + size * 0.6.
+          // We add 20 pixels padding to guarantee it stays fully in the sky.
+          const maxCloudY = groundY - size * 0.6 - 20;
+
           this.atmosEffects.push({
             type: 'cloud',
             x: Math.random() < 0.5 ? -150 : this.gameW + 150,
-            y: Math.random() * (this.gameH * 0.5),
+            y: Math.random() * maxCloudY,
             vx: (Math.random() < 0.5 ? 1 : -1) * (0.1 + Math.random() * 0.3),
             vy: 0,
             color: isNight ? `rgba(255,255,255,${0.03 + Math.random() * 0.05})` : `rgba(0,0,0,${0.03 + Math.random() * 0.05})`,
-            size: 60 + Math.random() * 80,
+            size: size,
             life: 1.0
           });
         }
@@ -2565,13 +2588,6 @@ export default class Game {
           this.ctx.beginPath();
           if (ef.type === 'rain') {
             this.ctx.fillRect(ef.x, ef.y, ef.size, ef.size * 6);
-          } else if (ef.type === 'cloud') {
-            this.ctx.arc(ef.x, ef.y, ef.size * 0.6, 0, Math.PI * 2);
-            this.ctx.arc(ef.x + ef.size * 0.5, ef.y - ef.size * 0.2, ef.size * 0.5, 0, Math.PI * 2);
-            this.ctx.arc(ef.x - ef.size * 0.5, ef.y - ef.size * 0.1, ef.size * 0.4, 0, Math.PI * 2);
-            this.ctx.arc(ef.x + ef.size * 0.8, ef.y + ef.size * 0.2, ef.size * 0.35, 0, Math.PI * 2);
-            this.ctx.arc(ef.x - ef.size * 0.8, ef.y + ef.size * 0.2, ef.size * 0.3, 0, Math.PI * 2);
-            this.ctx.fill();
           } else if (ef.type === 'smoke') {
             this.ctx.arc(ef.x, ef.y, ef.size, 0, Math.PI * 2);
             this.ctx.fill();
