@@ -957,6 +957,7 @@ export default class Game {
     if (this.ui && this.ui.saveLastGameConfig) {
       this.ui.saveLastGameConfig();
     }
+    this.saveLocalProgression();
     this.state = 'MENU';
     document.getElementById('game-btns').style.display = 'none';
     document.getElementById('hud').classList.remove('visible');
@@ -977,9 +978,6 @@ export default class Game {
 
     // Broadcast leaving the game
     if (this.net && this.net.me) {
-      // Clear session data so they don't resume with items after a manual quit
-      localStorage.removeItem('nightvibe-inventory');
-      localStorage.removeItem('nightvibe-equipment');
       
       // Reset in-game progression stats locally so next game starts fresh at level 1.
       // Persistent progression (resets, bonusStatPoints) is already saved in localStorage
