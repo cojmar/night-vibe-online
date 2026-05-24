@@ -1085,6 +1085,8 @@ export default class Game {
     this.enemies = [];
     this.projectiles = [];
     this.particles = [];
+    this.items = [];
+    this.floatingTexts = [];
 
     this.ui.addLog('🎮 Returned to character selection!', 'player');
 
