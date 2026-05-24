@@ -1426,12 +1426,32 @@
       </div>
 
       <div
-        style="flex:1; overflow-y:auto; border:1px solid #34495e; border-radius:8px; padding:10px; background:#1a252f;">
+        style="flex:1; overflow-y:auto; border:1px solid #34495e; border-radius:8px; padding:10px; background:#1a252f; margin-bottom:10px;">
         <h3 style="margin-top:0; color:#bdc3c7; font-size:1.1em; margin-bottom:10px; text-align:center;">📦 Backpack
         </h3>
         <div id="inventory-grid"
           style="display:grid; grid-template-columns:repeat(auto-fill, minmax(55px, 1fr)); gap:10px; min-height: 200px; align-content: start;">
           <!-- Dynamically generated inventory cells -->
+        </div>
+      </div>
+
+      <!-- Item Details Panel -->
+      <div id="inventory-details-panel" style="display:none; background:#1e272e; padding:15px; border-radius:8px; border:1px solid #34495e; flex-direction:column; gap:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:start;">
+          <div style="display:flex; gap:10px; align-items:center;">
+            <div id="inv-details-icon" style="font-size:2em; background:rgba(0,0,0,0.3); width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius:8px; border:1px solid #7f8c8d;">💎</div>
+            <div>
+              <div id="inv-details-name" style="font-weight:bold; font-size:1.2em; color:#fff;">Item Name</div>
+              <div id="inv-details-type" style="font-size:0.85em; color:#bdc3c7; text-transform:uppercase;">Type</div>
+            </div>
+          </div>
+        </div>
+        <div id="inv-details-stats" style="font-size:0.9em; color:#2ecc71; line-height:1.4;">
+          <!-- Stats go here -->
+        </div>
+        <div style="display:flex; gap:10px; margin-top:5px;">
+          <button id="btn-inv-action-primary" style="flex:1; background:#27ae60; color:#fff; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">Equip</button>
+          <button id="btn-inv-action-drop" style="flex:1; background:#c0392b; color:#fff; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">Drop</button>
         </div>
       </div>
 
