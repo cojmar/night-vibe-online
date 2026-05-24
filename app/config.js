@@ -564,52 +564,134 @@ export function registerConfigListener(cb) {
   configListeners.push(cb);
 }
 
-export function updateConfig(newValues) {
-
-  for (const key in newValues) {
-    if (DEFAULTS[key] !== undefined) {
-      activeConfig[key] = newValues[key];
-    }
+export function updateConfig(newValues, saveToStorage = true) {
+  // Completely overwrite the current config with the host's config
+  for (const key in DEFAULTS) {
+    activeConfig[key] = newValues[key] !== undefined ? newValues[key] : DEFAULTS[key];
   }
 
   applyPreset(activeConfig);
 
   // Save updated values to persistent preset if custom, or scratch space if built-in
-// Save updated values to persistent preset if custom, or scratch space if built-in
-  if (activePresetId && activePresetId.startsWith('custom:')) {
-    const customId = activePresetId.split('custom:')[1];
-    const presets = getCustomPresets();
-    if (presets[customId]) {
-      presets[customId].values = { ...activeConfig };
-      saveCustomPresets(presets);
+  if (saveToStorage) {
+    if (activePresetId && activePresetId.startsWith('custom:')) {
+      const customId = activePresetId.split('custom:')[1];
+      const presets = getCustomPresets();
+      if (presets[customId]) {
+        presets[customId].values = { ...activeConfig };
+        saveCustomPresets(presets);
+      }
+    } else {
+      localStorage.setItem('nightvibe-scratch-config', JSON.stringify(activeConfig));
     }
-  } else {
-    localStorage.setItem('nightvibe-scratch-config', JSON.stringify(activeConfig));
   }
   
   // Notify listeners
   configListeners.forEach(cb => cb(activeConfig));
 }
 
-export function updateClassData(newClasses) {
+export function updateClassData(newClasses, saveToStorage = true) {
   for (const key in CLASS_DATA) delete CLASS_DATA[key];
   Object.assign(CLASS_DATA, newClasses);
-  localStorage.setItem('nightvibe-custom-classes', JSON.stringify(CLASS_DATA));
-}
-
-export function updateEnemyTypes(newEnemies) {
-  if (Array.isArray(newEnemies) && newEnemies.length > 0) {
-    ENEMY_TYPES.length = 0;
-    ENEMY_TYPES.push(...newEnemies);
-    localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ENEMY_TYPES));
+  if (saveToStorage) {
+    localStorage.setItem('nightvibe-custom-classes', JSON.stringify(CLASS_DATA));
   }
 }
 
-export function updateItemsDb(newItems) {
+export function updateEnemyTypes(newEnemies, saveToStorage = true) {
+  if (Array.isArray(newEnemies) && newEnemies.length > 0) {
+    ENEMY_TYPES.length = 0;
+    ENEMY_TYPES.push(...newEnemies);
+    if (saveToStorage) {
+      localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ENEMY_TYPES));
+    }
+  }
+}
+
+export function updateItemsDb(newItems, saveToStorage = true) {
   if (Array.isArray(newItems) && newItems.length > 0) {
     ITEMS_DB.length = 0;
     ITEMS_DB.push(...newItems);
-    localStorage.setItem('nightvibe-custom-items', JSON.stringify(ITEMS_DB));
+    if (saveToStorage) {
+      localStorage.setItem('nightvibe-custom-items', JSON.stringify(ITEMS_DB));
+    }
+  }
+}
+
+export function restoreLocalConfig() {
+  activePresetId = localStorage.getItem('nightvibe-active-preset-id') || 'built-in:default';
+  
+  let startupConfig = {};
+  if (activePresetId && activePresetId.startsWith('custom:')) {
+    const customId = activePresetId.split('custom:')[1];
+    const presets = getCustomPresets();
+    if (presets[customId]) {
+      startupConfig = presets[customId].values || {};
+      activePresetName = presets[customId].name || 'Custom Preset';
+    }
+  } else if (activePresetId && activePresetId.startsWith('built-in:')) {
+    const key = activePresetId.split('built-in:')[1];
+    activePresetName = key.charAt(0).toUpperCase() + key.slice(1);
+  } else {
+    try {
+      startupConfig = JSON.parse(localStorage.getItem('nightvibe-scratch-config') || '{}');
+    } catch (e) {
+      console.error("Failed parsing scratch config", e);
+    }
+  }
+  
+  for (const key in DEFAULTS) {
+    activeConfig[key] = startupConfig[key] !== undefined ? startupConfig[key] : DEFAULTS[key];
+  }
+  applyPreset(activeConfig);
+  
+  const defaultClasses = {
+    warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
+    mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
+    archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
+    magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
+  };
+  for (const key in CLASS_DATA) {
+    delete CLASS_DATA[key];
+  }
+  try {
+    const customClasses = JSON.parse(localStorage.getItem('nightvibe-custom-classes'));
+    Object.assign(CLASS_DATA, customClasses || defaultClasses);
+  } catch (e) {
+    Object.assign(CLASS_DATA, defaultClasses);
+  }
+  
+  const defaultMonsters = [
+    { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+    { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#27ae60', speed: 0.7, size: 22 },
+    { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+    { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#6b8e23', speed: 0.35, size: 28 },
+    { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+    { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#e74c3c', speed: 0.55, size: 26 },
+    { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+    { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
+  ];
+  ENEMY_TYPES.length = 0;
+  try {
+    const customMonsters = JSON.parse(localStorage.getItem('nightvibe-custom-monsters'));
+    if (customMonsters && customMonsters.length > 0) ENEMY_TYPES.push(...customMonsters);
+    else ENEMY_TYPES.push(...defaultMonsters);
+  } catch (e) {
+    ENEMY_TYPES.push(...defaultMonsters);
+  }
+  
+  const defaultItems = [
+    { name: 'Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 10, maxHp: 0, spd: 0 } },
+    { name: 'Plate Armor', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 80, spd: 0 } },
+    { name: 'Wind Ring', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 2, maxHp: 10, spd: 2 } }
+  ];
+  ITEMS_DB.length = 0;
+  try {
+    const customItems = JSON.parse(localStorage.getItem('nightvibe-custom-items'));
+    if (customItems && customItems.length > 0) ITEMS_DB.push(...customItems);
+    else ITEMS_DB.push(...defaultItems);
+  } catch (e) {
+    ITEMS_DB.push(...defaultItems);
   }
 }
 

@@ -553,6 +553,17 @@ export default class UI {
             
             this.updateLobbyRulesText();
             this.updateClassCarousel();
+            
+            // If we are currently the host, broadcast the new config to the room so late-joiners get the right data
+            if (this.game && this.game.net && this.game.isHost) {
+                this.game.net.send_cmd('set_data', {
+                    gameplayConfig: ConfigModule.activeConfig,
+                    gameplayConfigName: ConfigModule.activePresetName || 'Default',
+                    classData: ConfigModule.CLASS_DATA,
+                    enemyTypes: ConfigModule.ENEMY_TYPES,
+                    itemsDb: ConfigModule.ITEMS_DB
+                });
+            }
         }
         
         const badgeEl = document.getElementById('active-preset-badge');
@@ -1178,7 +1189,7 @@ export default class UI {
         };
 
         const saveConfigFromUI = () => {
-            const newValues = {};
+            const newValues = { ...ConfigModule.activeConfig };
             for (const key in CONFIG_METADATA) {
                 const input = document.getElementById(`cfg-${key}`);
                 if (!input) continue;
@@ -1197,6 +1208,17 @@ export default class UI {
 
             // Save to localStorage & dynamic live-binding exports
             updateConfig(newValues);
+            
+            // Broadcast the tweaked config to the network if we are host
+            if (this.game && this.game.net && this.game.isHost) {
+                this.game.net.send_cmd('set_data', {
+                    gameplayConfig: ConfigModule.activeConfig,
+                    gameplayConfigName: ConfigModule.activePresetName || 'Default',
+                    classData: ConfigModule.CLASS_DATA,
+                    enemyTypes: ConfigModule.ENEMY_TYPES,
+                    itemsDb: ConfigModule.ITEMS_DB
+                });
+            }
 
             // Re-apply configurations onto active game components
             if (this.game) {
