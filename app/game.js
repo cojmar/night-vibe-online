@@ -303,14 +303,36 @@ export default class Game {
       }
     }
 
+    const getHostTime = (u) => {
+      if (u === (this.net.me && this.net.me.info ? this.net.me.info.user : null)) {
+        return this.globalTime || 0;
+      } else {
+        const roomUser = this.net.room && this.net.room.users && this.net.room.users[u];
+        if (roomUser && roomUser.data && roomUser.data.hostData) {
+          return roomUser.data.hostData.time || 0;
+        }
+        return 0;
+      }
+    };
+
     let bestHost = null;
 
     if (currentHosts.length > 0) {
-      // Keep the current host (or resolve ties alphabetically if multiple claim to be host)
-      bestHost = currentHosts.sort((a, b) => a.localeCompare(b))[0];
+      // Prioritize the host that has been playing the longest (highest globalTime)
+      bestHost = currentHosts.sort((a, b) => {
+        const tA = getHostTime(a);
+        const tB = getHostTime(b);
+        if (tA !== tB) return tB - tA;
+        return a.localeCompare(b);
+      })[0];
     } else if (hostCandidates.length > 0) {
-      // No current host exists among active players, pick a new one alphabetically
-      bestHost = hostCandidates.sort((a, b) => a.localeCompare(b))[0];
+      // No current host exists among active players, pick the one who has been playing longest
+      bestHost = hostCandidates.sort((a, b) => {
+        const tA = getHostTime(a);
+        const tB = getHostTime(b);
+        if (tA !== tB) return tB - tA;
+        return a.localeCompare(b);
+      })[0];
     } else {
       bestHost = null; // No one is playing
     }
