@@ -2366,9 +2366,9 @@ export default class Game {
               ctx.globalAlpha = Math.min(1, item.life / 1000);
 
               if (item.type === 'gear') {
-                // Gear Aura
+                // Gear Aura - oval base shadow for perspective
                 ctx.beginPath();
-                ctx.arc(0, 0, 14 + pulse * 6, 0, Math.PI * 2);
+                ctx.ellipse(0, 8, (14 + pulse * 6) * 1.3, (14 + pulse * 6) * 0.5, 0, 0, Math.PI * 2);
                 ctx.fillStyle = item.color || '#ecf0f1';
                 ctx.globalAlpha = (0.2 + pulse * 0.3) * Math.min(1, item.life / 1000);
                 ctx.fill();
@@ -2411,9 +2411,9 @@ export default class Game {
                 let statStr = item.stats ? Object.entries(item.stats).map(([k, v]) => `+${Math.floor(v)} ${k.toUpperCase()}`).join('  ') : '';
                 ctx.fillText(statStr, 0, -16 - pulse * 2);
               } else {
-                // Pulsating Aura for Potions
+                // Pulsating Aura for Potions - oval base shadow for perspective
                 ctx.beginPath();
-                ctx.arc(0, 0, 10 + pulse * 6, 0, Math.PI * 2);
+                ctx.ellipse(0, 8, (10 + pulse * 6) * 1.3, (10 + pulse * 6) * 0.5, 0, 0, Math.PI * 2);
                 ctx.fillStyle = item.type === 'red' ? `rgba(231, 76, 60, ${0.3 + pulse * 0.3})` : `rgba(52, 152, 219, ${0.3 + pulse * 0.3})`;
                 ctx.fill();
 
