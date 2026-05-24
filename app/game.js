@@ -2003,7 +2003,9 @@ export default class Game {
 
             const useCustom = (ConfigModule.ITEMS_DB && ConfigModule.ITEMS_DB.length > 0);
             if (useCustom) {
-              const template = ConfigModule.ITEMS_DB[Math.floor(Math.random() * ConfigModule.ITEMS_DB.length)];
+              const matchingItems = ConfigModule.ITEMS_DB.filter(item => (item.rarity || 'normal') === rarity);
+              const templateList = matchingItems.length > 0 ? matchingItems : ConfigModule.ITEMS_DB;
+              const template = templateList[Math.floor(Math.random() * templateList.length)];
               category = template.gearType;
               itemName = template.name;
               icon = template.icon;
