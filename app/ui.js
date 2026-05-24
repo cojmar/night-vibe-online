@@ -2382,19 +2382,32 @@ export default class UI {
                             const btn = document.createElement('button');
                             btn.type = 'button';
                             btn.innerText = em.char;
-                            btn.style.background = 'none';
-                            btn.style.border = 'none';
-                            btn.style.fontSize = '1.6em';
+                            btn.style.width = '32px';
+                            btn.style.height = '32px';
+                            btn.style.padding = '0';
+                            btn.style.background = '#2c3e50';
+                            btn.style.border = '1px solid #34495e';
+                            btn.style.color = '#fff';
+                            btn.style.borderRadius = '4px';
                             btn.style.cursor = 'pointer';
-                            btn.style.padding = '4px';
-                            btn.style.borderRadius = '5px';
-                            btn.style.transition = '0.2s';
-                            btn.onmouseover = () => btn.style.background = 'rgba(255,255,255,0.1)';
-                            btn.onmouseout = () => btn.style.background = 'none';
+                            btn.style.fontSize = '1.3em';
+                            btn.style.display = 'flex';
+                            btn.style.alignItems = 'center';
+                            btn.style.justifyContent = 'center';
+                            btn.style.transition = 'all 0.15s ease';
+                            
+                            btn.onmouseover = () => {
+                                btn.style.background = '#34495e';
+                                btn.style.borderColor = '#1abc9c';
+                            };
+                            btn.onmouseout = () => {
+                                btn.style.background = '#2c3e50';
+                                btn.style.borderColor = '#34495e';
+                            };
                             
                             btn.onclick = () => {
                                 textInput.value = em.char;
-                                textInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                textInput.dispatchEvent(new Event('input', { bubbles: true }));
                                 popover.style.display = 'none';
                             };
                             emojiGrid.appendChild(btn);
@@ -2425,7 +2438,7 @@ export default class UI {
                             reader.onload = (event) => {
                                 const base64 = event.target.result;
                                 textInput.value = base64;
-                                textInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                textInput.dispatchEvent(new Event('input', { bubbles: true }));
                             };
                             reader.readAsDataURL(file);
                         };
@@ -2461,6 +2474,8 @@ export default class UI {
                     const eventType = input.tagName === 'SELECT' || input.type === 'color' || input.type === 'number' ? 'change' : 'input';
                     input.addEventListener(eventType, (e) => {
                         const key = e.target.getAttribute('data-key');
+                        if (!key) return;
+                        
                         let val = e.target.value;
                         if (e.target.type === 'number') val = parseFloat(val) || 0;
                         
