@@ -805,7 +805,7 @@ export default class UI {
                     mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
                     archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
                     magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
-      };
+                };
                 const defaultMonsters = [
                     { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
                     { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
@@ -991,7 +991,7 @@ export default class UI {
                             </div>
                         `;
                     } else if (meta.type === 'string') {
-                        if (meta.key === 'EQUIPMENT_SLOTS' && currentValue) {
+                        if (meta.key === 'EQUIPMENT_SLOTS') {
                             const slots = currentValue.split(',').map(s => s.trim()).filter(s => s);
                             let badgesHtml = slots.map((s, idx) => `
                                 <div style="display:inline-flex; align-items:center; background:#3498db; color:#fff; padding:4px 8px; border-radius:4px; margin-right:5px; margin-bottom:5px; font-size:0.9em;">
@@ -1262,7 +1262,7 @@ export default class UI {
                 this.buildClassesTab();
 
                 // Also reset monsters config to defaults!
-  localStorage.removeItem('nightvibe-custom-monsters');
+                localStorage.removeItem('nightvibe-custom-monsters');
                 const defaultMonsters = [
                     { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
                     { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
@@ -2802,8 +2802,8 @@ export default class UI {
 
                     let resolvedIcon = itemData.icon || '💎';
                     if (resolvedIcon === '📦') {
-                      const template = ConfigModule.ITEMS_DB.find(t => t.name === itemData.name);
-                      if (template && template.icon) resolvedIcon = template.icon;
+                        const template = ConfigModule.ITEMS_DB.find(t => t.name === itemData.name);
+                        if (template && template.icon) resolvedIcon = template.icon;
                     }
 
                     if (resolvedIcon && typeof resolvedIcon === 'string' && (resolvedIcon.startsWith('data:image/') || resolvedIcon.startsWith('http'))) {
