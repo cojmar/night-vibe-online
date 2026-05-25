@@ -1458,10 +1458,7 @@ releaseSkill2() {
     } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
       const fbRadius = Math.min(60, 15 + charges * 5);
       const fbLife = fbMaxDistance / 5;
-      const maxSpreadSpd = 200;
-      const baseFbCount = 1;
-      const extraFb = Math.max(0, Math.floor((this.player.spd - maxSpreadSpd) / 50));
-      const fbCount = baseFbCount + extraFb;
+      const fbCount = Math.max(1, charges);
       for (let i = 0; i < fbCount; i++) {
         this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: fbLife, maxLife: fbLife, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: i * 5, trailTimer: i * 1.5, trailPositions: [], maxDistance: fbMaxDistance, ...projProps }));
       }
