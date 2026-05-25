@@ -807,14 +807,14 @@ export default class UI {
                     magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
                 };
                 const defaultMonsters = [
-                    { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-                    { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
-                    { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-                    { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
-                    { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-                    { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
-                    { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-                    { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+                    { name: 'Slime', icon: '🟢', hp: 60, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+                    { name: 'Goblin', icon: '👺', hp: 90, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
+                    { name: 'Skeleton', icon: '💀', hp: 110, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+                    { name: 'Orc', icon: '👹', hp: 160, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
+                    { name: 'Ghost', icon: '👻', hp: 80, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+                    { name: 'Demon', icon: '🔥', hp: 200, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
+                    { name: 'Dragon', icon: '🐉', hp: 300, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+                    { name: 'Lich', icon: '🧙', hp: 240, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
                 ];
 
                 customPresets[newId] = {
@@ -823,14 +823,14 @@ export default class UI {
                     values: valuesCopy,
                     classes: defaultClasses,
                     monsters: [
-                        { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-                        { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
-                        { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-                        { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
-                        { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-                        { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
-                        { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-                        { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+                        { name: 'Slime', icon: '🟢', hp: 60, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+                        { name: 'Goblin', icon: '👺', hp: 90, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
+                        { name: 'Skeleton', icon: '💀', hp: 110, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+                        { name: 'Orc', icon: '👹', hp: 160, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
+                        { name: 'Ghost', icon: '👻', hp: 80, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+                        { name: 'Demon', icon: '🔥', hp: 200, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
+                        { name: 'Dragon', icon: '🐉', hp: 300, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+                        { name: 'Lich', icon: '🧙', hp: 240, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
                     ],
                     items: [
                         // Normal Rarity (White, 1 attribute)
@@ -1267,14 +1267,14 @@ export default class UI {
                 // Also reset monsters config to defaults!
                 localStorage.removeItem('nightvibe-custom-monsters');
                 const defaultMonsters = [
-                    { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-                    { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
-                    { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-                    { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
-                    { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-                    { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
-                    { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-                    { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+                    { name: 'Slime', icon: '🟢', hp: 60, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+                    { name: 'Goblin', icon: '👺', hp: 90, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
+                    { name: 'Skeleton', icon: '💀', hp: 110, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+                    { name: 'Orc', icon: '👹', hp: 160, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
+                    { name: 'Ghost', icon: '👻', hp: 80, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+                    { name: 'Demon', icon: '🔥', hp: 200, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
+                    { name: 'Dragon', icon: '🐉', hp: 300, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+                    { name: 'Lich', icon: '🧙', hp: 240, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
                 ];
                 ConfigModule.ENEMY_TYPES.length = 0;
                 ConfigModule.ENEMY_TYPES.push(...defaultMonsters);

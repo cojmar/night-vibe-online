@@ -20,7 +20,7 @@ const FALLBACK_DEFAULTS = {
   PLAYER_INITIAL_STAT_POINTS: 0,
   PLAYER_INITIAL_RESETS: 0,
   LEVEL_UP_STAT_POINTS: 3,
-  REQ_KILLS_BASE_MULT: 2,
+  REQ_KILLS_BASE_MULT: 2.5,
   REQ_KILLS_EXPONENT: 1.3,
   REQ_KILLS_SIN_AMP: 0,
   REBIRTH_BASE_LEVEL: 4,
@@ -390,14 +390,14 @@ try {
 }
 
 export const FALLBACK_ENEMY_TYPES = [
-  { name: 'Slime', icon: '🟢', hp: 30, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-  { name: 'Goblin', icon: '👺', hp: 45, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
-  { name: 'Skeleton', icon: '💀', hp: 55, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-  { name: 'Orc', icon: '👹', hp: 80, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
-  { name: 'Ghost', icon: '👻', hp: 40, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-  { name: 'Demon', icon: '🔥', hp: 100, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
-  { name: 'Dragon', icon: '🐉', hp: 150, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-  { name: 'Lich', icon: '🧙', hp: 120, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
+  { name: 'Slime', icon: '🟢', hp: 60, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+  { name: 'Goblin', icon: '👺', hp: 90, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
+  { name: 'Skeleton', icon: '💀', hp: 110, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+  { name: 'Orc', icon: '👹', hp: 160, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
+  { name: 'Ghost', icon: '👻', hp: 80, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+  { name: 'Demon', icon: '🔥', hp: 200, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
+  { name: 'Dragon', icon: '🐉', hp: 300, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+  { name: 'Lich', icon: '🧙', hp: 240, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
 ];
 
 export const ENEMY_TYPES = JSON.parse(JSON.stringify(FALLBACK_ENEMY_TYPES));
