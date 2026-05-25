@@ -1492,7 +1492,8 @@ releaseSkill2() {
       }
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
     } else if (skillType === 'Cross Slash' || this.player.classType === 'magicgladiator') {
-      const spiritCount = 8 + charges * 4;
+      const existingSpirits = this.projectiles.filter(p => p.type === 'spirit').length;
+      const spiritCount = Math.min(8 + charges * 4, 50 - existingSpirits);
       const spiritDamage = this.player.atk * 0.8 * dmgMulti;
       const spiritRadius = Math.min(20, 10 + charges * 1.5);
       const spiritLife = Math.round(90 + charges * 15);
