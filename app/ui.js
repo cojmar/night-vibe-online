@@ -12,7 +12,8 @@ export default class UI {
         this.recentLogs = [];
         this.MAX_LOGS = 12;
         this.logHoldTimer = null;
-        this.statMultiplier = 1; // Default allocation multiplier
+        const savedMult = localStorage.getItem('nightvibe-stat-mult');
+        this.statMultiplier = savedMult === 'all' ? 'all' : (parseInt(savedMult, 10) || 1);
         this.configSearchQuery = ''; // Persisted search filter
 
         this.builtInConfigs = {};
@@ -198,6 +199,7 @@ export default class UI {
             btn.addEventListener('click', (e) => {
                 const val = e.currentTarget.getAttribute('data-val');
                 this.statMultiplier = val === 'all' ? 'all' : parseInt(val, 10) || 1;
+                localStorage.setItem('nightvibe-stat-mult', this.statMultiplier);
 
                 // Update active visual styles on buttons
                 multButtons.forEach(b => {
@@ -276,6 +278,27 @@ export default class UI {
                         if (plus) plus.style.display = 'inline-block';
                     }
                 }
+            }
+        });
+
+        this.restoreStatMultButtons();
+    }
+
+    restoreStatMultButtons() {
+        const multButtons = document.querySelectorAll('.stat-mult-btn');
+        multButtons.forEach(btn => {
+            const val = btn.getAttribute('data-val');
+            const isActive = val == this.statMultiplier;
+            if (isActive) {
+                btn.classList.add('active');
+                btn.style.background = '#3498db';
+                btn.style.borderColor = 'transparent';
+                btn.style.color = 'white';
+            } else {
+                btn.classList.remove('active');
+                btn.style.background = '#2c3e50';
+                btn.style.borderColor = '#34495e';
+                btn.style.color = '#bdc3c7';
             }
         });
     }
