@@ -519,7 +519,13 @@ export const SKILL_DESC = {
 // ==========================================
 
 export function applyPreset(presetValues) {
-  activeConfig = Object.assign({}, DEFAULTS, presetValues);
+  // Update activeConfig in place to preserve the reference that live bindings depend on
+  const merged = Object.assign({}, DEFAULTS, presetValues);
+  for (const key in merged) {
+    if (merged.hasOwnProperty(key)) {
+      activeConfig[key] = merged[key];
+    }
+  }
 
   // Dynamically update the live bindings so that all other game source modules receive the fresh settings immediately!
   GAME_W = activeConfig.GAME_W;
