@@ -2313,8 +2313,9 @@ releaseSkill2() {
         if (this.player.isChargingS2) {
           let chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? ConfigModule.POTION_BLUE_CD_MULTIPLIER : 1;
           const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
-          const spdDiff = Math.max(0, this.player.spd - cd.spd);
-          chargeSpeed *= (1 + spdDiff * 0.05); // SPD speeds up charge
+          const effectiveSpdForCharge = Math.min(this.player.spd, 200);
+          const spdDiff = Math.max(0, effectiveSpdForCharge - cd.spd);
+          chargeSpeed *= (1 + spdDiff * 0.05); // SPD speeds up charge (capped at 200)
           if (this.player.classType === 'archer') chargeSpeed *= 1.35;
           this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67 * chargeSpeed;
           const maxCharges = 3 + (this.player.resets || 0);
