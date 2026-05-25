@@ -1461,11 +1461,9 @@ releaseSkill2() {
       const maxActiveFb = Math.max(1, charges);
       const activeFbCount = this.projectiles.filter(p => p.type === 'fireball').length;
       let slotsAvailable = Math.max(0, maxActiveFb - activeFbCount);
-      const delayPixels = 300; // 1 second at speed 5 (5 * 60fps)
       for (let i = 0; i < slotsAvailable; i++) {
-        const spawnX = this.player.x + Math.cos(projProps.angle) * delayPixels * i;
-        const spawnY = weaponY + Math.sin(projProps.angle) * delayPixels * i;
-        this.projectiles.push(new Projectile({ type: 'fireball', x: spawnX, y: spawnY, speed: 5, life: fbLife, maxLife: fbLife, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: i * delayPixels, trailTimer: i * 1.5, trailPositions: [], maxDistance: fbMaxDistance, ...projProps }));
+        const delay = i * 60; // 1 second gap (60 frames at 60fps)
+        this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: fbLife + delay, maxLife: fbLife + delay, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: delay * 5, trailTimer: i * 1.5, trailPositions: [], maxDistance: fbMaxDistance, ...projProps }));
       }
       if (slotsAvailable > 0) this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 8, 3);
     } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
