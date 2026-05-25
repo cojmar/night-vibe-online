@@ -1491,13 +1491,13 @@ releaseSkill2() {
         this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: arrowRadius, bodyScale: arrowBodyScale }));
       }
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
-    } else if (skillType === 'Cross Slash' || this.player.classType === 'magicgladiator') {
+    } else if (skillType === 'Evil Spirits' || this.player.classType === 'magicgladiator') {
       const existingSpirits = this.projectiles.filter(p => p.type === 'spirit').length;
       const spiritCount = Math.min(8 + charges * 4, 50 - existingSpirits);
       const spiritDamage = this.player.atk * 0.8 * dmgMulti;
       const spiritRadius = Math.min(20, 10 + charges * 1.5);
       const spiritLife = Math.round(90 + charges * 15);
-      const spiritColor = cd.accent;
+      const spiritColor = cd.s2Color || '#ffd700';
 
       for (let i = 0; i < spiritCount; i++) {
         const angle = Math.random() * Math.PI * 2;

@@ -118,7 +118,7 @@ Choose your fighter wisely. Each class offers a completely different combat expe
 | Skill | Type | Description |
 |-------|------|-------------|
 | **Psionic Slash** (S1) | Melee | A double wide arc slash dealing 110% ATK damage with 12% crit chance. |
-| **Cross Slash** (S2) | AoE Explosion | A massive area explosion dealing 300% ATK damage with 25% crit chance. **Heals you for 50% of damage dealt.** Charge to increase the explosion radius and heal amount. |
+| **Evil Spirits** (S2) | Spirit Summon | Summons golden spirits that chase enemies (max 50 on screen). 80% ATK per spirit, 25% crit chance. **Heals you for 50% of damage dealt.** Charge to increase spirit count and stats. |
 
 **Playstyle:** Dive into the fray. Your S2 sustains you in combat — the more damage you deal, the harder you stay alive.
 
