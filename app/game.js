@@ -1433,8 +1433,8 @@ releaseSkill2() {
       const maxCharges = 3 + (this.player.resets || 0);
       const chargeRatio = maxCharges > 0 ? charges / maxCharges : 0;
       const spreadAngle = 0.15 + chargeRatio * (2 * Math.PI - 0.15);
-      const arrowRadius = 12 + charges * 6;
-      const arrowBodyScale = 1 + charges * 0.5;
+      const arrowRadius = 12 + charges * 0.9;
+      const arrowBodyScale = 1 + charges * 0.075;
       const maxSpreadSpd = baseSpd + 100;
       const arrowCount = Math.min(24, Math.max(1, 4 + Math.floor((this.player.spd - baseSpd) * 20 / (maxSpreadSpd - baseSpd))));
       const extraArrows = Math.max(0, Math.floor((this.player.spd - maxSpreadSpd) / 50));
