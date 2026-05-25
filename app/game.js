@@ -482,17 +482,20 @@ export default class Game {
       }
     });
 
-    this.canvas.addEventListener('click', (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
-      e.preventDefault();
-      const p = this.toGameCoords(e.clientX, e.clientY);
-      this.player.mouseX = p.x;
-      this.player.mouseY = p.y;
-      this.handleLeftClick(p.x, p.y);
-    });
-
     this.canvas.addEventListener('mousedown', (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
+      if (e.button === 0) {
+        e.preventDefault();
+        const p = this.toGameCoords(e.clientX, e.clientY);
+        this.player.mouseX = p.x;
+        this.player.mouseY = p.y;
+        this.handleLeftClick(p.x, p.y);
+        this.leftClickInterval = setInterval(() => {
+          if (this.state === 'PLAYING' && this.player) {
+            this.handleLeftClick(this.player.mouseX, this.player.mouseY);
+          }
+        }, 100);
+      }
       if (e.button === 2) {
         e.preventDefault();
         this.mouseDown = true;
@@ -503,14 +506,24 @@ export default class Game {
 
     this.canvas.addEventListener('mouseup', (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
+      if (e.button === 0) {
+        e.preventDefault();
+        clearInterval(this.leftClickInterval);
+      }
       if (e.button === 2) {
         e.preventDefault();
         this.mouseDown = false;
+        clearInterval(this.leftClickInterval);
         const p = this.toGameCoords(e.clientX, e.clientY);
         this.player.mouseX = p.x;
         this.player.mouseY = p.y;
         this.releaseSkill2();
       }
+    });
+
+    this.canvas.addEventListener('mouseleave', (e) => {
+      if (this.state !== 'PLAYING') return;
+      clearInterval(this.leftClickInterval);
     });
 
     document.addEventListener('contextmenu', (e) => {
@@ -519,8 +532,9 @@ export default class Game {
       }
     });
 
-    let touchActive = false;
+  let touchActive = false;
     let touchLongPressTimer = null;
+    let touchLeftClickTimer = null;
 
     this.canvas.addEventListener('touchstart', (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
@@ -532,14 +546,27 @@ export default class Game {
       this.player.mouseY = pos.y;
 
       clearTimeout(touchLongPressTimer);
+      clearTimeout(touchLeftClickTimer);
       touchLongPressTimer = setTimeout(() => {
         if (!touchActive) return;
+        clearTimeout(touchLeftClickTimer);
         this.startChargingSkill2();
       }, 400);
 
       // Only do S1/walk if we didn't just release S2. We will just trigger it anyway for now,
       // but maybe if we are charging we shouldn't. startChargingSkill2 handles stopping walk.
       this.handleLeftClick(pos.x, pos.y);
+      touchLeftClickTimer = setTimeout(() => {
+        if (!touchActive) return;
+        const interval = setInterval(() => {
+          if (!touchActive || this.player.isChargingS2) {
+            clearInterval(interval);
+            return;
+          }
+          this.handleLeftClick(this.player.mouseX, this.player.mouseY);
+        }, 100);
+        this.touchLeftClickInterval = interval;
+      }, 150);
     }, { passive: false });
 
     this.canvas.addEventListener('touchmove', (e) => {
@@ -551,9 +578,11 @@ export default class Game {
       this.player.mouseY = pos.y;
     }, { passive: false });
 
-   this.canvas.addEventListener('touchend', () => {
+    this.canvas.addEventListener('touchend', () => {
       touchActive = false;
       clearTimeout(touchLongPressTimer);
+      clearTimeout(touchLeftClickTimer);
+      clearInterval(this.touchLeftClickInterval);
       if (this.player && this.player.isChargingS2) {
         this.mouseDown = false;
         this.releaseSkill2();
@@ -562,6 +591,8 @@ export default class Game {
     this.canvas.addEventListener('touchcancel', () => {
       touchActive = false;
       clearTimeout(touchLongPressTimer);
+      clearTimeout(touchLeftClickTimer);
+      clearInterval(this.touchLeftClickInterval);
       if (this.player && this.player.isChargingS2) {
         this.mouseDown = false;
         this.releaseSkill2();
