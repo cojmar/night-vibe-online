@@ -2371,6 +2371,23 @@ releaseSkill2() {
             this.broadcastState();
           }
 
+          // Magic Gladiator charge: spawn floating purple spirit particles
+          if (this.player.classType === 'magicgladiator' && Math.random() < 0.15 * dt) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 20 + Math.random() * 25;
+            this.particles.push({
+              x: this.player.x + Math.cos(angle) * dist,
+              y: this.player.y - 40 + Math.sin(angle) * dist,
+              vx: Math.cos(angle) * 0.3,
+              vy: -0.5 - Math.random() * 0.5,
+              life: 15 + Math.floor(Math.random() * 15),
+              maxLife: 30,
+              color: cd.s2Color || '#9b4dff',
+              size: 1.5 + Math.random() * 2,
+              isSparkle: true
+            });
+          }
+
           if (this.player.s2ChargeCount >= maxCharges && this.player.s2ChargeTime >= maxCharges * 1000 + 150) {
             this.releaseSkill2();
           }

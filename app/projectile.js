@@ -335,6 +335,9 @@ export default class Projectile {
     else if (this.type === 'spirit') {
       const spiritSize = this.radius || 12;
       const sAlpha = Math.min(1, this.life / (this.maxLife * 0.3));
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = sAlpha;
 
       // Trail
@@ -360,7 +363,11 @@ export default class Projectile {
       ctx.arc(this.x, this.y, spiritSize * 2, 0, Math.PI * 2);
       ctx.fill();
 
-      // Skull body
+      ctx.restore();
+
+      // Skull body (non-additive, drawn normally on top)
+      ctx.save();
+      ctx.globalAlpha = sAlpha;
       ctx.fillStyle = '#e0dcff';
       ctx.beginPath();
       ctx.arc(this.x, this.y, spiritSize, 0, Math.PI * 2);
@@ -381,8 +388,7 @@ export default class Projectile {
       ctx.lineTo(this.x + 6, this.y + 6);
       ctx.lineTo(this.x, this.y + 16);
       ctx.fill();
-
-      ctx.globalAlpha = sAlpha;
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
