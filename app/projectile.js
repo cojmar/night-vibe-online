@@ -78,6 +78,14 @@ export default class Projectile {
       }
       
       if (this.type === 'fireball') {
+        this.traveled += this.speed * dt;
+        if (this.maxDistance && this.traveled >= this.maxDistance) {
+          gameInstance.spawnParticles(this.x, this.y, this.color, 15, 5);
+          this.life = 0;
+        }
+      }
+      
+      if (this.type === 'fireball') {
           this.trailTimer = (this.trailTimer || 0) + dt;
           if (this.trailTimer > 1.5) {
              this.trailTimer = 0;
@@ -245,12 +253,12 @@ export default class Projectile {
       if (this.trailPositions) {
         for (let t of this.trailPositions) {
            const prog = Math.max(0, t.life / t.maxLife);
-           ctx.globalAlpha = alpha * prog * 0.6;
+           ctx.globalAlpha = alpha * prog * 0.25;
            ctx.fillStyle = this.color;
            ctx.beginPath(); ctx.arc(t.x, t.y, Math.max(0.1, t.radius * prog), 0, Math.PI*2); ctx.fill();
         }
       }
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = alpha * 0.35;
       const r = this.radius || 15;
       const grad = ctx.createRadialGradient(this.x, this.y, r * 0.2, this.x, this.y, r);
       grad.addColorStop(0, '#fff');
