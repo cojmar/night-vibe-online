@@ -576,10 +576,10 @@ export default class Game {
     const endUltBtn = (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
       e.preventDefault(); e.stopPropagation();
-      this.mouseDown = false;
       if (this.player.isChargingS2) {
         this.releaseSkill2();
       }
+      this.mouseDown = false;
     };
     cdRingBtn.addEventListener('mousedown', startUltBtn);
     cdRingBtn.addEventListener('touchstart', startUltBtn, { passive: false });
@@ -1331,7 +1331,7 @@ releaseSkill2() {
       }
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
     } else if (skillType === 'Cross Slash' || this.player.classType === 'magicgladiator') {
-      this.projectiles.push(new Projectile({ type: 'aoe_explosion', x: this.player.x, y: weaponY, radius: 130 * aoeScale * areaMulti * lvlScale, life: 25, maxLife: 25, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.25, ...projProps }));
+      this.projectiles.push(new Projectile({ type: 'aoe_explosion', x: this.player.x, y: weaponY, radius: 130 * aoeScale * areaMulti * lvlScale, life: 25, maxLife: 25, color: cd.s2Color || '#ffd700', damage: this.player.atk * 0.2 * dmgMulti, critChance: 0.25, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#ffd700', 30 * aoeScale + charges * 15, 8);
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
       this.ui.updateHUD(this.player);
