@@ -1418,9 +1418,8 @@ releaseSkill2() {
     const dmgMulti = 1 + (charges * 0.15);
     const areaMulti = 1 + (charges * 0.08);
 
-    // SPD controls AOE (linear growth up to 200 SPD, like overcharge)
-    const effectiveSpd = Math.min(this.player.spd, 200);
-    const spdScale = 1 + (effectiveSpd - baseSpd) * 1.5 / Math.max(1, 200 - baseSpd);
+    // SPD controls AOE size (linear growth, no cap — SPD affects real size)
+    const spdScale = 1 + (this.player.spd - baseSpd) * 1.5 / Math.max(1, 200 - baseSpd);
     const aoeScale = spdScale * (1 + (charges * 0.15));
     
     // SPD controls fireball range (200-300 SPD: +25% range)
