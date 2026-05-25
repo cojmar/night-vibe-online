@@ -455,21 +455,21 @@ try {
 export const FALLBACK_ITEMS_DB = [
   // Normal Rarity (White, 1 attribute)
   { name: 'Novice Dagger', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 8, maxHp: 0, spd: 0 } },
-  { name: 'Leather Vest', icon: '🛡️', gearType: 'Armor', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 6, spd: 0 } },
+  { name: 'Leather Vest', icon: '🛡️', gearType: 'Armor', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 8, spd: 0 } },
   { name: 'Bronze Ring', icon: '💍', gearType: 'Ring', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 0, spd: 1.5 } },
-  { name: 'Simple Talisman', icon: '📿', gearType: 'Amulet', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 4, spd: 0 } },
+  { name: 'Simple Talisman', icon: '📿', gearType: 'Amulet', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 5, spd: 0 } },
 
   // Magic Rarity (Blue, 2 attributes)
-  { name: 'Gleaming Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'magic', color: '#3498db', stats: { atk: 12, maxHp: 4, spd: 0 } },
-  { name: 'Reinforced Chainmail', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 12, spd: 1.0 } },
+  { name: 'Gleaming Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'magic', color: '#3498db', stats: { atk: 12, maxHp: 5, spd: 0 } },
+  { name: 'Reinforced Chainmail', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 15, spd: 1.0 } },
   { name: 'Chrono Ring', icon: '💍', gearType: 'Ring', rarity: 'magic', color: '#3498db', stats: { atk: 4, maxHp: 0, spd: 2.5 } },
-  { name: 'Empowered Necklace', icon: '📿', gearType: 'Amulet', rarity: 'magic', color: '#3498db', stats: { atk: 5, maxHp: 8, spd: 0 } },
+  { name: 'Empowered Necklace', icon: '📿', gearType: 'Amulet', rarity: 'magic', color: '#3498db', stats: { atk: 5, maxHp: 10, spd: 0 } },
 
   // Rare Rarity (Yellow, 3 attributes)
-  { name: 'Heavenly Excalibur', icon: '🗡️', gearType: 'Weapon', rarity: 'rare', color: '#f1c40f', stats: { atk: 20, maxHp: 10, spd: 2.0 } },
-  { name: 'Valorous Aegis Plate', icon: '🛡️', gearType: 'Armor', rarity: 'rare', color: '#f1c40f', stats: { atk: 8, maxHp: 24, spd: 2.5 } },
-  { name: 'Celestial Loop', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 10, maxHp: 5, spd: 4.0 } },
-  { name: 'Relic of the Dragon', icon: '📿', gearType: 'Amulet', rarity: 'rare', color: '#f1c40f', stats: { atk: 12, maxHp: 18, spd: 1.8 } }
+  { name: 'Heavenly Excalibur', icon: '🗡️', gearType: 'Weapon', rarity: 'rare', color: '#f1c40f', stats: { atk: 20, maxHp: 12, spd: 2.0 } },
+  { name: 'Valorous Aegis Plate', icon: '🛡️', gearType: 'Armor', rarity: 'rare', color: '#f1c40f', stats: { atk: 8, maxHp: 30, spd: 2.5 } },
+  { name: 'Celestial Loop', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 10, maxHp: 6, spd: 4.0 } },
+  { name: 'Relic of the Dragon', icon: '📿', gearType: 'Amulet', rarity: 'rare', color: '#f1c40f', stats: { atk: 12, maxHp: 22, spd: 1.8 } }
 ];
 
 export const ITEMS_DB = JSON.parse(JSON.stringify(FALLBACK_ITEMS_DB));
