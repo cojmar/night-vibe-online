@@ -44,6 +44,8 @@ export default class Game {
     this.enemySpawnInterval = 1000;
 
     this.viewScale = 1;
+    this.zoomScale = 1;
+    this.zoomTarget = 1;
     this.viewOX = 0;
     this.viewOY = 0;
     this.pixelRatio = 1;
@@ -532,6 +534,25 @@ export default class Game {
       }
     });
 
+    // Mouse wheel zoom
+    this.canvas.addEventListener('wheel', (e) => {
+      if (this.state !== 'PLAYING' || !this.player) return;
+      e.preventDefault();
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      this.zoomTarget *= zoomFactor;
+
+      const cw = this.canvas.width / (this.pixelRatio || 1);
+      const ch = this.canvas.height / (this.pixelRatio || 1);
+
+      // Lowest zoom (most zoomed out): full map width fits on screen
+      const zoomOutMin = (cw / this.gameW) / this.viewScale;
+
+      // Highest zoom (most zoomed in): character fills most of screen
+      const zoomInMax = Math.max(5, (ch / 30) / this.viewScale);
+
+      this.zoomTarget = Math.max(zoomOutMin, Math.min(zoomInMax, this.zoomTarget));
+    }, { passive: false });
+
   let touchActive = false;
     let touchLongPressTimer = null;
     let touchLeftClickTimer = null;
@@ -683,12 +704,25 @@ export default class Game {
     const rect = this.cachedCanvasRect || this.canvas.getBoundingClientRect();
     const canvasX = clientX - rect.left;
     const canvasY = clientY - rect.top;
-    const gameX = (canvasX - this.viewOX) / this.viewScale + (this.cameraX || 0);
-    const gameY = (canvasY - this.viewOY) / this.viewScale;
+    const effectiveScale = this.viewScale * this.zoomScale;
+    const cw = this.canvas.width / (this.pixelRatio || 1);
+    const ch = this.canvas.height / (this.pixelRatio || 1);
+    const camX = this.cameraX || 0;
+    const camY = this.player ? this.player.y : this.gameH / 2;
+    const viewOX = this.viewOX || 0;
+    const gameX = (canvasX - cw / 2 - viewOX) / effectiveScale + camX;
+    const gameY = (canvasY - ch / 2) / effectiveScale + camY;
     return { x: gameX, y: gameY };
   }
 
   applyViewport(dt = 0) {
+    // Smooth zoom transition
+    if (Math.abs(this.zoomScale - this.zoomTarget) > 0.001) {
+      this.zoomScale += (this.zoomTarget - this.zoomScale) * Math.min(0.2, 0.15 * dt);
+    } else {
+      this.zoomScale = this.zoomTarget;
+    }
+
     let shakeX = 0, shakeY = 0;
     if (this.screenShake > 0) {
       shakeX = (Math.random() - 0.5) * this.screenShake;
@@ -697,25 +731,32 @@ export default class Game {
       if (this.screenShake < 0) this.screenShake = 0;
     }
 
-    // Side-scrolling camera to follow local player
+    const effectiveScale = this.viewScale * this.zoomScale;
+    const cw = this.canvas.width / (this.pixelRatio || 1);
+    const ch = this.canvas.height / (this.pixelRatio || 1);
+
+    // Camera centered on player with edge clamping
     if (this.player && this.canvas) {
-      const cw = this.canvas.width / (this.pixelRatio || 1);
-      const viewportWidth = cw / this.viewScale;
-      const scaledW = this.gameW * this.viewScale;
-      if (cw < scaledW) {
-        this.cameraX = Math.max(0, Math.min(this.gameW - viewportWidth, this.player.x - viewportWidth / 2));
+      const halfViewportX = (cw / 2) / effectiveScale;
+      if (halfViewportX >= this.gameW / 2) {
+        // Visible area >= game width: center the game world
+        this.cameraX = this.gameW / 2;
       } else {
-        this.cameraX = 0;
+        // Visible area < game width: center on player
+        this.cameraX = Math.max(halfViewportX, Math.min(this.gameW - halfViewportX, this.player.x));
       }
     } else {
-      this.cameraX = 0;
+      this.cameraX = this.gameW / 2;
     }
 
-    const tx = this.viewOX + shakeX - (this.cameraX || 0) * this.viewScale;
-    const ty = this.viewOY + shakeY;
+    const camX = this.cameraX;
+    const camY = this.player ? this.player.y : this.gameH / 2;
+    const viewOX = this.viewOX || 0;
 
-    this.ctx.translate(tx, ty);
-    this.ctx.scale(this.viewScale, this.viewScale);
+    // Center transform: translate to screen center, scale, translate by camera offset
+    this.ctx.translate(cw / 2 + viewOX + shakeX, ch / 2 + shakeY);
+    this.ctx.scale(effectiveScale, effectiveScale);
+    this.ctx.translate(-camX, -camY);
   }
 
   startGame(selectedClass) {
