@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, ENV_CONFIG, getGroundY, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_SIZE_MULT, BOSS_SIZE_WAVE_MULT, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_LASER_DAMAGE_PER_SEC, BOSS_LASER_DAMAGE_LEVEL_SCALE, BOSS_PROJECTILE_LIFETIME, ENEMY_BASE_SIZE_MULT, ENEMY_SIZE_WAVE_MULT, getCachedImage } from './utils.js';
+import { ENEMY_TYPES, ENV_CONFIG, getGroundY, DEAD_BODY_LIFETIME, PRNG, ENEMY_SCALE_WAVE_MULT, ENEMY_SCALE_LVL_MULT, ENEMY_SPEED_SCALE_LVL_MULT, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, BOSS_BASE_HP, BOSS_BASE_ATK, BOSS_BASE_SPEED, BOSS_BASE_SIZE, BOSS_BASE_SIZE_MULT, BOSS_SIZE_WAVE_MULT, BOSS_BASE_COLOR, BOSS_ATTACK_COOLDOWN, ENEMY_ATTACK_COOLDOWN_BASE, ENEMY_ATTACK_COOLDOWN_RAND, ENEMY_SKY_SPEED_MULTIPLIER, BOSS_PROJECTILE_SPEED, BOSS_PROJECTILE_HOMING, BOSS_LASER_CHANNEL_TIME, BOSS_LASER_DAMAGE_INTERVAL, BOSS_LASER_DAMAGE_PER_SEC, BOSS_LASER_DAMAGE_LEVEL_SCALE, BOSS_PROJECTILE_LIFETIME, ENEMY_BASE_SIZE_MULT, ENEMY_SIZE_WAVE_MULT, getCachedImage } from './utils.js';
 
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
@@ -26,6 +26,7 @@ export default class Enemy {
     
     // Scale dynamically by Wave and Player Level
     const scale = 1 + (wave - 1) * ENEMY_SCALE_WAVE_MULT + (avgLevel - 1) * ENEMY_SCALE_LVL_MULT;
+    const speedScale = 1 + (avgLevel - 1) * ENEMY_SPEED_SCALE_LVL_MULT;
     
     if (isBoss) {
       this.isBoss = true;
@@ -37,7 +38,7 @@ export default class Enemy {
       this.hp = Math.round(BOSS_BASE_HP * scale);
       this.maxHp = this.hp;
       this.atk = Math.round(BOSS_BASE_ATK * scale);
-      this.speed = BOSS_BASE_SPEED;
+      this.speed = BOSS_BASE_SPEED * speedScale;
       const exponentialBossSizeScale = Math.min(Math.pow(1 + (BOSS_SIZE_WAVE_MULT || 0), (wave - 1) + (avgLevel - 1) * 0.5), 4.0);
       this.size = BOSS_BASE_SIZE * (BOSS_BASE_SIZE_MULT || 1.0) * exponentialBossSizeScale;
       this.color = BOSS_BASE_COLOR;
@@ -59,7 +60,7 @@ export default class Enemy {
       this.hp = Math.round(type.hp * scale);
       this.maxHp = this.hp;
       this.atk = Math.round(type.atk * scale);
-      this.speed = type.speed * (0.8 + localPrng.nextFloat() * 0.4);
+      this.speed = type.speed * speedScale * (0.8 + localPrng.nextFloat() * 0.4);
       const exponentialSizeScale = Math.min(Math.pow(1 + (ENEMY_SIZE_WAVE_MULT || 0), (wave - 1) + (avgLevel - 1) * 0.5), 4.0);
       this.size = type.size * (ENEMY_BASE_SIZE_MULT || 1.0) * exponentialSizeScale;
       this.color = type.color;

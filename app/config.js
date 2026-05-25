@@ -53,6 +53,7 @@ const FALLBACK_DEFAULTS = {
   ENEMY_SCALE_WAVE_MULT: 0.22,
   ENEMY_SCALE_LVL_MULT: 0.35,
   ENEMY_SKY_SPEED_MULTIPLIER: 2.5,
+  ENEMY_SPEED_SCALE_LVL_MULT: 1.75,
   ENEMY_ATTACK_COOLDOWN_BASE: 35,
   ENEMY_ATTACK_COOLDOWN_RAND: 20,
   ENEMY_BASE_SIZE_MULT: 1.0,
@@ -182,6 +183,7 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   ENEMY_SCALE_WAVE_MULT: { label: "Enemy HP/ATK Wave Multiplier", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Enemy Dynamics" },
   ENEMY_SCALE_LVL_MULT: { label: "Enemy HP/ATK Level Multiplier", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Enemy Dynamics" },
   ENEMY_SKY_SPEED_MULTIPLIER: { label: "Sky Spawn Falling Speed Mult", type: "number", min: 1.0, max: 5.0, step: 0.5, category: "Enemy Dynamics" },
+  ENEMY_SPEED_SCALE_LVL_MULT: { label: "Enemy Speed Level Multiplier", type: "number", min: 0.0, max: 10.0, step: 0.05, category: "Enemy Dynamics" },
   ENEMY_ATTACK_COOLDOWN_BASE: { label: "Enemy Attack Delay Base (frames)", type: "number", min: 20, max: 200, step: 5, category: "Enemy Dynamics" },
   ENEMY_ATTACK_COOLDOWN_RAND: { label: "Enemy Attack Delay Variance", type: "number", min: 0, max: 100, step: 5, category: "Enemy Dynamics" },
   ENEMY_BASE_SIZE_MULT: { label: "Enemy Base Size Multiplier", type: "number", min: 0.5, max: 3.0, step: 0.1, category: "Enemy Dynamics" },
@@ -346,6 +348,7 @@ export let ENEMY_SPAWN_INTERVAL = activeConfig.ENEMY_SPAWN_INTERVAL;
 export let ENEMY_SCALE_WAVE_MULT = activeConfig.ENEMY_SCALE_WAVE_MULT;
 export let ENEMY_SCALE_LVL_MULT = activeConfig.ENEMY_SCALE_LVL_MULT;
 export let ENEMY_SKY_SPEED_MULTIPLIER = activeConfig.ENEMY_SKY_SPEED_MULTIPLIER;
+export let ENEMY_SPEED_SCALE_LVL_MULT = activeConfig.ENEMY_SPEED_SCALE_LVL_MULT;
 
 export let BOSS_BASE_HP = activeConfig.BOSS_BASE_HP;
 export let BOSS_BASE_ATK = activeConfig.BOSS_BASE_ATK;
@@ -557,6 +560,7 @@ export function applyPreset(presetValues) {
   ENEMY_SCALE_WAVE_MULT = activeConfig.ENEMY_SCALE_WAVE_MULT;
   ENEMY_SCALE_LVL_MULT = activeConfig.ENEMY_SCALE_LVL_MULT;
   ENEMY_SKY_SPEED_MULTIPLIER = activeConfig.ENEMY_SKY_SPEED_MULTIPLIER;
+  ENEMY_SPEED_SCALE_LVL_MULT = activeConfig.ENEMY_SPEED_SCALE_LVL_MULT;
   ENEMY_ATTACK_COOLDOWN_BASE = activeConfig.ENEMY_ATTACK_COOLDOWN_BASE;
   ENEMY_ATTACK_COOLDOWN_RAND = activeConfig.ENEMY_ATTACK_COOLDOWN_RAND;
   ENEMY_BASE_SIZE_MULT = activeConfig.ENEMY_BASE_SIZE_MULT;
