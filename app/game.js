@@ -511,7 +511,7 @@ export default class Game {
               this.startChargingSkill2();
             }
             this.s2HoldTimer = null;
-          }, 1000);
+          }, 300);
         }
       }
     });
