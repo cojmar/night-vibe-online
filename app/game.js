@@ -1340,14 +1340,32 @@ export default class Game {
       this.projectiles.push(new Projectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: cd.s1Color || '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#3498db', 3, 2);
    } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
-      const archerBaseAtk = cd.atk;
-      const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
-      const archerLife = Math.round(50 * archerRangeMult);
-      const speed = 10;
-      const archerS1Scale = Math.min(5, 1 + (this.player.atk - archerBaseAtk) * 0.0227);
-      const arrowRadius = 12 * archerS1Scale * lvlScale;
-      this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, ...projProps }));
-      this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
+       const archerBaseAtk = cd.atk;
+       const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
+       const archerLife = Math.round(50 * archerRangeMult);
+       const speed = 10;
+       const archerS1Scale = Math.min(5, 1 + (this.player.atk - archerBaseAtk) * 0.0227);
+       const arrowRadius = 12 * archerS1Scale * lvlScale;
+       this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, ...projProps }));
+       const extraArrows = Math.max(0, Math.floor((this.player.atk - 100) / 100));
+       if (extraArrows > 0) {
+         let nearest = null, nearDist = Infinity;
+         for (let e of this.enemies) {
+           if (!e.alive) continue;
+           const d = Math.hypot(e.x - this.player.x, e.y - weaponY);
+           if (d < nearDist) { nearDist = d; nearest = e; }
+         }
+         if (nearest) {
+           const targetAngle = Math.atan2(nearest.y - weaponY, nearest.x - this.player.x);
+           const spread = 0.12;
+           for (let i = 0; i < extraArrows; i++) {
+             const offset = (i - (extraArrows - 1) / 2) * spread;
+             const a = targetAngle + offset;
+             this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, tx: nearest.x, ty: nearest.y, angle: a, facing: this.player.facing, critChance: 0.1 }));
+           }
+         }
+       }
+       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
     } else if (skillType === 'Psionic Slash' || this.player.classType === 'magicgladiator') {
       const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
       this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 20, maxLife: 20, color: cd.s1Color || '#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
