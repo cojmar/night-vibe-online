@@ -1256,8 +1256,8 @@ export default class Game {
     // charge = 2 -> 1.50x dmg
     // charge = 3 -> 1.75x dmg
     const charges = this.player.s2ChargeCount || 0;
-    const dmgMulti = 1 + (charges * 0.25);
-    const areaMulti = 1 + (charges * 0.15);
+    const dmgMulti = 1 + (charges * 0.15);
+    const areaMulti = 1 + (charges * 0.08);
 
     const tx = this.player.mouseX, ty = this.player.mouseY;
     const weaponY = this.player.y - 30 * lvlScale;
@@ -1273,28 +1273,28 @@ export default class Game {
     if (skillType === 'Sword Slash' || this.player.classType === 'warrior') {
       const waveCount = 1 + charges;
       const spdDiff = Math.max(0, this.player.spd - cd.spd);
-      const waveDistance = (120 + spdDiff * 6) * areaMulti;
+      const waveDistance = Math.min(this.gameW * 0.25, (120 + spdDiff * 6) * areaMulti);
       const waveSpread = 0.12 + (aoeScale - 1) * 0.08;
 
       for (let i = 0; i < waveCount; i++) {
         const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
-        this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.5 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMulti * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
+        this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMulti * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
       }
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
-      const fbRadius = 15 + charges * 15;
-      this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 2.2 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
-      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 10, 5);
+      const fbRadius = Math.min(60, 15 + charges * 5);
+      this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
+      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 5, 5);
     } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
-      const arrowCount = Math.min(7, 3 + Math.floor((this.player.spd - cd.spd) / 8)) + charges;
+      const arrowCount = 4 + charges;
       for (let i = 0; i < arrowCount; i++) {
         const a = aimAngle + (i - Math.floor(arrowCount / 2)) * (0.2 + (aoeScale - 1) * 0.1);
         const speed = 11;
-        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 1.3 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale }));
+        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale }));
       }
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
     } else if (skillType === 'Cross Slash' || this.player.classType === 'magicgladiator') {
-      this.projectiles.push(new Projectile({ type: 'aoe_explosion', x: this.player.x, y: weaponY, radius: 130 * aoeScale * areaMulti * lvlScale, life: 25, maxLife: 25, color: cd.s2Color || '#ffd700', damage: this.player.atk * 3.0 * dmgMulti, critChance: 0.25, ...projProps }));
+      this.projectiles.push(new Projectile({ type: 'aoe_explosion', x: this.player.x, y: weaponY, radius: 130 * aoeScale * areaMulti * lvlScale, life: 25, maxLife: 25, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.25, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#ffd700', 30 * aoeScale + charges * 15, 8);
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
       this.ui.updateHUD(this.player);
@@ -1302,12 +1302,12 @@ export default class Game {
       // Default fallback: Warrior Shockwave style
       const waveCount = 1 + charges;
       const spdDiff = Math.max(0, this.player.spd - cd.spd);
-      const waveDistance = (120 + spdDiff * 6) * areaMulti;
+      const waveDistance = Math.min(this.gameW * 0.25, (120 + spdDiff * 6) * areaMulti);
       const waveSpread = 0.12 + (aoeScale - 1) * 0.08;
 
       for (let i = 0; i < waveCount; i++) {
         const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
-        this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.5 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMulti * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
+        this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMulti * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
       }
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     }
@@ -2126,6 +2126,9 @@ export default class Game {
 
         if (this.player.isChargingS2) {
           let chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? ConfigModule.POTION_BLUE_CD_MULTIPLIER : 1;
+          const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
+          const spdDiff = Math.max(0, this.player.spd - cd.spd);
+          chargeSpeed *= (1 + spdDiff * 0.05); // SPD speeds up charge
           if (this.player.classType === 'archer') chargeSpeed *= 1.35;
           this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67 * chargeSpeed;
           const maxCharges = 3 + (this.player.resets || 0);
