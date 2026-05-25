@@ -1408,12 +1408,20 @@ releaseSkill2() {
       this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 5, 5);
     } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
-      const arrowCount = 4 + charges;
       const maxCharges = 3 + (this.player.resets || 0);
+      const chargeRatio = maxCharges > 0 ? charges / maxCharges : 0;
+      const spreadAngle = 0.15 + chargeRatio * (2 * Math.PI - 0.15);
+      const maxSpreadSpd = baseSpd + 100;
+      const arrowCount = Math.min(24, Math.max(1, 4 + Math.floor((this.player.spd - baseSpd) * 20 / (maxSpreadSpd - baseSpd))));
+      const extraArrows = Math.max(0, Math.floor((this.player.spd - maxSpreadSpd) / 50));
       const facingAngle = aimAngle;
-      const spreadAngle = 0.15 + (charges / maxCharges) * (Math.PI * 2 - 0.15);
       for (let i = 0; i < arrowCount; i++) {
-        const a = facingAngle + (i / (arrowCount - 1) * 2 - 1) * spreadAngle / 2;
+        const a = arrowCount === 1 ? facingAngle : facingAngle + (i / (arrowCount - 1) * 2 - 1) * spreadAngle / 2;
+        const speed = 11;
+        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale }));
+      }
+      for (let i = 0; i < extraArrows; i++) {
+        const a = facingAngle + (i - extraArrows / 2) * 0.15;
         const speed = 11;
         this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale }));
       }
