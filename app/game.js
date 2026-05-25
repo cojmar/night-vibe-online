@@ -1409,8 +1409,8 @@ releaseSkill2() {
     this.s2MaxCooldown = Math.max(1000, 5000 - diff * 200);
     this.s2Cooldown = this.s2MaxCooldown;
 
-    // SPD controls AOE (capped at 200 SPD equivalent)
-    const aoeScale = Math.min(2.5, 1 + (this.player.spd - baseSpd) * 0.02);
+    // SPD controls AOE (visual capped at 200 SPD, max 1.5x from base)
+    const aoeScale = Math.min(1.5, 1 + (Math.min(this.player.spd, 200) - baseSpd) * 0.5 / Math.max(1, 200 - baseSpd));
     const reqLevel = 4 + (this.player.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
 
@@ -1448,9 +1448,8 @@ releaseSkill2() {
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
       const fbRadius = Math.min(60, 15 + charges * 5);
-      const fbVisualScale = Math.min(1.5, aoeScale);
-      this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * fbVisualScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
-      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', Math.min(40, 20 * fbVisualScale) + charges * 5, 5);
+      this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
+      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 5, 5);
     } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
       const maxArrowCount = 24;
       const minArrowCount = 4;
