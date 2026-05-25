@@ -1409,6 +1409,11 @@ releaseSkill2() {
     this.s2MaxCooldown = Math.max(1000, 5000 - diff * 200);
     this.s2Cooldown = this.s2MaxCooldown;
 
+    // SPD controls AOE
+    const aoeScale = 1 + (this.player.spd - baseSpd) * 0.02;
+    const reqLevel = 4 + (this.player.resets || 0) * 5;
+    const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
+
     // Charges scale logic:
     // charge = 0 -> 1x
     // charge = 1 -> 1.25x dmg, larger area
@@ -1417,20 +1422,6 @@ releaseSkill2() {
     const charges = this.player.s2ChargeCount || 0;
     const dmgMulti = 1 + (charges * 0.15);
     const areaMulti = 1 + (charges * 0.08);
-
-    // SPD controls AOE size (capped at 200 SPD — no bigger after 200)
-    const effectiveSpd = Math.min(this.player.spd, 200);
-    const spdScale = 1 + (effectiveSpd - baseSpd) * 4.0 / Math.max(1, 200 - baseSpd);
-    const aoeScale = spdScale * (1 + (charges * 0.15));
-    
-    // SPD controls fireball range (200-300 SPD: doubles range at 300)
-    let fbMaxDistance = 500;
-    if (this.player.spd > 200) {
-      const rangeScale = 1 + ((this.player.spd - 200) / 100) * 1.0;
-      fbMaxDistance = 500 * Math.min(rangeScale, 2.0);
-    }
-    const reqLevel = 4 + (this.player.resets || 0) * 5;
-    const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
 
     const tx = this.player.mouseX, ty = this.player.mouseY;
     const weaponY = this.player.y - 30 * lvlScale;
@@ -1457,15 +1448,8 @@ releaseSkill2() {
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
       const fbRadius = Math.min(60, 15 + charges * 5);
-      const fbLife = fbMaxDistance / 5;
-      const maxActiveFb = Math.max(1, charges);
-      const activeFbCount = this.projectiles.filter(p => p.type === 'fireball').length;
-      let slotsAvailable = Math.max(0, maxActiveFb - activeFbCount);
-      for (let i = 0; i < slotsAvailable; i++) {
-        const delay = i * 60; // 1 second gap (60 frames at 60fps)
-        this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: fbLife + delay, maxLife: fbLife + delay, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: delay * 5, trailTimer: i * 1.5, trailPositions: [], maxDistance: fbMaxDistance, ...projProps }));
-      }
-      if (slotsAvailable > 0) this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 8, 3);
+      this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
+      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 5, 5);
     } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
       const maxArrowCount = 24;
       const minArrowCount = 4;
@@ -2319,9 +2303,8 @@ releaseSkill2() {
         if (this.player.isChargingS2) {
           let chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? ConfigModule.POTION_BLUE_CD_MULTIPLIER : 1;
           const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
-          const effectiveSpdForCharge = Math.min(this.player.spd, 200);
-          const spdDiff = Math.max(0, effectiveSpdForCharge - cd.spd);
-          chargeSpeed *= (1 + spdDiff * 0.05); // SPD speeds up charge (capped at 200)
+          const spdDiff = Math.max(0, this.player.spd - cd.spd);
+          chargeSpeed *= (1 + spdDiff * 0.05); // SPD speeds up charge
           if (this.player.classType === 'archer') chargeSpeed *= 1.35;
           this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67 * chargeSpeed;
           const maxCharges = 3 + (this.player.resets || 0);
