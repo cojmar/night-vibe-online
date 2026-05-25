@@ -710,7 +710,7 @@ export default class Game {
     const cw = this.canvas.width / (this.pixelRatio || 1);
     const ch = this.canvas.height / (this.pixelRatio || 1);
     const camX = this.cameraX || 0;
-    const camY = this.player ? this.player.y : this.gameH / 2;
+    const camY = this.cameraY ?? (this.player ? this.player.y : this.gameH / 2);
     const viewOX = this.viewOX || 0;
     const gameX = (canvasX - cw / 2 - viewOX) / effectiveScale + camX;
     const gameY = (canvasY - ch / 2) / effectiveScale + camY;
