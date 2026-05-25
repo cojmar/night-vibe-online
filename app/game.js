@@ -1420,7 +1420,7 @@ releaseSkill2() {
 
     // SPD controls AOE size (capped at 200 SPD — no bigger after 200)
     const effectiveSpd = Math.min(this.player.spd, 200);
-    const spdScale = 1 + (effectiveSpd - baseSpd) * 1.5 / Math.max(1, 200 - baseSpd);
+    const spdScale = 1 + (effectiveSpd - baseSpd) * 4.0 / Math.max(1, 200 - baseSpd);
     const aoeScale = spdScale * (1 + (charges * 0.15));
     
     // SPD controls fireball range (200-300 SPD: doubles range at 300)
