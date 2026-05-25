@@ -966,6 +966,7 @@ export default class Game {
     this.checkHost();
 
     this.restoreWebsocketStats(this.player, myData, selectedClass);
+    this.player.hp = this.player.maxHp;
 
     const nickInput = document.getElementById('nick-input');
     if (nickInput) this.player.nick = nickInput.value;
