@@ -1339,12 +1339,14 @@ export default class Game {
       const mageLife = Math.round(60 * mageRangeMult);
       this.projectiles.push(new Projectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: cd.s1Color || '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#3498db', 3, 2);
-    } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
+   } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
       const archerBaseAtk = cd.atk;
       const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
       const archerLife = Math.round(50 * archerRangeMult);
       const speed = 10;
-      this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: 12 * s1Scale * lvlScale, ...projProps }));
+      const archerS1Scale = Math.min(5, 1 + (this.player.atk - archerBaseAtk) * 0.0227);
+      const arrowRadius = 12 * archerS1Scale * lvlScale;
+      this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, explodeRadius: arrowRadius, explodeDamage: this.player.atk * 1.1, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
     } else if (skillType === 'Psionic Slash' || this.player.classType === 'magicgladiator') {
       const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;

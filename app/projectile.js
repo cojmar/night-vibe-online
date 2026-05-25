@@ -100,11 +100,34 @@ export default class Projectile {
         if (Math.hypot(this.x - e.x, this.y - e.y) < e.size + projHitRadius) {
           gameInstance.dealDamage(e, this.damage, this.critChance);
           gameInstance.spawnParticles(this.x, this.y, this.color, 8, 4);
-          if (this.type !== 'fireball') { this.life = 0; }
+          if (this.type !== 'fireball') {
+            if (this.type === 'arrow' && this.explodeRadius && this.explodeDamage) {
+              for (let e2 of gameInstance.enemies) {
+                if (!e2.alive) continue;
+                if (e2.name === 'MISSILE' || e2.name === 'BOMB') continue;
+                const d = Math.hypot(this.x - e2.x, this.y - e2.y);
+                if (d < this.explodeRadius) gameInstance.dealDamage(e2, this.explodeDamage * (1 - d / (this.explodeRadius * 2)), this.critChance);
+              }
+              gameInstance.spawnParticles(this.x, this.y, this.color, 15, 5);
+              gameInstance.spawnParticles(this.x, this.y, '#ffd700', 8, 3);
+            }
+            this.life = 0;
+          }
           break;
         }
       }
       if (this.x < -100 || this.x > gameInstance.gameW + 100 || this.y < -100 || this.y > gameInstance.gameH + 100) this.life = 0;
+      
+      if (this.type === 'arrow' && this.life <= 0 && this.explodeRadius && this.explodeDamage) {
+        for (let e of gameInstance.enemies) {
+          if (!e.alive) continue;
+          if (e.name === 'MISSILE' || e.name === 'BOMB') continue;
+          const d = Math.hypot(this.x - e.x, this.y - e.y);
+          if (d < this.explodeRadius) gameInstance.dealDamage(e, this.explodeDamage * (1 - d / (this.explodeRadius * 2)), this.critChance);
+        }
+        gameInstance.spawnParticles(this.x, this.y, this.color, 15, 5);
+        gameInstance.spawnParticles(this.x, this.y, '#ffd700', 8, 3);
+      }
       
       if (this.type === 'fireball' && this.life <= 0) {
         const explosionRadius = (this.radius || 15) * 4;
