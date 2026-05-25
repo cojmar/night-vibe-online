@@ -263,10 +263,12 @@ export default class Enemy {
         }
         this.x += (this.vx || 0) * dt;
         this.y += (this.vy || 0) * dt;
+        this.moveDirX = (this.vx || 0) < 0 ? -1 : 1;
     } else if (closestDist > 50) {
-      this.x += (dx / closestDist) * this.speed * speedMultiplier * dt;
-      this.y += (dy / closestDist) * this.speed * speedMultiplier * dt;
-    }
+       this.x += (dx / closestDist) * this.speed * speedMultiplier * dt;
+       this.y += (dy / closestDist) * this.speed * speedMultiplier * dt;
+       this.moveDirX = dx < 0 ? -1 : 1;
+     }
 
     if (closestDist < 55) {
       this.attackTimer += dt;
@@ -354,18 +356,34 @@ export default class Enemy {
         }
     }
 
-    ctx.font = `${this.size}px serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    if (this.icon && typeof this.icon === 'string' && (this.icon.startsWith('data:image/') || this.icon.startsWith('http'))) {
+    const flip = (this.moveDirX || 1) < 0;
+    if (this.icon && typeof this.icon === 'string' && (this.icon.startsWith('data:image/') || this.icon.startsWith('http') || this.icon.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i))) {
         const img = getCachedImage(this.icon);
-        if (img) {
-            ctx.drawImage(img, this.x - this.size / 2, drawY - this.size / 2, this.size, this.size);
-        } else {
-            ctx.fillText('👾', this.x, drawY);
+        ctx.save();
+        ctx.translate(this.x, drawY);
+        if (flip) {
+            ctx.scale(-1, 1);
         }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, -this.size / 2, -this.size / 2, this.size, this.size);
+        } else {
+            ctx.font = `${this.size}px serif`;
+            ctx.fillText('👾', 0, 0);
+        }
+        ctx.restore();
     } else {
-        ctx.fillText(this.icon || '👾', this.x, drawY);
+        ctx.save();
+        ctx.translate(this.x, drawY);
+        if (flip) {
+            ctx.scale(-1, 1);
+        }
+        ctx.font = `${this.size}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.icon || '👾', 0, 0);
+        ctx.restore();
     }
     if (this.name === 'BOSS') {
         const originalFont = ctx.font;
@@ -380,9 +398,17 @@ export default class Enemy {
             ctx.shadowBlur = 25;
             crownSize = Math.floor(this.size * 0.85);
         }
+        ctx.save();
+        ctx.translate(this.x, drawY - this.size * 0.75);
+        if (flip) {
+            ctx.scale(-1, 1);
+        }
         ctx.font = `${crownSize}px sans-serif`;
-        ctx.fillText('👑', this.x, drawY - this.size * 0.75);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👑', 0, 0);
         ctx.shadowBlur = 0;
+        ctx.restore();
         ctx.font = originalFont;
     }
     ctx.textBaseline = 'alphabetic';
