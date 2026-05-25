@@ -1409,8 +1409,14 @@ releaseSkill2() {
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 5, 5);
     } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
       const arrowCount = 4 + charges;
+      const facingAngle = aimAngle;
+      const frontBias = (i) => {
+        const t = i / (arrowCount - 1);
+        return (t * 2 - 1) * (Math.PI / 2);
+      };
       for (let i = 0; i < arrowCount; i++) {
-        const a = aimAngle + (i - Math.floor(arrowCount / 2)) * (0.2 + (aoeScale - 1) * 0.1);
+        const offset = frontBias(i);
+        const a = facingAngle + offset;
         const speed = 11;
         this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale }));
       }
