@@ -3099,7 +3099,7 @@ export default class UI {
 
         panel.style.display = 'flex';
         panel.style.opacity = isHover ? '0.85' : '1';
-        panel.style.transform = isHover ? 'translateX(-50%) scale(0.95)' : 'translateX(-50%) scale(1)';
+        panel.style.transform = isHover ? 'scale(0.95)' : 'scale(1)';
         panel.style.borderColor = isHover ? '#f1c40f' : '#e74c3c';
 
         const nameEl = document.getElementById('target-info-name');
