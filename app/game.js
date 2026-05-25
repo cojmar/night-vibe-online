@@ -37,6 +37,8 @@ export default class Game {
 
     this.s2Cooldown = 0;
     this.s2MaxCooldown = 1000;
+    this.mouseDown = false;
+    this.autoRestartS2 = false;
     this.lastTime = 0;
     this.enemySpawnTimer = 0;
     this.enemySpawnInterval = 1000;
@@ -493,6 +495,7 @@ export default class Game {
       if (this.state !== 'PLAYING' || !this.player) return;
       if (e.button === 2) {
         e.preventDefault();
+        this.mouseDown = true;
         const p = this.toGameCoords(e.clientX, e.clientY);
         this.startChargingSkill2();
       }
@@ -502,6 +505,7 @@ export default class Game {
       if (this.state !== 'PLAYING' || !this.player) return;
       if (e.button === 2) {
         e.preventDefault();
+        this.mouseDown = false;
         const p = this.toGameCoords(e.clientX, e.clientY);
         this.player.mouseX = p.x;
         this.player.mouseY = p.y;
@@ -562,15 +566,17 @@ export default class Game {
       }
     });
 
-    const cdRingBtn = document.getElementById('cd-ring');
+  const cdRingBtn = document.getElementById('cd-ring');
     const startUltBtn = (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
       e.preventDefault(); e.stopPropagation();
+      this.mouseDown = true;
       this.startChargingSkill2();
     };
     const endUltBtn = (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
       e.preventDefault(); e.stopPropagation();
+      this.mouseDown = false;
       if (this.player.isChargingS2) {
         this.releaseSkill2();
       }
@@ -1261,10 +1267,11 @@ export default class Game {
     this.broadcastState();
   }
 
-  releaseSkill2() {
+releaseSkill2() {
     if (!this.player || !this.player.isChargingS2) return;
     this.player.lastInputTime = Date.now();
     this.player.isChargingS2 = false;
+    this.autoRestartS2 = this.mouseDown;
 
     const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
 
@@ -2695,7 +2702,13 @@ export default class Game {
         }
       }
 
-      if (this.s2Cooldown > 0) { this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier); }
+   if (this.s2Cooldown > 0) {
+        this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier);
+        if (this.s2Cooldown <= 0 && this.autoRestartS2 && this.player) {
+          this.autoRestartS2 = false;
+          this.startChargingSkill2();
+        }
+      }
       this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
 
 
