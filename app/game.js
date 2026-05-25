@@ -502,7 +502,17 @@ export default class Game {
         e.preventDefault();
         this.mouseDown = true;
         const p = this.toGameCoords(e.clientX, e.clientY);
-        this.startChargingSkill2();
+        this.player.mouseX = p.x;
+        this.player.mouseY = p.y;
+        if (!this.s2HoldTimer) {
+          this.s2HoldTimer = setTimeout(() => {
+            if (this.state === 'PLAYING' && this.mouseDown && this.player && this.s2Cooldown <= 0) {
+              this.player.s2HoldStartTime = Date.now();
+              this.startChargingSkill2();
+            }
+            this.s2HoldTimer = null;
+          }, 1000);
+        }
       }
     });
 
@@ -516,10 +526,22 @@ export default class Game {
         e.preventDefault();
         this.mouseDown = false;
         clearInterval(this.leftClickInterval);
-        const p = this.toGameCoords(e.clientX, e.clientY);
-        this.player.mouseX = p.x;
-        this.player.mouseY = p.y;
-        this.releaseSkill2();
+        if (this.s2HoldTimer) {
+          clearTimeout(this.s2HoldTimer);
+          this.s2HoldTimer = null;
+        }
+        if (!this.player.isChargingS2) {
+          const p = this.toGameCoords(e.clientX, e.clientY);
+          this.player.mouseX = p.x;
+          this.player.mouseY = p.y;
+          this.startChargingSkill2();
+          this.releaseSkill2();
+        } else {
+          const p = this.toGameCoords(e.clientX, e.clientY);
+          this.player.mouseX = p.x;
+          this.player.mouseY = p.y;
+          this.releaseSkill2();
+        }
       }
     });
 
