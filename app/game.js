@@ -1492,8 +1492,40 @@ releaseSkill2() {
       }
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
     } else if (skillType === 'Cross Slash' || this.player.classType === 'magicgladiator') {
-      this.projectiles.push(new Projectile({ type: 'aoe_explosion', x: this.player.x, y: weaponY, radius: 130 * aoeScale * areaMulti * lvlScale, life: 25, maxLife: 25, color: cd.s2Color || '#ffd700', damage: this.player.atk * 0.2 * dmgMulti, critChance: 0.25, ...projProps }));
-      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#ffd700', 30 * aoeScale + charges * 15, 8);
+      const spiritCount = 8 + charges * 4;
+      const spiritDamage = this.player.atk * 0.8 * dmgMulti;
+      const spiritRadius = Math.min(20, 10 + charges * 1.5);
+      const spiritLife = Math.round(90 + charges * 15);
+      const spiritColor = cd.s2Color || '#9b4dff';
+
+      for (let i = 0; i < spiritCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3 + Math.random() * 3;
+        const sizeMult = 0.8 + Math.random() * 0.5;
+
+        this.projectiles.push(new Projectile({
+          type: 'spirit',
+          x: this.player.x + Math.cos(angle) * 15,
+          y: weaponY + Math.sin(angle) * 15,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          speed: speed,
+          life: spiritLife,
+          maxLife: spiritLife,
+          color: spiritColor,
+          damage: spiritDamage * sizeMult,
+          critChance: 0.25,
+          radius: spiritRadius * sizeMult,
+          wobble: Math.random() * 100,
+          trailTimer: 0,
+          trailPositions: [],
+          tx: this.player.mouseX,
+          ty: this.player.mouseY,
+          angle: angle,
+          facing: 1
+        }));
+      }
+      this.spawnParticles(this.player.x, weaponY, spiritColor, 20 + charges * 10, 5);
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
       this.ui.updateHUD(this.player);
     } else {

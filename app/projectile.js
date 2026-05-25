@@ -150,6 +150,41 @@ export default class Projectile {
         }
       }
     }
+    else if (this.type === 'spirit') {
+      // Wobbly movement
+      this.wobble = (this.wobble || 0) + 0.25 * dt;
+      this.x += (this.vx || 0) * dt + Math.sin(this.wobble) * 0.8 * dt;
+      this.y += (this.vy || 0) * dt + Math.cos(this.wobble * 0.8) * 0.8 * dt;
+
+      // Trail
+      this.trailTimer = (this.trailTimer || 0) + dt;
+      if (this.trailTimer > 1.0) {
+        this.trailTimer = 0;
+        if (!this.trailPositions) this.trailPositions = [];
+        this.trailPositions.push({ x: this.x, y: this.y, life: 20, maxLife: 20 });
+        gameInstance.spawnParticles(this.x, this.y, this.color || '#9b4dff', 1, 1.5);
+      }
+      if (this.trailPositions) {
+        this.trailPositions = this.trailPositions.filter(t => t.life > 0);
+        for (let t of this.trailPositions) t.life -= dt;
+      }
+
+      // Collision with enemies
+      for (let e of gameInstance.enemies) {
+        if (!e.alive || this.hitIds.has(e)) continue;
+        if (Math.hypot(this.x - e.x, this.y - e.y) < e.size + (this.radius || 10)) {
+          gameInstance.dealDamage(e, this.damage, this.critChance);
+          this.hitIds.add(e);
+          gameInstance.spawnParticles(this.x, this.y, this.color || '#9b4dff', 6, 3);
+        }
+      }
+
+      // Lifetime / bounds
+      if (this.life <= 0 || this.x < -200 || this.x > gameInstance.gameW + 200 || this.y < -200 || this.y > gameInstance.gameH + 200) {
+        gameInstance.spawnParticles(this.x, this.y, this.color || '#9b4dff', 8, 3);
+        this.life = 0;
+      }
+    }
   }
 
   draw(ctx) {
@@ -296,6 +331,58 @@ export default class Projectile {
       ctx.fillStyle = `rgba(255,215,0,${alpha * 0.2 * (1 - progress)})`;
       ctx.beginPath();
       ctx.arc(this.x, this.y - 40, progress * this.radius, 0, Math.PI * 2); ctx.fill();
+    }
+    else if (this.type === 'spirit') {
+      const spiritSize = this.radius || 12;
+      const sAlpha = Math.min(1, this.life / (this.maxLife * 0.3));
+      ctx.globalAlpha = sAlpha;
+
+      // Trail
+      if (this.trailPositions && this.trailPositions.length > 0) {
+        for (let t of this.trailPositions) {
+          const tprog = Math.max(0, t.life / t.maxLife);
+          ctx.globalAlpha = sAlpha * tprog * 0.35;
+          ctx.fillStyle = this.color || '#9b4dff';
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, spiritSize * tprog * 0.7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Outer glow
+      ctx.globalAlpha = sAlpha;
+      const glow = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, spiritSize * 2);
+      glow.addColorStop(0, 'rgba(255,255,255,0.9)');
+      glow.addColorStop(0.25, 'rgba(170,120,255,0.9)');
+      glow.addColorStop(1, 'rgba(100,0,255,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, spiritSize * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Skull body
+      ctx.fillStyle = '#e0dcff';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, spiritSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eyes
+      ctx.fillStyle = '#111';
+      ctx.fillRect(this.x - 4, this.y - 2, 2, 2);
+      ctx.fillRect(this.x + 2, this.y - 2, 2, 2);
+
+      // Mouth
+      ctx.fillRect(this.x - 2, this.y + 3, 4, 2);
+
+      // Spirit tail
+      ctx.fillStyle = this.color || '#9b4dff';
+      ctx.beginPath();
+      ctx.moveTo(this.x - 6, this.y + 6);
+      ctx.lineTo(this.x + 6, this.y + 6);
+      ctx.lineTo(this.x, this.y + 16);
+      ctx.fill();
+
+      ctx.globalAlpha = sAlpha;
     }
     ctx.globalAlpha = 1;
   }
