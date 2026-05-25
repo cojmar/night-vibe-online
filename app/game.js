@@ -2762,6 +2762,38 @@ export default class Game {
         this.ctx.fillRect(0, 0, this.gameW, this.gameH);
       }
 
+      // UI Target Info Update
+      if (this.player && this.ui.updateTargetPanel) {
+        let currentTarget = null;
+        let isHover = false;
+        const cx = this.player.mouseX, cy = this.player.mouseY;
+        let hoveredEnemy = null;
+        let hoveredItem = null;
+        for (let e of this.enemies) {
+          if (!e.alive) continue;
+          if (Math.hypot(cx - e.x, cy - e.y) < e.size + 30) { hoveredEnemy = e; break; }
+        }
+        if (!hoveredEnemy && this.items) {
+          for (let item of this.items) {
+            if (Math.hypot(cx - item.x, cy - item.y) < 40) { hoveredItem = item; break; }
+          }
+        }
+        
+        if (hoveredEnemy) {
+          currentTarget = hoveredEnemy;
+          isHover = true;
+        } else if (hoveredItem) {
+          currentTarget = hoveredItem;
+          isHover = true;
+        } else if (this.player.autoAttackTarget && this.player.autoAttackTarget.alive) {
+          currentTarget = this.player.autoAttackTarget;
+        } else if (this.player.targetedItemId) {
+          currentTarget = this.items.find(i => i.id === this.player.targetedItemId);
+        }
+        
+        this.ui.updateTargetPanel(currentTarget, isHover);
+      }
+
       this.ctx.restore();
     }
     requestAnimationFrame((t) => this.loop(t));

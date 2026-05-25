@@ -3088,6 +3088,54 @@ export default class UI {
         }
     }
 
+    updateTargetPanel(target, isHover) {
+        const panel = document.getElementById('target-info-panel');
+        if (!panel) return;
+        
+        if (!target) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        panel.style.display = 'flex';
+        panel.style.opacity = isHover ? '0.85' : '1';
+        panel.style.transform = isHover ? 'translateX(-50%) scale(0.95)' : 'translateX(-50%) scale(1)';
+        panel.style.borderColor = isHover ? '#f1c40f' : '#e74c3c';
+
+        const nameEl = document.getElementById('target-info-name');
+        const hpBgEl = document.getElementById('target-info-hp-bg');
+        const hpFillEl = document.getElementById('target-info-hp-fill');
+        const hpTextEl = document.getElementById('target-info-hp-text');
+        const detailsEl = document.getElementById('target-info-details');
+
+        if (target.maxHp) {
+            // It's a monster
+            nameEl.textContent = `${target.icon || '👾'} ${target.name} (Lv. ${target.level || Math.ceil(this.game.wave)})`;
+            nameEl.style.color = target.color || '#fff';
+            hpBgEl.style.display = 'block';
+            const hpRatio = Math.max(0, Math.min(1, target.hp / target.maxHp));
+            hpFillEl.style.width = `${hpRatio * 100}%`;
+            hpTextEl.textContent = `${Math.ceil(target.hp)} / ${target.maxHp}`;
+            detailsEl.textContent = `ATK: ${target.atk} | SPD: ${target.speed.toFixed(1)}`;
+        } else if (target.type === 'gear' || target.stats) {
+            // It's an item/gear
+            nameEl.textContent = `${target.icon || '💎'} ${target.name}`;
+            nameEl.style.color = target.color || '#f1c40f';
+            hpBgEl.style.display = 'none';
+            const statStrs = [];
+            if (target.stats.atk) statStrs.push(`ATK +${target.stats.atk.toFixed(1)}`);
+            if (target.stats.maxHp) statStrs.push(`HP +${target.stats.maxHp.toFixed(1)}`);
+            if (target.stats.spd) statStrs.push(`SPD +${target.stats.spd.toFixed(1)}`);
+            detailsEl.textContent = statStrs.join(' | ') || 'No stats';
+        } else {
+            // Potion or other
+            nameEl.textContent = `${target.type === 'red' ? '❤️' : '⚡'} ${target.type === 'red' ? 'Health Potion' : 'Mana Potion'}`;
+            nameEl.style.color = target.type === 'red' ? '#e74c3c' : '#3498db';
+            hpBgEl.style.display = 'none';
+            detailsEl.textContent = 'Consumable';
+        }
+    }
+
     updateHUD(player) {
         if (!player) return;
 
