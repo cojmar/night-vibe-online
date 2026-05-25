@@ -551,10 +551,11 @@ export default class Game {
       this.player.mouseY = pos.y;
     }, { passive: false });
 
-    this.canvas.addEventListener('touchend', () => {
+   this.canvas.addEventListener('touchend', () => {
       touchActive = false;
       clearTimeout(touchLongPressTimer);
       if (this.player && this.player.isChargingS2) {
+        this.mouseDown = false;
         this.releaseSkill2();
       }
     });
@@ -562,6 +563,7 @@ export default class Game {
       touchActive = false;
       clearTimeout(touchLongPressTimer);
       if (this.player && this.player.isChargingS2) {
+        this.mouseDown = false;
         this.releaseSkill2();
       }
     });
@@ -577,9 +579,11 @@ export default class Game {
       if (this.state !== 'PLAYING' || !this.player) return;
       e.preventDefault(); e.stopPropagation();
       if (this.player.isChargingS2) {
+        this.mouseDown = false;
         this.releaseSkill2();
+      } else {
+        this.mouseDown = false;
       }
-      this.mouseDown = false;
     };
     cdRingBtn.addEventListener('mousedown', startUltBtn);
     cdRingBtn.addEventListener('touchstart', startUltBtn, { passive: false });
