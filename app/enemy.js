@@ -38,7 +38,7 @@ export default class Enemy {
       this.maxHp = this.hp;
       this.atk = Math.round(BOSS_BASE_ATK * scale);
       this.speed = BOSS_BASE_SPEED;
-      const exponentialBossSizeScale = Math.min(Math.pow(1 + (BOSS_SIZE_WAVE_MULT || 0), wave - 1), 4.0);
+      const exponentialBossSizeScale = Math.min(Math.pow(1 + (BOSS_SIZE_WAVE_MULT || 0), (wave - 1) + (avgLevel - 1) * 0.5), 4.0);
       this.size = BOSS_BASE_SIZE * (BOSS_BASE_SIZE_MULT || 1.0) * exponentialBossSizeScale;
       this.color = BOSS_BASE_COLOR;
       this.bossState = 'IDLE';
@@ -60,7 +60,7 @@ export default class Enemy {
       this.maxHp = this.hp;
       this.atk = Math.round(type.atk * scale);
       this.speed = type.speed * (0.8 + localPrng.nextFloat() * 0.4);
-      const exponentialSizeScale = Math.min(Math.pow(1 + (ENEMY_SIZE_WAVE_MULT || 0), wave - 1), 4.0);
+      const exponentialSizeScale = Math.min(Math.pow(1 + (ENEMY_SIZE_WAVE_MULT || 0), (wave - 1) + (avgLevel - 1) * 0.5), 4.0);
       this.size = type.size * (ENEMY_BASE_SIZE_MULT || 1.0) * exponentialSizeScale;
       this.color = type.color;
       
