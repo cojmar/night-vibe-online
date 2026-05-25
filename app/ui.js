@@ -352,6 +352,7 @@ export default class UI {
             items: JSON.parse(JSON.stringify(ConfigModule.ITEMS_DB))
         };
         ConfigModule.saveCustomPresets(customPresets);
+        localStorage.setItem('nightvibe-defaults-hash', ConfigModule.defaultsHash);
 
         ConfigModule.setActivePresetId('custom:last_game_config');
         ConfigModule.setActivePresetName('Last Game Config');

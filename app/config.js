@@ -104,6 +104,19 @@ const FALLBACK_DEFAULTS = {
   POTION_BLUE_DROP_CHANCE: 0.08
 };
 
+export function computeDefaultsHash() {
+  const sortedKeys = Object.keys(DEFAULTS).sort();
+  const parts = sortedKeys.map(k => k + '=' + JSON.stringify(DEFAULTS[k]));
+  let hash = 0;
+  const str = parts.join(',');
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return (hash >>> 0).toString(36);
+}
+
 export let DEFAULTS = { ...FALLBACK_DEFAULTS };
 try {
   const xhr = new XMLHttpRequest();
@@ -120,6 +133,8 @@ try {
 } catch (error) {
   console.warn("Could not load configs/default.json synchronously, using hardcoded fallback", error);
 }
+
+export let defaultsHash = computeDefaultsHash();
 
 // ==========================================
 // B. METADATA FOR DYNAMIC SETTINGS UI GENERATION
@@ -233,7 +248,29 @@ export function saveCustomPresets(presets) {
 }
 
 export const DEFAULT_STARTUP_PRESET = 'built-in:default';
-export let activePresetId = localStorage.getItem('nightvibe-active-preset-id') || DEFAULT_STARTUP_PRESET;
+
+function _resolveActivePresetId() {
+  const stored = localStorage.getItem('nightvibe-active-preset-id') || DEFAULT_STARTUP_PRESET;
+  const storedDefaultsHash = localStorage.getItem('nightvibe-defaults-hash');
+  if (stored.startsWith('custom:') && storedDefaultsHash !== null && storedDefaultsHash !== defaultsHash) {
+    const presetsStr = localStorage.getItem('nightvibe-config-presets');
+    if (presetsStr) {
+      try {
+        const presets = JSON.parse(presetsStr);
+        if (presets['last_game_config']) {
+          delete presets['last_game_config'];
+          localStorage.setItem('nightvibe-config-presets', JSON.stringify(presets));
+        }
+      } catch (e) {}
+    }
+    localStorage.setItem('nightvibe-active-preset-id', DEFAULT_STARTUP_PRESET);
+    localStorage.setItem('nightvibe-defaults-hash', defaultsHash);
+    return DEFAULT_STARTUP_PRESET;
+  }
+  return stored;
+}
+
+export let activePresetId = _resolveActivePresetId();
 export let activePresetName = 'Default';
 
 export function setActivePresetId(id) {
