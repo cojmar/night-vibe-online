@@ -3362,7 +3362,7 @@ export default class UI {
                 list.appendChild(el);
             }
 
-            const pct = Math.max(0, (p.hp / p.maxHp) * 100);
+            const pct = Math.max(0, Math.min(100, (p.maxHp > 0 ? (p.hp / p.maxHp) * 100 : 0)));
             const aliveText = p.hp > 0 ? '' : ' 💀';
 
             const nameEl = el.querySelector('.remote-player-name');
