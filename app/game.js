@@ -1586,7 +1586,8 @@ releaseSkill2() {
       // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
       projectiles: this.projectiles.map(p => ({
         type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
-        radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions
+        radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions,
+        vx: p.vx, vy: p.vy, wobble: p.wobble, trailTimer: p.trailTimer
       }))
     };
     if (this.pendingHits && this.pendingHits.length > 0) {
