@@ -544,8 +544,10 @@ export default class Game {
       const cw = this.canvas.width / (this.pixelRatio || 1);
       const ch = this.canvas.height / (this.pixelRatio || 1);
 
-      // Lowest zoom (most zoomed out): full map width fits on screen
-      const zoomOutMin = (cw / this.gameW) / this.viewScale;
+      // Lowest zoom (most zoomed out): full map fills screen in BOTH dimensions
+      const zoomOutMinWidth = (cw / this.gameW) / this.viewScale;
+      const zoomOutMinHeight = (ch / this.gameH) / this.viewScale;
+      const zoomOutMin = Math.max(zoomOutMinWidth, zoomOutMinHeight);
 
       // Highest zoom (most zoomed in): character fills most of screen
       const zoomInMax = Math.max(5, (ch / 30) / this.viewScale);
@@ -738,6 +740,8 @@ export default class Game {
     // Camera centered on player with edge clamping
     if (this.player && this.canvas) {
       const halfViewportX = (cw / 2) / effectiveScale;
+      const halfViewportY = (ch / 2) / effectiveScale;
+
       if (halfViewportX >= this.gameW / 2) {
         // Visible area >= game width: center the game world
         this.cameraX = this.gameW / 2;
@@ -745,12 +749,16 @@ export default class Game {
         // Visible area < game width: center on player
         this.cameraX = Math.max(halfViewportX, Math.min(this.gameW - halfViewportX, this.player.x));
       }
+
+      // Center vertically on player, clamp to map edges to avoid empty space
+      this.cameraY = Math.max(halfViewportY, Math.min(this.gameH - halfViewportY, this.player.y));
     } else {
       this.cameraX = this.gameW / 2;
+      this.cameraY = this.gameH / 2;
     }
 
     const camX = this.cameraX;
-    const camY = this.player ? this.player.y : this.gameH / 2;
+    const camY = this.cameraY;
     const viewOX = this.viewOX || 0;
 
     // Center transform: translate to screen center, scale, translate by camera offset
