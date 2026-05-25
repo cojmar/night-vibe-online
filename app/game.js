@@ -1123,8 +1123,9 @@ export default class Game {
     this.broadcastState();
   }
 
-  handleLeftClick(cx, cy) {
+ handleLeftClick(cx, cy) {
     if (!this.player || !this.player.alive) return;
+    this.autoRestartS2 = false;
     this.player.lastInputTime = Date.now();
     const groundY = getGroundY(this.selectedEnv);
     const onGround = cy >= groundY - GROUND_TOLERANCE;
@@ -2704,7 +2705,7 @@ releaseSkill2() {
 
    if (this.s2Cooldown > 0) {
         this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier);
-        if (this.s2Cooldown <= 0 && this.autoRestartS2 && this.player) {
+        if (this.s2Cooldown <= 0 && this.autoRestartS2 && this.player && !this.player.isMoving) {
           this.autoRestartS2 = false;
           this.startChargingSkill2();
         }
