@@ -285,7 +285,7 @@ export default class UI {
             'default': { name: 'Default Mode', values: { ...ConfigModule.DEFAULTS } }
         };
 
-        let manifest = ['default.json', 'hardcore.json', 'rapidfire.json'];
+        let manifest = ['default.json', 'Nightmare.json', 'rapidfire.json'];
         try {
             const response = await fetch('configs/manifest.json');
             if (response.ok) {
@@ -376,7 +376,7 @@ export default class UI {
                 const opt = document.createElement('option');
                 opt.value = `built-in:${key}`;
                 let emoji = '⚙️';
-                if (key === 'hardcore') emoji = '👹';
+                if (key === 'Nightmare') emoji = '👹';
                 else if (key === 'rapidfire') emoji = '⚡';
                 else if (key === 'bossrush') emoji = '👑';
                 opt.textContent = `${emoji} ${this.builtInConfigs[key].name}`;
