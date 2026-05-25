@@ -679,12 +679,18 @@ export default class UI {
             });
         }
 
-        const btnEditSelected = document.getElementById('btn-edit-selected-config');
+       const btnEditSelected = document.getElementById('btn-edit-selected-config');
         if (btnEditSelected) {
             btnEditSelected.addEventListener('click', () => {
-                settingsModal.style.display = 'none';
-                configEditorModal.style.display = 'flex';
-                buildConfigFields();
+                this.resetToDefaultConfig();
+                const selector = document.getElementById('config-preset-selector');
+                if (selector) {
+                    const opt = selector.querySelector('option[value="built-in:default"]');
+                    if (opt) opt.selected = true;
+                }
+                if (this.game && this.game.addLog) {
+                    this.game.addLog("🔄 Settings reset to default.");
+                }
             });
         }
 
@@ -1262,77 +1268,10 @@ export default class UI {
             });
         }
 
-        if (btnConfigReset) {
+     if (btnConfigReset) {
             btnConfigReset.addEventListener('click', () => {
-                resetConfig();
-                if (ConfigModule.activePresetId === 'custom:last_game_config') {
-                    this.selectPreset('built-in:default');
-                }
+                this.resetToDefaultConfig();
                 buildConfigFields();
-                saveConfigFromUI();
-
-                // Also reset classes config to defaults!
-                localStorage.removeItem('nightvibe-custom-classes');
-                const defaults = {
-                    warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
-                    mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
-                    archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
-                    magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
-                };
-                for (const key in ConfigModule.CLASS_DATA) {
-                    delete ConfigModule.CLASS_DATA[key];
-                }
-                Object.assign(ConfigModule.CLASS_DATA, defaults);
-
-                this.saveClassesToStorage();
-                this.buildClassesTab();
-
-                // Also reset monsters config to defaults!
-                localStorage.removeItem('nightvibe-custom-monsters');
-                const defaultMonsters = [
-                    { name: 'Slime', icon: '🟢', hp: 60, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-                    { name: 'Goblin', icon: '👺', hp: 90, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
-                    { name: 'Skeleton', icon: '💀', hp: 110, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-                    { name: 'Orc', icon: '👹', hp: 160, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
-                    { name: 'Ghost', icon: '👻', hp: 80, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-                    { name: 'Demon', icon: '🔥', hp: 200, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
-                    { name: 'Dragon', icon: '🐉', hp: 300, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-                    { name: 'Lich', icon: '🧙', hp: 240, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
-                ];
-                ConfigModule.ENEMY_TYPES.length = 0;
-                ConfigModule.ENEMY_TYPES.push(...defaultMonsters);
-
-                this.saveMonstersToStorage();
-                this.buildMonstersTab();
-
-                // Also reset items config to defaults!
-                localStorage.removeItem('nightvibe-custom-items');
-                const defaultItems = [
-                    // Normal Rarity (White, 1 attribute)
-                    { name: 'Novice Dagger', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 8, maxHp: 0, spd: 0 } },
-                    { name: 'Leather Vest', icon: '🛡️', gearType: 'Armor', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 60, spd: 0 } },
-                    { name: 'Bronze Ring', icon: '💍', gearType: 'Ring', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 0, spd: 1.5 } },
-                    { name: 'Simple Talisman', icon: '📿', gearType: 'Amulet', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 40, spd: 0 } },
-
-                    // Magic Rarity (Blue, 2 attributes)
-                    { name: 'Gleaming Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'magic', color: '#3498db', stats: { atk: 12, maxHp: 40, spd: 0 } },
-                    { name: 'Reinforced Chainmail', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 120, spd: 1.0 } },
-                    { name: 'Chrono Ring', icon: '💍', gearType: 'Ring', rarity: 'magic', color: '#3498db', stats: { atk: 4, maxHp: 0, spd: 2.5 } },
-                    { name: 'Empowered Necklace', icon: '📿', gearType: 'Amulet', rarity: 'magic', color: '#3498db', stats: { atk: 5, maxHp: 80, spd: 0 } },
-
-                    // Rare Rarity (Yellow, 3 attributes)
-                    { name: 'Heavenly Excalibur', icon: '🗡️', gearType: 'Weapon', rarity: 'rare', color: '#f1c40f', stats: { atk: 20, maxHp: 100, spd: 2.0 } },
-                    { name: 'Valorous Aegis Plate', icon: '🛡️', gearType: 'Armor', rarity: 'rare', color: '#f1c40f', stats: { atk: 8, maxHp: 240, spd: 2.5 } },
-                    { name: 'Celestial Loop', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 10, maxHp: 50, spd: 4.0 } },
-                    { name: 'Relic of the Dragon', icon: '📿', gearType: 'Amulet', rarity: 'rare', color: '#f1c40f', stats: { atk: 12, maxHp: 180, spd: 1.8 } }
-                ];
-                ConfigModule.ITEMS_DB.length = 0;
-                ConfigModule.ITEMS_DB.push(...defaultItems);
-
-                this.saveItemsToStorage();
-                this.buildItemsTab();
-
-                this.addLog("🛠️ Custom configurations, classes, monsters and gear reset to defaults.");
             });
         }
 
@@ -1509,6 +1448,64 @@ export default class UI {
 
         this.updateLobbyRulesText();
         this.initInventory();
+    }
+
+    resetToDefaultConfig() {
+        resetConfig();
+        if (ConfigModule.activePresetId === 'custom:last_game_config') {
+            this.selectPreset('built-in:default');
+        }
+
+        localStorage.removeItem('nightvibe-custom-classes');
+        const defaults = {
+            warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
+            mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
+            archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
+            magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Cross Slash', s2Color: '#ffd700', bodyType: 'magicgladiator' }
+        };
+        for (const key in ConfigModule.CLASS_DATA) {
+            delete ConfigModule.CLASS_DATA[key];
+        }
+        Object.assign(ConfigModule.CLASS_DATA, defaults);
+        this.saveClassesToStorage();
+
+        localStorage.removeItem('nightvibe-custom-monsters');
+        const defaultMonsters = [
+            { name: 'Slime', icon: '🟢', hp: 60, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
+            { name: 'Goblin', icon: '👺', hp: 90, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
+            { name: 'Skeleton', icon: '💀', hp: 110, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
+            { name: 'Orc', icon: '👹', hp: 160, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
+            { name: 'Ghost', icon: '👻', hp: 80, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
+            { name: 'Demon', icon: '🔥', hp: 200, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
+            { name: 'Dragon', icon: '🐉', hp: 300, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
+            { name: 'Lich', icon: '🧙', hp: 240, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 }
+        ];
+        ConfigModule.ENEMY_TYPES.length = 0;
+        ConfigModule.ENEMY_TYPES.push(...defaultMonsters);
+        this.saveMonstersToStorage();
+
+        localStorage.removeItem('nightvibe-custom-items');
+        const defaultItems = [
+            { name: 'Novice Dagger', icon: '🗡️', gearType: 'Weapon', rarity: 'normal', color: '#ecf0f1', stats: { atk: 8, maxHp: 0, spd: 0 } },
+            { name: 'Leather Vest', icon: '🛡️', gearType: 'Armor', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 60, spd: 0 } },
+            { name: 'Bronze Ring', icon: '💍', gearType: 'Ring', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 0, spd: 1.5 } },
+            { name: 'Simple Talisman', icon: '📿', gearType: 'Amulet', rarity: 'normal', color: '#ecf0f1', stats: { atk: 0, maxHp: 40, spd: 0 } },
+            { name: 'Gleaming Broadsword', icon: '🗡️', gearType: 'Weapon', rarity: 'magic', color: '#3498db', stats: { atk: 12, maxHp: 40, spd: 0 } },
+            { name: 'Reinforced Chainmail', icon: '🛡️', gearType: 'Armor', rarity: 'magic', color: '#3498db', stats: { atk: 0, maxHp: 120, spd: 1.0 } },
+            { name: 'Chrono Ring', icon: '💍', gearType: 'Ring', rarity: 'magic', color: '#3498db', stats: { atk: 4, maxHp: 0, spd: 2.5 } },
+            { name: 'Empowered Necklace', icon: '📿', gearType: 'Amulet', rarity: 'magic', color: '#3498db', stats: { atk: 5, maxHp: 80, spd: 0 } },
+            { name: 'Heavenly Excalibur', icon: '🗡️', gearType: 'Weapon', rarity: 'rare', color: '#f1c40f', stats: { atk: 20, maxHp: 100, spd: 2.0 } },
+            { name: 'Valorous Aegis Plate', icon: '🛡️', gearType: 'Armor', rarity: 'rare', color: '#f1c40f', stats: { atk: 8, maxHp: 240, spd: 2.5 } },
+            { name: 'Celestial Loop', icon: '💍', gearType: 'Ring', rarity: 'rare', color: '#f1c40f', stats: { atk: 10, maxHp: 50, spd: 4.0 } },
+            { name: 'Relic of the Dragon', icon: '📿', gearType: 'Amulet', rarity: 'rare', color: '#f1c40f', stats: { atk: 12, maxHp: 180, spd: 1.8 } }
+        ];
+        ConfigModule.ITEMS_DB.length = 0;
+        ConfigModule.ITEMS_DB.push(...defaultItems);
+        this.saveItemsToStorage();
+
+        if (this.game && this.game.addLog) {
+            this.game.addLog("🔄 All settings, classes, monsters and gear reset to defaults.");
+        }
     }
 
     saveClassesToStorage() {
