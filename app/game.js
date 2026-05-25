@@ -39,6 +39,7 @@ export default class Game {
     this.s2MaxCooldown = 1000;
     this.mouseDown = false;
     this.autoRestartS2 = false;
+    this.queuedFireball = null;
     this.lastTime = 0;
     this.enemySpawnTimer = 0;
     this.enemySpawnInterval = 1000;
@@ -1397,6 +1398,7 @@ export default class Game {
 
 releaseSkill2() {
     if (!this.player || !this.player.isChargingS2) return;
+    this.queuedFireball = null;
     this.player.lastInputTime = Date.now();
     this.player.isChargingS2 = false;
     this.autoRestartS2 = this.mouseDown;
@@ -1448,8 +1450,26 @@ releaseSkill2() {
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
       const fbRadius = Math.min(60, 15 + charges * 5);
-      this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
-      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 5, 5);
+      const newFireballRadius = fbRadius * aoeScale * lvlScale;
+      const spawnX = this.player.x;
+      const spawnY = weaponY;
+      let canSpawn = true;
+      for (let p of this.projectiles) {
+        if (p.type === 'fireball' && p.life > 0) {
+          const existingRadius = p.radius || newFireballRadius;
+          const dist = Math.hypot(p.x - spawnX, p.y - spawnY);
+          if (dist < newFireballRadius + existingRadius + 10) {
+            canSpawn = false;
+            break;
+          }
+        }
+      }
+      if (canSpawn) {
+        this.projectiles.push(new Projectile({ type: 'fireball', x: spawnX, y: spawnY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: newFireballRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
+        this.spawnParticles(spawnX, spawnY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 5, 5);
+      } else if (!this.queuedFireball) {
+        this.queuedFireball = { spawnX, spawnY, speed: 5, radius: newFireballRadius, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, ...projProps };
+      }
     } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
       const maxArrowCount = 24;
       const minArrowCount = 4;
@@ -2720,6 +2740,28 @@ releaseSkill2() {
 
       for (let p of this.projectiles) { p.update(dt, this); p.draw(this.ctx); }
       this.projectiles = this.projectiles.filter(p => p.life > 0);
+
+      if (this.queuedFireball && this.player) {
+        const qf = this.queuedFireball;
+        const spawnX = qf.x || qf.spawnX;
+        const spawnY = qf.y || qf.spawnY;
+        let canSpawn = true;
+        for (let p of this.projectiles) {
+          if (p.type === 'fireball' && p.life > 0) {
+            const existingRadius = p.radius || (qf.radius || 15);
+            const dist = Math.hypot(p.x - spawnX, p.y - spawnY);
+            if (dist < (qf.radius || 15) + existingRadius + 10) {
+              canSpawn = false;
+              break;
+            }
+          }
+        }
+        if (canSpawn) {
+          this.projectiles.push(new Projectile({ type: 'fireball', x: spawnX, y: spawnY, speed: qf.speed || 5, life: 80, maxLife: 80, color: qf.color || '#e67e22', damage: qf.damage || 1, critChance: 0.2, radius: qf.radius || 15, traveled: 0, trailTimer: 0, trailPositions: [], tx: qf.tx, ty: qf.ty, angle: qf.angle, facing: qf.facing }));
+          this.spawnParticles(spawnX, spawnY, qf.color || '#e67e22', 15, 4);
+          this.queuedFireball = null;
+        }
+      }
 
       // Effects
       for (let p of this.particles) {
