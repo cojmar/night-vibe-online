@@ -1242,6 +1242,9 @@ export default class UI {
         if (btnConfigReset) {
             btnConfigReset.addEventListener('click', () => {
                 resetConfig();
+                if (ConfigModule.activePresetId === 'custom:last_game_config') {
+                    this.selectPreset('built-in:default');
+                }
                 buildConfigFields();
                 saveConfigFromUI();
 
