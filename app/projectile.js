@@ -261,7 +261,7 @@ export default class Projectile {
     }
     else if (this.type === 'bolt') {
       const r = this.radius || 6;
-      ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = r * 2;
+      ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = Math.min(r * 2, 20);
       ctx.beginPath(); ctx.arc(this.x, this.y, r, 0, Math.PI*2); ctx.fill();
       ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, r/6);
       ctx.beginPath(); ctx.moveTo(this.x-r/2, this.y); ctx.lineTo(this.x+r/2, this.y); ctx.stroke();

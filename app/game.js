@@ -1325,7 +1325,7 @@ export default class Game {
     this.player.action = 'attack';
     this.player.lastSkill = 1;
     this.player.facing = tx > this.player.x ? 1 : -1;
-    const s1Scale = 1 + (this.player.atk - cd.atk) * 0.02;
+    const s1Scale = Math.min(3.0, 1 + (this.player.atk - cd.atk) * 0.02);
 
     let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing, damage: this.player.atk, critChance: 0.1 };
 
