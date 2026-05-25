@@ -67,6 +67,8 @@ export class PRNG {
 }
 
 const imageCache = {};
+const imageFlipCache = {};
+
 export function getCachedImage(src) {
   if (!src) return null;
   if (imageCache[src]) {
@@ -82,5 +84,29 @@ export function getCachedImage(src) {
   };
   img.src = src;
   return null;
+}
+
+export function getCachedFlippedImage(src) {
+  if (!src || !(src.startsWith('data:image/') || src.startsWith('http') || src.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i))) return null;
+  if (imageFlipCache[src]) {
+    return imageFlipCache[src].loaded ? imageFlipCache[src].img : null;
+  }
+  const originalImg = getCachedImage(src);
+  if (!originalImg) return null;
+  const flipCanvas = document.createElement('canvas');
+  flipCanvas.width = originalImg.width;
+  flipCanvas.height = originalImg.height;
+  const flipCtx = flipCanvas.getContext('2d');
+  flipCtx.translate(flipCanvas.width, 0);
+  flipCtx.scale(-1, 1);
+  flipCtx.drawImage(originalImg, 0, 0);
+  imageFlipCache[src] = { img: flipCanvas, loaded: true };
+  return flipCanvas;
+}
+
+export function preloadFlippedImagesForAsset(icon) {
+  if (icon && typeof icon === 'string' && (icon.startsWith('data:image/') || icon.startsWith('http') || icon.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i))) {
+    getCachedFlippedImage(icon);
+  }
 }
 

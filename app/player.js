@@ -1,4 +1,4 @@
-import { getGroundY, getArmAnim, CLASS_DATA, PLAYER_MOVE_SPEEDS, LEVEL_UP_STAT_POINTS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, RANGED_MAX_RANGE, WARRIOR_MELEE_RANGE, MAGICGLADIATOR_MELEE_RANGE, MELEE_RANGE_LVL_SCALE_MULT, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, CHAT_MESSAGE_DURATION, CHAT_FADE_OUT_DURATION, LIMIT_LEVEL_TO_REBIRTH_REQ, getCachedImage } from './utils.js';
+import { getGroundY, getArmAnim, CLASS_DATA, PLAYER_MOVE_SPEEDS, LEVEL_UP_STAT_POINTS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, RANGED_MAX_RANGE, WARRIOR_MELEE_RANGE, MAGICGLADIATOR_MELEE_RANGE, MELEE_RANGE_LVL_SCALE_MULT, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, CHAT_MESSAGE_DURATION, CHAT_FADE_OUT_DURATION, LIMIT_LEVEL_TO_REBIRTH_REQ, getCachedImage, getCachedFlippedImage } from './utils.js';
 import * as ConfigModule from './config.js';
 
 export default class Player {
@@ -394,8 +394,8 @@ export default class Player {
       }
     }
 
-    if (cd.icon && typeof cd.icon === 'string' && (cd.icon.startsWith('data:image/') || cd.icon.startsWith('http'))) {
-      const img = getCachedImage(cd.icon);
+    if (cd.icon && typeof cd.icon === 'string' && (cd.icon.startsWith('data:image/') || cd.icon.startsWith('http') || cd.icon.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i))) {
+      const img = this.facing < 0 ? getCachedFlippedImage(cd.icon) : getCachedImage(cd.icon);
       if (img) {
         ctx.drawImage(img, -40, -80, 80, 80);
       } else {

@@ -358,21 +358,15 @@ export default class Enemy {
 
     const flip = (this.moveDirX || 1) < 0;
     if (this.icon && typeof this.icon === 'string' && (this.icon.startsWith('data:image/') || this.icon.startsWith('http') || this.icon.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i))) {
-        const img = getCachedImage(this.icon);
-        ctx.save();
-        ctx.translate(this.x, drawY);
-        if (flip) {
-            ctx.scale(-1, 1);
-        }
+        let img = flip ? getCachedFlippedImage(this.icon) : getCachedImage(this.icon);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        if (img && img.complete && img.naturalWidth > 0) {
-            ctx.drawImage(img, -this.size / 2, -this.size / 2, this.size, this.size);
+        if (img) {
+            ctx.drawImage(img, this.x - this.size / 2, drawY - this.size / 2, this.size, this.size);
         } else {
             ctx.font = `${this.size}px serif`;
-            ctx.fillText('👾', 0, 0);
+            ctx.fillText('👾', this.x, drawY);
         }
-        ctx.restore();
     } else {
         ctx.save();
         ctx.translate(this.x, drawY);

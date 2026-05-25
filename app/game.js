@@ -1,5 +1,5 @@
 import * as ConfigModule from './config.js';
-import { CONFIG_METADATA, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, POTION_BUFF_DURATION, POTION_LIFESTEAL_PERCENT, GAME_INITIAL_WAVE, GAME_INITIAL_KILLS, GAME_INITIAL_WAVE_ENEMIES, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, getCachedImage } from './utils.js';
+import { CONFIG_METADATA, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, POTION_BUFF_DURATION, POTION_LIFESTEAL_PERCENT, GAME_INITIAL_WAVE, GAME_INITIAL_KILLS, GAME_INITIAL_WAVE_ENEMIES, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, getCachedImage, preloadFlippedImagesForAsset } from './utils.js';
 import Player from './player.js';
 import Enemy from './enemy.js';
 import Projectile from './projectile.js';
@@ -206,21 +206,21 @@ export default class Game {
             if (data.data.enemyTypes) ConfigModule.updateEnemyTypes(data.data.enemyTypes);
             if (data.data.itemsDb) ConfigModule.updateItemsDb(data.data.itemsDb);
             
-            // Pre-cache all custom base64 images to prevent mid-game lag
+            // Pre-cache all custom base64 images and their flipped versions to prevent mid-game lag
             if (data.data.classData) {
               for (const k in data.data.classData) {
                 const ic = data.data.classData[k].icon;
-                if (ic && typeof ic === 'string' && ic.startsWith('data:image/')) getCachedImage(ic);
+                if (ic && typeof ic === 'string') preloadFlippedImagesForAsset(ic);
               }
             }
             if (data.data.enemyTypes) {
               for (const e of data.data.enemyTypes) {
-                if (e.icon && typeof e.icon === 'string' && e.icon.startsWith('data:image/')) getCachedImage(e.icon);
+                if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
               }
             }
             if (data.data.itemsDb) {
               for (const item of data.data.itemsDb) {
-                if (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) getCachedImage(item.icon);
+                if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
               }
             }
             
@@ -733,9 +733,24 @@ export default class Game {
             if (userData.gameplayConfigName) {
               ConfigModule.setActivePresetName(userData.gameplayConfigName);
             }
-            if (userData.classData) ConfigModule.updateClassData(userData.classData);
-            if (userData.enemyTypes) ConfigModule.updateEnemyTypes(userData.enemyTypes);
-            if (userData.itemsDb) ConfigModule.updateItemsDb(userData.itemsDb);
+            if (userData.classData) {
+                ConfigModule.updateClassData(userData.classData);
+                for (const k in userData.classData) {
+                    if (userData.classData[k].icon && typeof userData.classData[k].icon === 'string') preloadFlippedImagesForAsset(userData.classData[k].icon);
+                }
+              }
+            if (userData.enemyTypes) {
+                ConfigModule.updateEnemyTypes(userData.enemyTypes);
+                for (const e of userData.enemyTypes) {
+                    if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
+                }
+              }
+            if (userData.itemsDb) {
+                ConfigModule.updateItemsDb(userData.itemsDb);
+                for (const item of userData.itemsDb) {
+                    if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
+                }
+              }
             if (this.ui) {
               if (this.ui.buildClassesTab) this.ui.buildClassesTab();
               if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
@@ -810,6 +825,20 @@ export default class Game {
             enemyTypes: ConfigModule.ENEMY_TYPES,
             itemsDb: ConfigModule.ITEMS_DB
         });
+      }
+    }
+
+    // Pre-cache images for local host
+    if (this.isHost) {
+      for (const k in ConfigModule.CLASS_DATA) {
+        const ic = ConfigModule.CLASS_DATA[k].icon;
+        if (ic && typeof ic === 'string') preloadFlippedImagesForAsset(ic);
+      }
+      for (const e of ConfigModule.ENEMY_TYPES) {
+        if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
+      }
+      for (const item of ConfigModule.ITEMS_DB) {
+        if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
       }
     }
 
