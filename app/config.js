@@ -626,6 +626,9 @@ export function updateConfig(newValues) {
     const presets = getCustomPresets();
     if (presets[customId]) {
       presets[customId].values = { ...activeConfig };
+      presets[customId].classes = JSON.parse(JSON.stringify(CLASS_DATA));
+      presets[customId].monsters = JSON.parse(JSON.stringify(ENEMY_TYPES));
+      presets[customId].items = JSON.parse(JSON.stringify(ITEMS_DB));
       saveCustomPresets(presets);
     }
   } else {
@@ -637,6 +640,15 @@ export function updateClassData(newClasses) {
   for (const key in CLASS_DATA) delete CLASS_DATA[key];
   Object.assign(CLASS_DATA, newClasses);
   localStorage.setItem('nightvibe-custom-classes', JSON.stringify(CLASS_DATA));
+  // Also persist to active custom preset
+  if (activePresetId && activePresetId.startsWith('custom:')) {
+    const customId = activePresetId.split('custom:')[1];
+    const presets = getCustomPresets();
+    if (presets[customId]) {
+      presets[customId].classes = JSON.parse(JSON.stringify(CLASS_DATA));
+      saveCustomPresets(presets);
+    }
+  }
 }
 
 export function updateEnemyTypes(newEnemies) {
@@ -644,6 +656,15 @@ export function updateEnemyTypes(newEnemies) {
     ENEMY_TYPES.length = 0;
     ENEMY_TYPES.push(...newEnemies);
     localStorage.setItem('nightvibe-custom-monsters', JSON.stringify(ENEMY_TYPES));
+    // Also persist to active custom preset
+    if (activePresetId && activePresetId.startsWith('custom:')) {
+      const customId = activePresetId.split('custom:')[1];
+      const presets = getCustomPresets();
+      if (presets[customId]) {
+        presets[customId].monsters = JSON.parse(JSON.stringify(ENEMY_TYPES));
+        saveCustomPresets(presets);
+      }
+    }
   }
 }
 
@@ -652,6 +673,15 @@ export function updateItemsDb(newItems) {
     ITEMS_DB.length = 0;
     ITEMS_DB.push(...newItems);
     localStorage.setItem('nightvibe-custom-items', JSON.stringify(ITEMS_DB));
+    // Also persist to active custom preset
+    if (activePresetId && activePresetId.startsWith('custom:')) {
+      const customId = activePresetId.split('custom:')[1];
+      const presets = getCustomPresets();
+      if (presets[customId]) {
+        presets[customId].items = JSON.parse(JSON.stringify(ITEMS_DB));
+        saveCustomPresets(presets);
+      }
+    }
   }
 }
 
