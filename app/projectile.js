@@ -247,7 +247,7 @@ export default class Projectile {
     }
     else if (this.type === 'arrow') {
       const a = this.angle || Math.atan2(this.vy || 0, this.vx || 1);
-      const scale = (this.radius || 12) / 12;
+      const scale = (this.bodyScale || 1) * (this.radius || 12) / 12;
       ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(a); ctx.scale(scale, scale);
       ctx.fillStyle = '#a07828'; ctx.fillRect(-12, -1.5, 24, 3);
       ctx.fillStyle = '#888'; ctx.beginPath();

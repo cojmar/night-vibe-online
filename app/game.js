@@ -1411,7 +1411,7 @@ releaseSkill2() {
       const maxCharges = 3 + (this.player.resets || 0);
       const chargeRatio = maxCharges > 0 ? charges / maxCharges : 0;
       const spreadAngle = 0.15 + chargeRatio * (2 * Math.PI - 0.15);
-      const arrowRadius = 12 * (1 + chargeRatio * 0.8) * lvlScale;
+      const bodyScale = 1 + chargeRatio * 0.8;
       const maxSpreadSpd = baseSpd + 100;
       const arrowCount = Math.min(24, Math.max(1, 4 + Math.floor((this.player.spd - baseSpd) * 20 / (maxSpreadSpd - baseSpd))));
       const extraArrows = Math.max(0, Math.floor((this.player.spd - maxSpreadSpd) / 50));
@@ -1419,12 +1419,12 @@ releaseSkill2() {
       for (let i = 0; i < arrowCount; i++) {
         const a = arrowCount === 1 ? facingAngle : facingAngle + (i / (arrowCount - 1) * 2 - 1) * spreadAngle / 2;
         const speed = 11;
-        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: arrowRadius }));
+        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale, bodyScale: bodyScale }));
       }
       for (let i = 0; i < extraArrows; i++) {
         const a = facingAngle + (i - extraArrows / 2) * 0.15;
         const speed = 11;
-        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: arrowRadius }));
+        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: 12 * aoeScale * lvlScale, bodyScale: bodyScale }));
       }
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
     } else if (skillType === 'Cross Slash' || this.player.classType === 'magicgladiator') {
