@@ -1,72 +1,355 @@
 {
-  "MOVE_SPEED": 4.5,
-  "RANGED_MAX_RANGE": 550,
-  "WARRIOR_MELEE_RANGE": 110,
-  "MAGICGLADIATOR_MELEE_RANGE": 100,
-  "MELEE_RANGE_LVL_SCALE_MULT": 0.8,
-  "E1_RANGE_ATK_EXPONENT": 1.0,
-  "LEVEL_UP_STAT_POINTS": 5,
-  "REQ_KILLS_BASE_MULT": 6.0,
-  "REQ_KILLS_EXPONENT": 1.2,
-  "REQ_KILLS_SIN_AMP": 0,
-  "REBIRTH_BASE_LEVEL": 3,
-  "REBIRTH_LEVEL_STEP": 4,
-  "REBIRTH_POINTS_PER_LEVEL": 5,
-  "LIMIT_LEVEL_TO_REBIRTH_REQ": true,
-  "POTION_BUFF_DURATION": 15000,
-  "POTION_LIFESTEAL_PERCENT": 0.80,
-  "POTION_BLUE_BUFF_DURATION": 18000,
-  "POTION_BLUE_CD_MULTIPLIER": 10.0,
-  "POTION_RED_DROP_CHANCE": 0.15,
-  "POTION_BLUE_DROP_CHANCE": 0.15,
-  "GAME_W": 2560,
-  "GAME_H": 1024,
-  "DEPTH_GROUND_TOP": 0.2,
-  "DEPTH_GROUND_BOTTOM": 1.0,
-  "GROUND_TOLERANCE": 30,
-  "DEAD_BODY_LIFETIME": 2000,
-  "DAY_CYCLE_DURATION": 115,
-  "GAME_INITIAL_WAVE": 1,
-  "GAME_INITIAL_KILLS": 0,
-  "GAME_INITIAL_WAVE_ENEMIES": 15,
-  "ENEMY_SPAWN_INTERVAL": 150,
-  "ENEMY_SCALE_WAVE_MULT": 0.35,
-  "ENEMY_SCALE_LVL_MULT": 0.55,
-  "ENEMY_SKY_SPEED_MULTIPLIER": 4.5,
-  "ENEMY_ATTACK_COOLDOWN_BASE": 15,
-  "ENEMY_ATTACK_COOLDOWN_RAND": 10,
-  "ENEMY_BASE_SIZE_MULT": 2.0,
-  "ENEMY_SIZE_WAVE_MULT": 0.05,
-  "BOSS_BASE_HP": 800,
-  "BOSS_BASE_ATK": 30,
-  "BOSS_BASE_SPEED": 0.55,
-  "BOSS_BASE_SIZE": 96,
-  "BOSS_BASE_SIZE_MULT": 1.0,
-  "BOSS_SIZE_WAVE_MULT": 0.05,
-  "BOSS_BASE_COLOR": "#e67e22",
-  "BOSS_ATTACK_COOLDOWN": 30,
-  "BOSS_WAVE_INTERVAL": 4,
-  "BOSS_SPAWN_INCREMENT": 2,
-  "BOSS_LASER_CHANNEL_TIME": 40,
-  "BOSS_LASER_DAMAGE_INTERVAL": 200,
-  "BOSS_LASER_DAMAGE_PER_SEC": 15,
-  "BOSS_LASER_DAMAGE_LEVEL_SCALE": 3,
-  "BOSS_PROJECTILE_SPEED": 15.0,
-  "BOSS_PROJECTILE_HOMING": false,
-  "BOSS_PROJECTILE_LIFETIME": 3000,
-  "PROJ_HIT_RADIUS_ARROW": 14,
-  "PROJ_HIT_RADIUS_BOLT": 12,
-  "PROJ_HIT_RADIUS_DEFAULT": 18,
-  "CHAT_MESSAGE_DURATION": 3000,
-  "CHAT_FADE_OUT_DURATION": 300,
-  "NETWORK_ROOM_NAME": "Night-Vibe-Online-Arena",
-  "EQUIPMENT_SLOTS": null,
-  "GEAR_DROP_RATE": 0.01,
-  "GEAR_RARITY_NORMAL": 0.65,
-  "GEAR_RARITY_MAGIC": 0.25,
-  "GEAR_RARITY_RARE": 0.10,
-  "GEAR_STAT_MULTIPLIER": 2.0,
-  "GEAR_STAT_VARIANCE": 0.30,
-  "GEAR_DROP_ONLY_BOSS": false,
-  "CLEAR_ITEMS_ON_START": true
+  "values": {
+    "MOVE_SPEED": 4.5,
+    "RANGED_MAX_RANGE": 550,
+    "WARRIOR_MELEE_RANGE": 110,
+    "MAGICGLADIATOR_MELEE_RANGE": 100,
+    "MELEE_RANGE_LVL_SCALE_MULT": 0.8,
+    "E1_RANGE_ATK_EXPONENT": 1,
+    "LEVEL_UP_STAT_POINTS": 5,
+    "REQ_KILLS_BASE_MULT": 6,
+    "REQ_KILLS_EXPONENT": 1.2,
+    "REQ_KILLS_SIN_AMP": 0,
+    "REBIRTH_BASE_LEVEL": 3,
+    "REBIRTH_LEVEL_STEP": 4,
+    "REBIRTH_POINTS_PER_LEVEL": 5,
+    "LIMIT_LEVEL_TO_REBIRTH_REQ": true,
+    "POTION_BUFF_DURATION": 15000,
+    "POTION_LIFESTEAL_PERCENT": 0.8,
+    "POTION_BLUE_BUFF_DURATION": 18000,
+    "POTION_BLUE_CD_MULTIPLIER": 10,
+    "POTION_RED_DROP_CHANCE": 0.15,
+    "POTION_BLUE_DROP_CHANCE": 0.15,
+    "GAME_W": 2560,
+    "GAME_H": 1024,
+    "DEPTH_GROUND_TOP": 0.2,
+    "DEPTH_GROUND_BOTTOM": 1,
+    "GROUND_TOLERANCE": 30,
+    "DEAD_BODY_LIFETIME": 2000,
+    "DAY_CYCLE_DURATION": 115,
+    "ENEMY_SPAWN_INTERVAL": 150,
+    "ENEMY_SCALE_WAVE_MULT": 0.15,
+    "ENEMY_SCALE_LVL_MULT": 0.35,
+    "ENEMY_SKY_SPEED_MULTIPLIER": 4,
+    "ENEMY_SPEED_SCALE_LVL_MULT": 0.875,
+    "ENEMY_ATTACK_COOLDOWN_BASE": 20,
+    "ENEMY_ATTACK_COOLDOWN_RAND": 10,
+    "ENEMY_BASE_SIZE_MULT": 1,
+    "ENEMY_SIZE_WAVE_MULT": 0.02,
+    "BOSS_BASE_HP": 400,
+    "BOSS_BASE_ATK": 15,
+    "BOSS_BASE_SPEED": 0.4,
+    "BOSS_BASE_SIZE": 48,
+    "BOSS_BASE_SIZE_MULT": 1,
+    "BOSS_SIZE_WAVE_MULT": 0.02,
+    "BOSS_BASE_COLOR": "#e67e22",
+    "BOSS_ATTACK_COOLDOWN": 30,
+    "BOSS_WAVE_INTERVAL": 4,
+    "BOSS_SPAWN_INCREMENT": 2,
+    "BOSS_LASER_CHANNEL_TIME": 40,
+    "BOSS_LASER_DAMAGE_INTERVAL": 200,
+    "BOSS_LASER_DAMAGE_PER_SEC": 15,
+    "BOSS_LASER_DAMAGE_LEVEL_SCALE": 3,
+    "BOSS_PROJECTILE_SPEED": 15,
+    "BOSS_PROJECTILE_HOMING": false,
+    "BOSS_PROJECTILE_LIFETIME": 3000,
+    "PROJ_HIT_RADIUS_ARROW": 14,
+    "PROJ_HIT_RADIUS_BOLT": 12,
+    "PROJ_HIT_RADIUS_DEFAULT": 18,
+    "CHAT_MESSAGE_DURATION": 3000,
+    "CHAT_FADE_OUT_DURATION": 300,
+    "NETWORK_ROOM_NAME": "Night-Vibe-Online-Arena",
+    "EQUIPMENT_SLOTS": "Weapon,Armor,Ring 1,Ring 2,Amulet",
+    "ENFORCE_GEAR_SLOTS": true,
+    "GEAR_DROP_RATE": 0.01,
+    "GEAR_RARITY_NORMAL": 0.65,
+    "GEAR_RARITY_MAGIC": 0.1,
+    "GEAR_RARITY_RARE": 0.03,
+    "GEAR_STAT_MULTIPLIER": 2,
+    "GEAR_STAT_VARIANCE": 0.3,
+    "GEAR_DROP_ONLY_BOSS": false,
+    "CLEAR_ITEMS_ON_START": true
+  },
+  "classes": {
+    "warrior": {
+      "name": "Warrior",
+      "icon": "⚔️",
+      "hp": 120,
+      "mp": 40,
+      "atk": 22,
+      "spd": 8,
+      "color": "#c0392b",
+      "accent": "#e74c3c",
+      "s1Name": "Bash",
+      "s1Color": "#d4af37",
+      "s2Name": "Sword Slash",
+      "s2Color": "#ffd700",
+      "bodyType": "warrior"
+    },
+    "mage": {
+      "name": "Mage",
+      "icon": "🔮",
+      "hp": 80,
+      "mp": 120,
+      "atk": 18,
+      "spd": 14,
+      "color": "#2980b9",
+      "accent": "#3498db",
+      "s1Name": "Magic Bolt",
+      "s1Color": "#3498db",
+      "s2Name": "Fireball",
+      "s2Color": "#e67e22",
+      "bodyType": "mage"
+    },
+    "archer": {
+      "name": "Archer",
+      "icon": "🏹",
+      "hp": 70,
+      "mp": 60,
+      "atk": 24,
+      "spd": 18,
+      "color": "#27ae60",
+      "accent": "#2ecc71",
+      "s1Name": "Quick Shot",
+      "s1Color": "#f1c40f",
+      "s2Name": "Arrow Barrage",
+      "s2Color": "#e74c3c",
+      "bodyType": "archer"
+    },
+    "magicgladiator": {
+      "name": "Magic Gladiator",
+      "icon": "✨",
+      "hp": 140,
+      "mp": 80,
+      "atk": 26,
+      "spd": 6,
+      "color": "#8e44ad",
+      "accent": "#9b59b6",
+      "s1Name": "Psionic Slash",
+      "s1Color": "#e74c3c",
+      "s2Name": "Cross Slash",
+      "s2Color": "#ffd700",
+      "bodyType": "magicgladiator"
+    }
+  },
+  "monsters": [
+    {
+      "name": "Nightmare Slime",
+      "icon": "🟢",
+      "hp": 160,
+      "atk": 5,
+      "color": "#2ecc71",
+      "speed": 0.4,
+      "size": 20
+    },
+    {
+      "name": "Nightmare Goblin",
+      "icon": "👺",
+      "hp": 185,
+      "atk": 8,
+      "color": "#8b0000",
+      "speed": 0.7,
+      "size": 22
+    },
+    {
+      "name": "Nightmare Skeleton",
+      "icon": "💀",
+      "hp": 205,
+      "atk": 10,
+      "color": "#dfe6e9",
+      "speed": 0.5,
+      "size": 24
+    },
+    {
+      "name": "Nightmare Orc",
+      "icon": "👹",
+      "hp": 255,
+      "atk": 14,
+      "color": "#c0392b",
+      "speed": 0.35,
+      "size": 28
+    },
+    {
+      "name": "Nightmare Ghost",
+      "icon": "👻",
+      "hp": 400,
+      "atk": 12,
+      "color": "#dfe6e9",
+      "speed": 0.9,
+      "size": 22
+    },
+    {
+      "name": "Nightmare Demon",
+      "icon": "🔥",
+      "hp": 600,
+      "atk": 18,
+      "color": "#dc3545",
+      "speed": 0.55,
+      "size": 26
+    },
+    {
+      "name": "Nightmare Dragon",
+      "icon": "🐉",
+      "hp": 1300,
+      "atk": 22,
+      "color": "#e67e22",
+      "speed": 0.3,
+      "size": 32
+    },
+    {
+      "name": "Nightmare Lich",
+      "icon": "🧙",
+      "hp": 2235,
+      "atk": 20,
+      "color": "#8e44ad",
+      "speed": 0.45,
+      "size": 26
+    }
+  ],
+  "items": [
+    {
+      "name": "Nightmare Novice Dagger",
+      "icon": "🗡️",
+      "gearType": "Weapon",
+      "rarity": "normal",
+      "color": "#ecf0f1",
+      "stats": {
+        "atk": 16,
+        "maxHp": 0,
+        "spd": 0
+      }
+    },
+    {
+      "name": "Nightmare Leather Vest",
+      "icon": "🛡️",
+      "gearType": "Armor",
+      "rarity": "normal",
+      "color": "#ecf0f1",
+      "stats": {
+        "atk": 0,
+        "maxHp": 16,
+        "spd": 0
+      }
+    },
+    {
+      "name": "Nightmare Bronze Ring",
+      "icon": "💍",
+      "gearType": "Ring",
+      "rarity": "normal",
+      "color": "#ecf0f1",
+      "stats": {
+        "atk": 0,
+        "maxHp": 0,
+        "spd": 3
+      }
+    },
+    {
+      "name": "Nightmare Simple Talisman",
+      "icon": "📿",
+      "gearType": "Amulet",
+      "rarity": "normal",
+      "color": "#ecf0f1",
+      "stats": {
+        "atk": 0,
+        "maxHp": 10,
+        "spd": 0
+      }
+    },
+    {
+      "name": "Nightmare Gleaming Broadsword",
+      "icon": "🗡️",
+      "gearType": "Weapon",
+      "rarity": "magic",
+      "color": "#3498db",
+      "stats": {
+        "atk": 24,
+        "maxHp": 10,
+        "spd": 0
+      }
+    },
+    {
+      "name": "Nightmare Reinforced Chainmail",
+      "icon": "🛡️",
+      "gearType": "Armor",
+      "rarity": "magic",
+      "color": "#3498db",
+      "stats": {
+        "atk": 0,
+        "maxHp": 30,
+        "spd": 2
+      }
+    },
+    {
+      "name": "Nightmare Chrono Ring",
+      "icon": "💍",
+      "gearType": "Ring",
+      "rarity": "magic",
+      "color": "#3498db",
+      "stats": {
+        "atk": 8,
+        "maxHp": 0,
+        "spd": 3
+      }
+    },
+    {
+      "name": "Nightmare Empowered Necklace",
+      "icon": "📿",
+      "gearType": "Amulet",
+      "rarity": "magic",
+      "color": "#3498db",
+      "stats": {
+        "atk": 10,
+        "maxHp": 20,
+        "spd": 0
+      }
+    },
+    {
+      "name": "Nightmare Heavenly Excalibur",
+      "icon": "🗡️",
+      "gearType": "Weapon",
+      "rarity": "rare",
+      "color": "#f1c40f",
+      "stats": {
+        "atk": 40,
+        "maxHp": 40,
+        "spd": 40
+      }
+    },
+    {
+      "name": "Nightmare Valorous Aegis Plate",
+      "icon": "🛡️",
+      "gearType": "Armor",
+      "rarity": "rare",
+      "color": "#f1c40f",
+      "stats": {
+        "atk": 20,
+        "maxHp": 60,
+        "spd": 10
+      }
+    },
+    {
+      "name": "Nightmare Celestial Loop",
+      "icon": "💍",
+      "gearType": "Ring",
+      "rarity": "rare",
+      "color": "#f1c40f",
+      "stats": {
+        "atk": 30,
+        "maxHp": 18,
+        "spd": 12
+      }
+    },
+    {
+      "name": "Nightmare Relic of the Dragon",
+      "icon": "📿",
+      "gearType": "Amulet",
+      "rarity": "rare",
+      "color": "#f1c40f",
+      "stats": {
+        "atk": 100,
+        "maxHp": 100,
+        "spd": 100
+      }
+    }
+  ]
 }

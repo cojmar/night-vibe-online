@@ -329,7 +329,10 @@ export default class UI {
                     if (key === 'bossrush') name = 'Boss Rush Mode';
                     this.builtInConfigs[key] = {
                         name: name,
-                        values: cfg
+                        values: cfg,
+                        classes: cfg.classes || null,
+                        monsters: cfg.monsters || null,
+                        items: cfg.items || null
                     };
                 }
             } catch (err) {
@@ -462,6 +465,9 @@ export default class UI {
             if (this.builtInConfigs && this.builtInConfigs[key]) {
                 valuesToApply = this.builtInConfigs[key].values;
                 presetName = this.builtInConfigs[key].name;
+                if (this.builtInConfigs[key].classes) classesToApply = this.builtInConfigs[key].classes;
+                if (this.builtInConfigs[key].monsters) monstersToApply = this.builtInConfigs[key].monsters;
+                if (this.builtInConfigs[key].items) itemsToApply = this.builtInConfigs[key].items;
             }
         } else if (presetId.startsWith('custom:')) {
             const key = presetId.split('custom:')[1];
