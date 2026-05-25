@@ -1418,15 +1418,16 @@ releaseSkill2() {
     const dmgMulti = 1 + (charges * 0.15);
     const areaMulti = 1 + (charges * 0.08);
 
-    // SPD controls AOE size (linear growth, no cap — SPD affects real size)
-    const spdScale = 1 + (this.player.spd - baseSpd) * 1.5 / Math.max(1, 200 - baseSpd);
+    // SPD controls AOE size (capped at 200 SPD — no bigger after 200)
+    const effectiveSpd = Math.min(this.player.spd, 200);
+    const spdScale = 1 + (effectiveSpd - baseSpd) * 1.5 / Math.max(1, 200 - baseSpd);
     const aoeScale = spdScale * (1 + (charges * 0.15));
     
-    // SPD controls fireball range (200-300 SPD: +25% range)
+    // SPD controls fireball range (200-300 SPD: doubles range at 300)
     let fbMaxDistance = 500;
     if (this.player.spd > 200) {
-      const rangeScale = 1 + ((this.player.spd - 200) / 100) * 0.25;
-      fbMaxDistance = 500 * Math.min(rangeScale, 1.25);
+      const rangeScale = 1 + ((this.player.spd - 200) / 100) * 1.0;
+      fbMaxDistance = 500 * Math.min(rangeScale, 2.0);
     }
     const reqLevel = 4 + (this.player.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
@@ -1456,7 +1457,8 @@ releaseSkill2() {
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
       const fbRadius = Math.min(60, 15 + charges * 5);
-      this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: 80, maxLife: 80, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], maxDistance: fbMaxDistance, ...projProps }));
+      const fbLife = fbMaxDistance / 5;
+      this.projectiles.push(new Projectile({ type: 'fireball', x: this.player.x, y: weaponY, speed: 5, life: fbLife, maxLife: fbLife, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: fbRadius * aoeScale * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], maxDistance: fbMaxDistance, ...projProps }));
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e67e22', 8, 3);
     } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
       const maxArrowCount = 24;
