@@ -1435,7 +1435,9 @@ releaseSkill2() {
       const arrowRadius = 12 + charges * 0.9;
       const arrowBodyScale = 1 + charges * 0.075;
       const maxSpreadSpd = baseSpd + 100;
-      const totalArrowCount = Math.min(maxArrowCount, Math.max(minArrowCount, 4 + Math.floor((this.player.spd - baseSpd) * 20 / (maxSpreadSpd - baseSpd))) + Math.max(0, Math.floor((this.player.spd - maxSpreadSpd) / 50)));
+      const baseArrowCount = Math.min(maxArrowCount, Math.max(minArrowCount, 4 + Math.floor((this.player.spd - baseSpd) * 20 / (maxSpreadSpd - baseSpd))));
+      const extraArrows = Math.max(0, Math.floor((this.player.spd - maxSpreadSpd) / 50));
+      const totalArrowCount = baseArrowCount + extraArrows;
       const spreadRatio = totalArrowCount >= maxArrowCount ? 1 : (totalArrowCount - minArrowCount) / (maxArrowCount - minArrowCount);
       const spreadAngle = 0.15 + spreadRatio * (2 * Math.PI - 0.15);
       const facingAngle = aimAngle;
