@@ -1497,7 +1497,7 @@ releaseSkill2() {
       const spiritDamage = this.player.atk * 0.8 * dmgMulti;
       const spiritRadius = Math.min(20, 10 + charges * 1.5);
       const spiritLife = Math.round(90 + charges * 15);
-      const spiritColor = cd.s2SpiritColor || cd.s2Color || '#9b4dff';
+      const spiritColor = cd.accent;
 
       for (let i = 0; i < spiritCount; i++) {
         const angle = Math.random() * Math.PI * 2;
