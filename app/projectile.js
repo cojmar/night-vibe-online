@@ -74,7 +74,7 @@ export default class Projectile {
         this.y += this.vy * dt;
       }
       this.traveled = (this.traveled || 0) + this.speed * dt;
-      this.currentRadius = (this.radius || 40) + this.traveled * 0.5;
+      this.currentRadius = (this.radius || 40) + this.traveled * 0.25;
 
       for (let e of gameInstance.enemies) {
         if (!e.alive || this.hitIds.has(e)) continue;
@@ -300,7 +300,7 @@ export default class Projectile {
     else if (this.type === 'psionic_slash') {
       const rot = this.angle;
       const alpha = Math.min(1, this.life / (this.maxLife * 0.3));
-      const currentRadius = (this.radius || 40) + (this.traveled || 0) * 0.5;
+      const currentRadius = (this.radius || 40) + (this.traveled || 0) * 0.25;
       
       ctx.save();
       ctx.translate(this.x, this.y);
@@ -356,7 +356,7 @@ export default class Projectile {
         this.y += this.vy * dt;
       }
       this.traveled = (this.traveled || 0) + this.speed * dt;
-      this.currentRadius = (this.radius || 40) + this.traveled * 0.5;
+      this.currentRadius = (this.radius || 40) + this.traveled * 0.25;
 
       for (let e of gameInstance.enemies) {
         if (!e.alive || this.hitIds.has(e)) continue;
