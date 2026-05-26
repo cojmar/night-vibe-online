@@ -990,6 +990,13 @@ export default class Game {
     if (this.ui && this.ui.saveLastGameConfig) {
       this.ui.saveLastGameConfig();
     }
+    // Clear stale session data from network room so do_merge doesn't retain old properties
+    if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
+      const staleKeys = ['hostData', 'enemies', 'syncProjectiles', 'bossActive', 'waveTotal', 'waveKilled', 'waveSpawn', 'hits', 'enemyKilled', 'enemyHitPlayer', 'spawnedProjectile', 'spawnItem', 'isHost', 'gameplayConfig', 'gameplayConfigName', 'classData', 'enemyTypes', 'itemsDb', 'hostSync', 'requestSync', 'gameOver'];
+      for (const k of staleKeys) {
+        delete this.net.room.users[this.net.me.info.user].data[k];
+      }
+    }
     // Ensure all menu/previous session parameters are fully reset
     this._resetSessionData();
 
