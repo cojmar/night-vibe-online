@@ -1135,7 +1135,13 @@ export default class Game {
           gameplayConfigName: ConfigModule.activePresetName || 'Default',
           classData: ConfigModule.CLASS_DATA,
           enemyTypes: ConfigModule.ENEMY_TYPES,
-          itemsDb: ConfigModule.ITEMS_DB
+          itemsDb: ConfigModule.ITEMS_DB,
+          hostData: {
+            wave: this.wave, kills: this.kills, seed: this.prng.seed, env: this.selectedEnv, time: this.globalTime,
+            waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
+            enemies: [],
+            items: []
+          }
         });
       }
     }
@@ -1413,6 +1419,8 @@ export default class Game {
       myData.spd = base.spd;
       myData.maxHp = base.hp;
       myData.hp = base.hp;
+      // Clear stale host data so do_merge replaces with fresh values on next broadcast
+      myData.hostData = null;
     }
   }
 
