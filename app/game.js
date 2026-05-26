@@ -2595,7 +2595,10 @@ export default class Game {
           const newCount = Math.min(maxCharges, Math.floor(this.player.s2ChargeTime / 1000));
           if (newCount > (this.player.s2ChargeCount || 0)) {
             this.player.s2ChargeCount = newCount;
-            this.spawnParticles(this.player.x, this.player.y - 40, '#ffd700', 15, 4);
+            // Removed charge-up particles for warrior as requested
+            if (this.player.classType !== 'warrior') {
+              this.spawnParticles(this.player.x, this.player.y - 40, '#ffd700', 15, 4);
+            }
             this.broadcastState();
           }
 
