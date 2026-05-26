@@ -990,17 +990,6 @@ export default class Game {
     if (this.ui && this.ui.saveLastGameConfig) {
       this.ui.saveLastGameConfig();
     }
-    // Clear stale session data from THIS user's room data so do_merge doesn't retain old in-game properties
-    if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
-      const myData = this.net.room.users[this.net.me.info.user].data;
-      // Reset session-only fields (gameplay data, host state, sync helpers)
-      const staleKeys = ['inGame', 'state', 'isHost', 'x', 'y', 'hp', 'maxHp', 'atk', 'spd', 'level', 'kills', 'reqKills', 'facing', 'action', 'animTimer', 'hitFlash', 'lastInputTime', 'lastSkill', 'isChargingS2', 's2ChargeCount', 'mouseX', 'mouseY', 'chatMsg', 'buffHpTimer', 'buffManaTimer', 'targetedItemId', 'alive',
-        'syncProjectiles', 'gameplayConfig', 'gameplayConfigName', 'classData', 'enemyTypes', 'itemsDb', 'hostSync', 'requestSync',
-        'hits', 'enemyKilled', 'enemyHitPlayer', 'spawnedProjectile', 'spawnItem'];
-      for (const k of staleKeys) {
-        delete myData[k];
-      }
-    }
     // Ensure all menu/previous session parameters are fully reset
     this._resetSessionData();
 
