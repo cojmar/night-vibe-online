@@ -330,20 +330,29 @@ export default class Game {
       } else {
         // Remote player: check inGame status and state from otherPlayers or from room data
         const otherPlayer = this.otherPlayers[user];
-        if (otherPlayer) {
-          // If the player hasn't sent any network data in 3 seconds, consider them idle/inactive
-          if (otherPlayer.lastDataTime && Date.now() - otherPlayer.lastDataTime > 3000) {
-            return false;
-          }
-          return otherPlayer.inGame && otherPlayer.state !== 'MENU' && otherPlayer.state !== 'GAME_OVER';
+        const roomUser = this.net.room && this.net.room.users && this.net.room.users[user];
+        
+        // If the player hasn't sent any network data in 3 seconds, consider them idle/inactive
+        if (otherPlayer && otherPlayer.lastDataTime && Date.now() - otherPlayer.lastDataTime > 3000) {
+          return false;
         }
-        const roomUser = this.net.room.users[user];
-        if (roomUser && roomUser.data) {
-          const inGame = roomUser.data.inGame;
-          const state = roomUser.data.state;
-          return inGame === true && state !== 'MENU' && state !== 'GAME_OVER';
+
+        let inGame = false;
+        let pState = 'MENU';
+
+        if (otherPlayer && otherPlayer.inGame !== undefined) {
+          inGame = otherPlayer.inGame;
+        } else if (roomUser && roomUser.data && roomUser.data.inGame !== undefined) {
+          inGame = roomUser.data.inGame;
         }
-        return false;
+
+        if (otherPlayer && otherPlayer.state !== undefined) {
+          pState = otherPlayer.state;
+        } else if (roomUser && roomUser.data && roomUser.data.state !== undefined) {
+          pState = roomUser.data.state;
+        }
+
+        return inGame && pState !== 'MENU' && pState !== 'GAME_OVER';
       }
     });
 
@@ -1385,6 +1394,12 @@ export default class Game {
     const base = CLASS_DATA.warrior;
     const savedResets = parseInt(localStorage.getItem('nightvibe-resets'), 10) || 0;
     const savedStatPoints = parseInt(localStorage.getItem('nightvibe-statpoints'), 10) || 0;
+
+    this.enemies = [];
+    this.projectiles = [];
+    this.particles = [];
+    this.items = [];
+    this.floatingTexts = [];
 
     if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
       const myData = this.net.room.users[this.net.me.info.user].data;
