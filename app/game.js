@@ -1639,18 +1639,19 @@ export default class Game {
     if (skillType === 'Sword Slash' || this.player.classType === 'warrior') {
       const effectiveSpd = Math.min(200, this.player.spd);
       const spdDiff = Math.max(0, effectiveSpd - cd.spd);
-      
-      // Merge all potential waves into one massive, lag-free slash
-      const powerMulti = 1 + (charges * 0.5) + Math.floor(spdDiff / 100) * 0.5;
-      const waveDistance = Math.min(this.gameW * 0.4, (150 + spdDiff * 8) * areaMulti);
-      const areaMultiRadius = Math.min(3.0, areaMulti * (1 + powerMulti * 0.2));
-      
-      // Damage reduced to 25% of its previous value (2.0 -> 0.5)
-      const singleDamage = this.player.atk * 0.5 * dmgMulti * powerMulti;
-      // Base radius increased, scales up with power
-      const singleRadius = 25 * aoeScale * areaMultiRadius * lvlScale;
-      
-      this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 6.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: singleDamage, critChance: 0.2, maxDistance: waveDistance, radius: singleRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: aimAngle, charges: charges });
+      // charges now give half as many waves at overcharge
+      const baseWaveCount = 1 + Math.floor(charges / 2);
+      // We want about 2 waves max.
+      const waveCount = Math.min(2, baseWaveCount + Math.floor(spdDiff / 100));
+      const waveDistance = Math.min(this.gameW * 0.25, (120 + spdDiff * 6) * areaMulti);
+      const waveSpread = Math.min(0.6, (Math.PI * 2) / Math.max(1, waveCount));
+
+      const areaMultiRadius = Math.min(2.0, areaMulti);
+      for (let i = 0; i < waveCount; i++) {
+        const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
+        this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMultiRadius * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges });
+      }
+      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
       const fbRadius = Math.min(60, 15 + charges * 5);
       const newFireballRadius = fbRadius * aoeScale * lvlScale;
@@ -1732,19 +1733,20 @@ export default class Game {
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
       this.ui.updateHUD(this.player);
     } else {
-      // Default fallback: Warrior Shockwave style (Single massive wave)
+      // Default fallback: Warrior Shockwave style
       const effectiveSpd = Math.min(200, this.player.spd);
       const spdDiff = Math.max(0, effectiveSpd - cd.spd);
-      
-      const powerMulti = 1 + (charges * 0.5) + Math.floor(spdDiff / 100) * 0.5;
-      const waveDistance = Math.min(this.gameW * 0.4, (150 + spdDiff * 8) * areaMulti);
-      const areaMultiRadius = Math.min(3.0, areaMulti * (1 + powerMulti * 0.2));
-      
-      // Damage reduced to 25% of its previous value
-      const singleDamage = this.player.atk * 0.5 * dmgMulti * powerMulti;
-      const singleRadius = 25 * aoeScale * areaMultiRadius * lvlScale;
-      
-      this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 6.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: singleDamage, critChance: 0.2, maxDistance: waveDistance, radius: singleRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: aimAngle, charges: charges });
+      const baseWaveCount = 1 + Math.floor(charges / 2);
+      const waveCount = Math.min(2, baseWaveCount + Math.floor(spdDiff / 100));
+      const waveDistance = Math.min(this.gameW * 0.25, (120 + spdDiff * 6) * areaMulti);
+      const waveSpread = Math.min(0.6, (Math.PI * 2) / Math.max(1, waveCount));
+
+      const areaMultiRadius = Math.min(2.0, areaMulti);
+      for (let i = 0; i < waveCount; i++) {
+        const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
+        this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMultiRadius * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges });
+      }
+      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     }
     this.broadcastState();
   }
@@ -2595,10 +2597,7 @@ export default class Game {
           const newCount = Math.min(maxCharges, Math.floor(this.player.s2ChargeTime / 1000));
           if (newCount > (this.player.s2ChargeCount || 0)) {
             this.player.s2ChargeCount = newCount;
-            // Removed charge-up particles for warrior as requested
-            if (this.player.classType !== 'warrior') {
-              this.spawnParticles(this.player.x, this.player.y - 40, '#ffd700', 15, 4);
-            }
+            this.spawnParticles(this.player.x, this.player.y - 40, '#ffd700', 15, 4);
             this.broadcastState();
           }
 
