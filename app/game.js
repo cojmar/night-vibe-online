@@ -153,6 +153,7 @@ export default class Game {
 
         const oldInGame = this.otherPlayers[data.user].inGame;
         const oldState = this.otherPlayers[data.user].state;
+        const oldIsHost = this.otherPlayers[data.user].isHost;
         const oldHitFlash = this.otherPlayers[data.user].hitFlash || 0;
 
         this.otherPlayers[data.user].set(data.data);
@@ -182,7 +183,7 @@ export default class Game {
           }
         }
 
-        if (this.otherPlayers[data.user].inGame !== oldInGame || this.otherPlayers[data.user].state !== oldState) {
+        if (this.otherPlayers[data.user].inGame !== oldInGame || this.otherPlayers[data.user].state !== oldState || this.otherPlayers[data.user].isHost !== oldIsHost) {
           this.checkHost();
         }
 
