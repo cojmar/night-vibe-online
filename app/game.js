@@ -1500,7 +1500,7 @@ releaseSkill2() {
       const waveCount = Math.min(3, baseWaveCount + Math.floor(spdDiff / 75));
       const waveDistance = Math.min(this.gameW * 0.25, (120 + spdDiff * 6) * areaMulti);
       // Ensure the spread doesn't overlap excessively or shoot too densely
-      const waveSpread = Math.min(0.25, (Math.PI * 2) / Math.max(1, waveCount));
+      const waveSpread = Math.min(0.6, (Math.PI * 2) / Math.max(1, waveCount));
 
       const areaMultiRadius = Math.min(2.0, areaMulti);
       for (let i = 0; i < waveCount; i++) {
