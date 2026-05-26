@@ -522,7 +522,11 @@ export default class Game {
 
   initWebGL() {
     const gl = this.gl;
-    if (!gl) return;
+    if (!gl) {
+      if (this.canvas) this.canvas.style.opacity = 1;
+      if (this.webglCanvas) this.webglCanvas.style.display = 'none';
+      return;
+    }
 
     const vsSource = `
       attribute vec4 aVertexPosition;
@@ -3178,7 +3182,7 @@ releaseSkill2() {
           if (this.waveTransitionTimer <= 0) {
             if (this.player && !this.player.alive) this.respawnPlayer();
             this.wave++;
-            this.prng = new PRNG(this.wave * 12345);
+            this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
             this.generateScenery();
 
             if (this.state === 'MENU') {
