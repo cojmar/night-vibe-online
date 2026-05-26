@@ -1620,18 +1620,16 @@ releaseSkill2() {
     this.player.hp -= actualDamage;
     this.player.hitFlash = 15;
     this.screenShake = 15;
-    const bx = this.player.x, by = this.player.y - 40;
-    const bloodCount = Math.floor(10 * (this.settings ? this.settings.particles : 1.0));
-    for (let i = 0; i < bloodCount; i++) {
+    const px = this.player.x, py = this.player.y - 40;
+    const count = Math.floor(8 * (this.settings ? this.settings.particles : 1.0));
+    for (let i = 0; i < count; i++) {
       this.particles.push({
-        x: bx,
-        y: by,
-        vx: (Math.random() - 0.5) * 5,
-        vy: (Math.random() - 0.5) * 5,
-        life: 20 + Math.floor(Math.random() * 10),
-        maxLife: 30,
-        color: Math.random() > 0.5 ? '#8b0000' : '#a01010',
-        size: 4 + Math.random() * 3
+        x: px, y: py,
+        vx: (Math.random() - 0.5) * 3,
+        vy: -Math.random() * 2.5 - 0.5,
+        life: 25, maxLife: 25,
+        color: '#8b0000',
+        size: 5 + Math.random() * 3
       });
     }
     this.ui.updateHUD(this.player);
