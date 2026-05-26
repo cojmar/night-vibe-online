@@ -34,7 +34,7 @@ export default class Projectile {
       for (let e of gameInstance.enemies) {
         if (!e.alive || this.hitIds.has(e)) continue;
         if (circleOverlapsCrescentArc(this.originX, this.originY, this.angle, this.traveled, e.x, e.y, e.size)) {
-          gameInstance.dealDamage(e, this.damage, this.critChance);
+          if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage, this.critChance);
           gameInstance.applyKnockback(e, this.angle, 50);
           this.hitIds.add(e);
           gameInstance.spawnParticles(e.x, e.y, this.color, 6, 3);
@@ -60,7 +60,7 @@ export default class Projectile {
           pointInSweepArc(this.originX, this.originY, this.angle, 0.55, hitInner, hitOuter, e.x, e.y);
         
         if (inHitbox) {
-          gameInstance.dealDamage(e, this.damage, this.critChance);
+          if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage, this.critChance);
           this.hitIds.add(e);
           if (this.isKnockback) gameInstance.applyKnockback(e, this.knockbackDir, this.knockback);
           gameInstance.spawnParticles(e.x, e.y, this.color, 6, 3);
@@ -98,7 +98,7 @@ export default class Projectile {
         if (e.name === 'MISSILE' || e.name === 'BOMB') continue;
         const projHitRadius = (this.type === 'arrow') ? PROJ_HIT_RADIUS_ARROW : (this.type === 'bolt' ? PROJ_HIT_RADIUS_BOLT : (this.radius || PROJ_HIT_RADIUS_DEFAULT));
         if (Math.hypot(this.x - e.x, this.y - e.y) < e.size + projHitRadius) {
-          gameInstance.dealDamage(e, this.damage, this.critChance);
+          if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage, this.critChance);
           gameInstance.spawnParticles(this.x, this.y, this.color, 8, 4);
           if (this.type !== 'fireball') {
             if (this.type === 'arrow' && this.explodeRadius && this.explodeDamage) {
@@ -106,7 +106,7 @@ export default class Projectile {
                 if (!e2.alive) continue;
                 if (e2.name === 'MISSILE' || e2.name === 'BOMB') continue;
                 const d = Math.hypot(this.x - e2.x, this.y - e2.y);
-                if (d < this.explodeRadius) gameInstance.dealDamage(e2, this.explodeDamage * (1 - d / (this.explodeRadius * 2)), this.critChance);
+                if (d < this.explodeRadius) if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e2, this.explodeDamage * (1 - d / (this.explodeRadius * 2)), this.critChance);
               }
               gameInstance.spawnParticles(this.x, this.y, this.color, 15, 5);
               gameInstance.spawnParticles(this.x, this.y, '#ffd700', 8, 3);
@@ -123,7 +123,7 @@ export default class Projectile {
           if (!e.alive) continue;
           if (e.name === 'MISSILE' || e.name === 'BOMB') continue;
           const d = Math.hypot(this.x - e.x, this.y - e.y);
-          if (d < this.explodeRadius) gameInstance.dealDamage(e, this.explodeDamage * (1 - d / (this.explodeRadius * 2)), this.critChance);
+          if (d < this.explodeRadius) if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.explodeDamage * (1 - d / (this.explodeRadius * 2)), this.critChance);
         }
         gameInstance.spawnParticles(this.x, this.y, this.color, 15, 5);
         gameInstance.spawnParticles(this.x, this.y, '#ffd700', 8, 3);
@@ -135,7 +135,7 @@ export default class Projectile {
           if (!e.alive) continue;
           if (e.name === 'MISSILE' || e.name === 'BOMB') continue;
           const d = Math.hypot(this.x - e.x, this.y - e.y);
-          if (d < explosionRadius) gameInstance.dealDamage(e, this.damage * (1 - d / explosionRadius), this.critChance);
+          if (d < explosionRadius) if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage * (1 - d / explosionRadius), this.critChance);
         }
         gameInstance.spawnParticles(this.x, this.y, '#e67e22', 20, 6);
         gameInstance.spawnParticles(this.x, this.y, '#ffd700', 10, 4);
@@ -146,7 +146,7 @@ export default class Projectile {
         if (!e.alive) continue;
         const d = Math.hypot(this.x - e.x, this.y - e.y);
         if (d < (this.radius || 100)) {
-          gameInstance.dealDamage(e, this.damage * (1 - d / (this.radius * 2)), this.critChance);
+          if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage * (1 - d / (this.radius * 2)), this.critChance);
         }
       }
     }
@@ -173,7 +173,7 @@ export default class Projectile {
       for (let e of gameInstance.enemies) {
         if (!e.alive || this.hitIds.has(e)) continue;
         if (Math.hypot(this.x - e.x, this.y - e.y) < e.size + (this.radius || 10)) {
-          gameInstance.dealDamage(e, this.damage, this.critChance);
+          if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage, this.critChance);
           this.hitIds.add(e);
           gameInstance.spawnParticles(this.x, this.y, this.color || '#9b4dff', 6, 3);
         }

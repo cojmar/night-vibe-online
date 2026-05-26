@@ -80,7 +80,20 @@ export default class Game {
 
     // Bind network events
     this.net.on('room.info', () => this.checkHost());
-    this.net.on('room.user_join', () => this.checkHost());
+    this.net.on('room.user_join', () => {
+      this.checkHost();
+      if (this.isHost) {
+        this.net.send_cmd('set_data', {
+          syncProjectiles: this.projectiles.map(p => ({
+            type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
+            angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
+            originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
+            ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
+            critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage
+          }))
+        });
+      }
+    });
     this.net.on('room.user_leave', (data) => {
       if (this.otherPlayers[data.user]) {
         delete this.otherPlayers[data.user];
@@ -110,6 +123,19 @@ export default class Game {
         if (!this.otherPlayers[data.user]) {
           // Default spawn for other players
           this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || this.gameW / 2, data.data.y || (getGroundY(this.selectedEnv) + this.gameH) / 2);
+        }
+
+        if (data.data.spawnedProjectile) {
+          if (!this.projectiles.find(p => p.id === data.data.spawnedProjectile.id)) {
+            this.projectiles.push(new Projectile(data.data.spawnedProjectile));
+          }
+        }
+        if (data.data.syncProjectiles) {
+          for (let sp of data.data.syncProjectiles) {
+            if (!this.projectiles.find(p => p.id === sp.id)) {
+              this.projectiles.push(new Projectile(sp));
+            }
+          }
         }
 
         const oldInGame = this.otherPlayers[data.user].inGame;
@@ -1332,13 +1358,13 @@ export default class Game {
     const skillType = cd.s1Name;
     if (skillType === 'Bash' || this.player.classType === 'warrior') {
       const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
-      this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+      this.spawnProjectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps });
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 5, 3);
     } else if (skillType === 'Magic Bolt' || this.player.classType === 'mage') {
       const mageBaseAtk = cd.atk;
       const mageRangeMult = Math.pow(this.player.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
       const mageLife = Math.round(60 * mageRangeMult);
-      this.projectiles.push(new Projectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: cd.s1Color || '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps }));
+      this.spawnProjectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: cd.s1Color || '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps });
       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#3498db', 3, 2);
    } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
        const archerBaseAtk = cd.atk;
@@ -1347,7 +1373,7 @@ export default class Game {
        const speed = 10;
        const archerS1Scale = Math.min(5, 1 + (this.player.atk - archerBaseAtk) * 0.0227);
        const arrowRadius = 12 * archerS1Scale * lvlScale;
-       this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, ...projProps }));
+       this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, ...projProps });
        const extraArrows = Math.max(0, Math.floor((this.player.atk - 100) / 100));
        if (extraArrows > 0) {
          let nearest = null, nearDist = Infinity;
@@ -1362,19 +1388,19 @@ export default class Game {
            for (let i = 0; i < extraArrows; i++) {
              const offset = (i - (extraArrows - 1) / 2) * spread;
              const a = targetAngle + offset;
-             this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, tx: nearest.x, ty: nearest.y, angle: a, facing: this.player.facing, critChance: 0.1 }));
+             this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, tx: nearest.x, ty: nearest.y, angle: a, facing: this.player.facing, critChance: 0.1 });
            }
          }
        }
        this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
     } else if (skillType === 'Psionic Slash' || this.player.classType === 'magicgladiator') {
       const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
-      this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 20, maxLife: 20, color: cd.s1Color || '#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps }));
+      this.spawnProjectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 20, maxLife: 20, color: cd.s1Color || '#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps });
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#e74c3c', 7, 4);
     } else {
       // Default fallback is Warrior Bash style
       const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
-      this.projectiles.push(new Projectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps }));
+      this.spawnProjectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps });
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 5, 3);
     }
     this.broadcastState();
@@ -1444,7 +1470,7 @@ releaseSkill2() {
       const areaMultiRadius = Math.min(2.0, areaMulti);
       for (let i = 0; i < waveCount; i++) {
         const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
-        this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMultiRadius * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
+        this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMultiRadius * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges });
       }
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
@@ -1467,7 +1493,7 @@ releaseSkill2() {
         }
       }
       if (canSpawn) {
-        this.projectiles.push(new Projectile({ type: 'fireball', x: spawnX, y: spawnY, speed: 5, life: fbLife, maxLife: fbLife, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: newFireballRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps }));
+        this.spawnProjectile({ type: 'fireball', x: spawnX, y: spawnY, speed: 5, life: fbLife, maxLife: fbLife, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: newFireballRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps });
         this.spawnParticles(spawnX, spawnY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 5, 5);
       } else if (!this.queuedFireball) {
         this.queuedFireball = { spawnX, spawnY, speed: 5, radius: newFireballRadius, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, ...projProps, fbLife };
@@ -1487,7 +1513,7 @@ releaseSkill2() {
       for (let i = 0; i < totalArrowCount; i++) {
         const a = totalArrowCount === 1 ? facingAngle : facingAngle + (i / (totalArrowCount - 1) * 2 - 1) * spreadAngle / 2;
         const speed = 11;
-        this.projectiles.push(new Projectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: arrowRadius, bodyScale: arrowBodyScale }));
+        this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: arrowRadius, bodyScale: arrowBodyScale });
       }
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
     } else if (skillType === 'Evil Spirits' || this.player.classType === 'magicgladiator') {
@@ -1503,7 +1529,7 @@ releaseSkill2() {
         const speed = 3 + Math.random() * 3;
         const sizeMult = 0.8 + Math.random() * 0.5;
 
-        this.projectiles.push(new Projectile({
+        this.spawnProjectile({
           type: 'spirit',
           x: this.player.x + Math.cos(angle) * 15,
           y: weaponY + Math.sin(angle) * 15,
@@ -1523,7 +1549,7 @@ releaseSkill2() {
           ty: this.player.mouseY,
           angle: angle,
           facing: 1
-        }));
+        });
       }
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
       this.ui.updateHUD(this.player);
@@ -1537,7 +1563,7 @@ releaseSkill2() {
       const areaMultiRadius = Math.min(2.0, areaMulti);
       for (let i = 0; i < waveCount; i++) {
         const a = aimAngle + (i - (waveCount - 1) / 2) * waveSpread;
-        this.projectiles.push(new Projectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMultiRadius * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges }));
+        this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 5.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.2, maxDistance: waveDistance, radius: 15 * aoeScale * areaMultiRadius * lvlScale, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: a, charges: charges });
       }
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 10, weaponY + Math.sin(aimAngle) * 10, cd.s2Color || '#ffd700', 12 + charges * 5, 4);
     }
@@ -1583,11 +1609,6 @@ releaseSkill2() {
       buffManaTimer: this.player.buffManaTimer,
       targetedItemId: this.player.targetedItemId,
       // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
-      projectiles: this.projectiles.map(p => ({
-        type: p.type, x: p.x, y: p.y, angle: p.angle, life: p.life, maxLife: p.maxLife,
-        radius: p.radius, color: p.color, originX: p.originX, originY: p.originY, trailPositions: p.trailPositions,
-        vx: p.vx, vy: p.vy, wobble: p.wobble, trailTimer: p.trailTimer
-      }))
     };
     if (this.pendingHits && this.pendingHits.length > 0) {
       data.hits = this.pendingHits;
@@ -1689,6 +1710,23 @@ releaseSkill2() {
     enemy.x = Math.max(enemy.size, Math.min(this.gameW - enemy.size, enemy.x));
     enemy.y = Math.max(enemy.size, Math.min(groundY - enemy.size, enemy.y));
     if (enemy.attackTimer !== undefined) enemy.attackTimer = Math.max(enemy.attackTimer, 30);
+  }
+
+
+  spawnProjectile(props, broadcast = true) {
+    if (!props.ownerId && this.net && this.net.me && this.net.me.info) {
+      props.ownerId = this.net.me.info.user;
+    }
+    if (!props.id) {
+      props.id = (props.ownerId || 'sys') + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    this.projectiles.push(new Projectile(props));
+    if (broadcast && this.net) {
+      // Need to clean trailPositions out of the broadcasted props so we don't send garbage over network
+      let cleanProps = { ...props };
+      if (cleanProps.trailPositions) cleanProps.trailPositions = [];
+      this.net.send_cmd('set_data', { spawnedProjectile: cleanProps });
+    }
   }
 
   spawnDamageParticles(x, y) {
@@ -2490,11 +2528,7 @@ releaseSkill2() {
           renderables.push({
             y: p.y, draw: (ctx) => {
               p.draw(ctx, dt, this);
-              if (p.projectiles) {
-                for (let projData of p.projectiles) {
-                  Projectile.prototype.draw.call(projData, ctx);
-                }
-              }
+              
             }
           });
         }
@@ -2822,7 +2856,7 @@ releaseSkill2() {
         }
         if (canSpawn) {
           const qfLife = qf.fbLife || 80;
-          this.projectiles.push(new Projectile({ type: 'fireball', x: spawnX, y: spawnY, speed: qf.speed || 5, life: qfLife, maxLife: qfLife, color: qf.color || '#e67e22', damage: qf.damage || 1, critChance: 0.2, radius: qf.radius || 15, traveled: 0, trailTimer: 0, trailPositions: [], tx: qf.tx, ty: qf.ty, angle: qf.angle, facing: qf.facing }));
+          this.spawnProjectile({ type: 'fireball', x: spawnX, y: spawnY, speed: qf.speed || 5, life: qfLife, maxLife: qfLife, color: qf.color || '#e67e22', damage: qf.damage || 1, critChance: 0.2, radius: qf.radius || 15, traveled: 0, trailTimer: 0, trailPositions: [], tx: qf.tx, ty: qf.ty, angle: qf.angle, facing: qf.facing });
           this.spawnParticles(spawnX, spawnY, qf.color || '#e67e22', 15, 4);
           this.queuedFireball = null;
         }
