@@ -87,6 +87,11 @@ export default class Game {
     this.net.on('room.user_join', () => {
       this.checkHost();
       if (this.isHost) {
+        // Reset only the object arrays with another variable type (false) to clear deep merge history
+        // This preserves the scalar values like seed and sessionSeed intact.
+        this.net.send_cmd('set_data', { hostData: { enemies: false, items: false } });
+        this.broadcastState(); // Re-populate the clean arrays instantly
+
         this.net.send_cmd('set_data', { syncProjectiles: false });
         this.net.send_cmd('set_data', {
           syncProjectiles: this.projectiles.map(p => ({
