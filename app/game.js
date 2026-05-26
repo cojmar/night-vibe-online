@@ -1620,8 +1620,23 @@ releaseSkill2() {
     this.player.hp -= actualDamage;
     this.player.hitFlash = 15;
     this.screenShake = 15;
-    this.spawnParticles(this.player.x, this.player.y - 40, '#e74c3c', 20, 12);
-    this.spawnParticles(this.player.x, this.player.y - 40, '#c0392b', 15, 16);
+    const bx = this.player.x, by = this.player.y - 40;
+    const bloodCount = Math.floor(10 * (this.settings ? this.settings.particles : 1.0));
+    for (let i = 0; i < bloodCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = 0.8 + Math.random() * 2.0;
+      const isDark = Math.random() > 0.5;
+      this.particles.push({
+        x: bx + (Math.random() - 0.5) * 8,
+        y: by + (Math.random() - 0.5) * 8,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd - 0.5,
+        life: 18 + Math.floor(Math.random() * 12),
+        maxLife: 30,
+        color: isDark ? '#8b0000' : '#a01010',
+        size: 3.5 + Math.random() * 3.5
+      });
+    }
     this.ui.updateHUD(this.player);
     this.ui.addLog(`💔 Took -${actualDamage} damage!`, 'enemy');
     this.floatingTexts.push({
