@@ -1376,7 +1376,7 @@ export default class Game {
 
     this.ui.addLog('🎮 Returned to character selection!', 'player');
 
-    // Broadcast leaving the game
+ // Broadcast leaving the game
     if (this.net && this.net.me) {
 
       // Reset in-game progression stats locally so next game starts fresh at level 1.
