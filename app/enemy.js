@@ -4,33 +4,33 @@ export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
     this.game = gameInstance;
     if (isClient) {
-       this.id = ''; this.serverX = 0; this.serverY = 0;
-       this.alive = true; this.hitFlash = 0;
-       return;
+      this.id = ''; this.serverX = 0; this.serverY = 0;
+      this.alive = true; this.hitFlash = 0;
+      return;
     }
-    
+
     // Deterministic random generation per enemy
     const localPrng = new PRNG((gameInstance.prng ? gameInstance.prng.seed : 1) + spawnIndex * 1337);
     this.id = 'E_' + gameInstance.wave + '_' + spawnIndex;
     const wave = gameInstance.wave;
-    
+
     // Calculate average player level
     let totalLevel = 0;
     let playerCount = 0;
     if (this.game.player) { totalLevel += this.game.player.level || 1; playerCount++; }
     for (let key in this.game.otherPlayers) {
-        let p = this.game.otherPlayers[key];
-        if (p.inGame) { totalLevel += p.level || 1; playerCount++; }
+      let p = this.game.otherPlayers[key];
+      if (p.inGame) { totalLevel += p.level || 1; playerCount++; }
     }
     const avgLevel = playerCount > 0 ? (totalLevel / playerCount) : 1;
-    
+
     // Scale dynamically by Wave and Player Level
     const scale = 1 + (wave - 1) * ENEMY_SCALE_WAVE_MULT + (avgLevel - 1) * ENEMY_SCALE_LVL_MULT;
     const speedScale = 1 + (avgLevel - 1) * ENEMY_SPEED_SCALE_LVL_MULT;
-    
+
     if (isBoss) {
       this.isBoss = true;
-      const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
+      const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave / 2), ENEMY_TYPES.length));
       const baseMonster = available[available.length - 1]; // Pick strongest current monster
       this.name = 'BOSS';
       this.level = Math.ceil(wave);
@@ -43,17 +43,17 @@ export default class Enemy {
       this.size = BOSS_BASE_SIZE * (BOSS_BASE_SIZE_MULT || 1.0) * exponentialBossSizeScale;
       this.color = BOSS_BASE_COLOR;
       this.bossState = 'IDLE';
-      
+
       const totalBosses = gameInstance.waveTotalEnemies > 0 ? gameInstance.waveTotalEnemies : 1;
       const spacing = this.game.gameW * 0.7 / totalBosses;
       const offsetX = this.game.gameW * 0.15 + (spacing / 2) + (spawnIndex * spacing);
       this.x = offsetX;
-      
+
       const groundY = getGroundY(gameInstance.selectedEnv);
       this.y = groundY - this.size + (spawnIndex % 2 === 0 ? 0 : 20);
     } else {
       this.isBoss = false;
-      const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave/2), ENEMY_TYPES.length));
+      const available = ENEMY_TYPES.slice(0, Math.min(2 + Math.floor(wave / 2), ENEMY_TYPES.length));
       const type = available[Math.floor(localPrng.nextFloat() * available.length)];
       this.name = type.name;
       this.icon = type.icon;
@@ -64,7 +64,7 @@ export default class Enemy {
       const exponentialSizeScale = Math.min(Math.pow(1 + (ENEMY_SIZE_WAVE_MULT || 0), (wave - 1) + (avgLevel - 1) * 0.5), 4.0);
       this.size = type.size * (ENEMY_BASE_SIZE_MULT || 1.0) * exponentialSizeScale;
       this.color = type.color;
-      
+
       const pos = this.getSafeSpawnPosition(localPrng);
       this.x = pos.x;
       this.y = pos.y;
@@ -84,7 +84,7 @@ export default class Enemy {
     const minDist = minDim * 0.25;
     let attempts = 0;
     const player = this.game.player;
-    
+
     while (attempts < 40) {
       attempts++;
       let sx, sy;
@@ -110,18 +110,18 @@ export default class Enemy {
           sy = safeMargin + localPrng.nextFloat() * (this.game.gameH - safeMargin * 2);
         }
       }
-      
-      if(!player) return {x: sx, y: sy};
-      
+
+      if (!player) return { x: sx, y: sy };
+
       const dx = sx - player.x, dy = sy - player.y, dist = Math.hypot(dx, dy);
       if (dist > minDist) return { x: sx, y: sy };
       const angle = Math.atan2(dy, dx);
       sx += Math.cos(angle) * (minDist + 30);
       sy += Math.sin(angle) * (minDist + 30);
     }
-    
-    if(!player) return {x: this.game.gameW/2, y: groundY - 50};
-    
+
+    if (!player) return { x: this.game.gameW / 2, y: groundY - 50 };
+
     return {
       x: player.x + (localPrng.nextFloat() < 0.5 ? -1 : 1) * (minDist + 50),
       y: Math.min(player.y - minDist * 0.6, groundY - 50)
@@ -135,13 +135,13 @@ export default class Enemy {
     let closestDist = Infinity;
     let targetPlayer = null;
     for (let p of players) {
-       const dx = p.x - this.x;
-       const dy = p.y - this.y;
-       const dist = Math.hypot(dx, dy);
-       if (dist < closestDist) {
-           closestDist = dist;
-           targetPlayer = p;
-       }
+      const dx = p.x - this.x;
+      const dy = p.y - this.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < closestDist) {
+        closestDist = dist;
+        targetPlayer = p;
+      }
     }
 
     if (!targetPlayer) return;
@@ -150,143 +150,143 @@ export default class Enemy {
     const dy = targetPlayer.y - this.y;
 
     if (this.name === 'BOSS') {
-        if (this.bossState === 'CHANNELING_LASER') {
-            this.bossChannelTimer -= dt;
-            if (this.bossChannelTimer <= 0) {
-                this.bossState = 'FIRING_LASER';
-                this.bossLaserTimer = 120; // Laser lasts 120 frames (2 seconds)
-            }
-            return; // Don't move while channeling
-        } else if (this.bossState === 'FIRING_LASER') {
-            this.bossLaserTimer -= dt;
-            
-            // Deal damage continuously every frame while player is standing inside the laser path
-            const lx = this.x;
-            const ly = this.y - this.size * 0.75; // Laser originates from the boss's crown
-            const tx = this.targetLaserPos.x - lx;
-            const ty = this.targetLaserPos.y - ly;
-            const len = Math.hypot(tx, ty) || 1;
-            const endX = lx + (tx / len) * 3000;
-            const endY = ly + (ty / len) * 3000;
-            
-            const dps = BOSS_LASER_DAMAGE_PER_SEC + ((this.level || Math.ceil(this.game.wave) || 1) * BOSS_LASER_DAMAGE_LEVEL_SCALE);
-            const damageThisFrame = dps * (dt * 16.67) / 1000;
-            
-            for (let p of players) {
-                if (p.invulnerable || !p.alive) continue;
-                const dx2 = endX - lx;
-                const dy2 = endY - ly;
-                const lenSq = dx2 * dx2 + dy2 * dy2;
-                const t = Math.max(0, Math.min(1, ((p.x - lx) * dx2 + (p.y - ly) * dy2) / lenSq));
-                const projX = lx + t * dx2;
-                const projY = ly + t * dy2;
-                
-                // Collision radius is now exactly this.size * 0.125 + player radius
-                if (Math.hypot(p.x - projX, p.y - projY) < this.size * 0.125 + (p.size || 15)) {
-                    if (this.game.isHost) {
-                        p.hp -= damageThisFrame;
-                        if (p.hp <= 0) { p.hp = 0; p.alive = false; }
-                    }
-                }
-            }
-            
-            if (this.bossLaserTimer <= 0) {
-                this.bossState = 'IDLE';
-            }
-            return; // Don't move while firing
-       }
+      if (this.bossState === 'CHANNELING_LASER') {
+        this.bossChannelTimer -= dt;
+        if (this.bossChannelTimer <= 0) {
+          this.bossState = 'FIRING_LASER';
+          this.bossLaserTimer = 120; // Laser lasts 120 frames (2 seconds)
+        }
+        return; // Don't move while channeling
+      } else if (this.bossState === 'FIRING_LASER') {
+        this.bossLaserTimer -= dt;
 
-       this.missileTimer = (this.missileTimer || 0) + dt;
-       if (this.missileTimer > 150) { 
-           this.missileTimer = 0;
-           
-           if (this.game.wave >= 2 && Math.random() < 0.4) {
-               this.bossState = 'CHANNELING_LASER';
-               this.bossChannelTimer = BOSS_LASER_CHANNEL_TIME;
-               this.targetLaserPos = { x: targetPlayer.x, y: targetPlayer.y };
-           } else {
-               this.missileIndex = (this.missileIndex || 0) + 1;
-               let missile = new Enemy(this.game, false, false, this.missileIndex);
-               missile.name = 'BOMB';
-               missile.icon = '💣';
-               missile.hp = Math.round(50 * (1 + (this.game.wave - 1) * 0.15));
-               missile.maxHp = missile.hp;
-               missile.atk = this.atk;
-               missile.size = 20;
-               missile.color = '#e74c3c';
-               missile.x = this.x;
-               missile.y = this.y - 20;
-               missile.attackCooldown = 0;
-                missile.id = 'M_' + this.id + '_' + this.missileIndex;
-                missile.spawnTime = Date.now();
-                missile.selfDmgTimer = 0;
-               
-               if (targetPlayer) {
-                   const dx = targetPlayer.x - missile.x;
-                   const dy = targetPlayer.y - missile.y;
-                   const dist = Math.hypot(dx, dy) || 1;
-                   missile.vx = (dx / dist) * BOSS_PROJECTILE_SPEED;
-                   missile.vy = (dy / dist) * BOSS_PROJECTILE_SPEED;
-               } else {
-                   missile.vx = 0; missile.vy = BOSS_PROJECTILE_SPEED;
-               }
-               this.game.enemies.push(missile);
-           }
-       }
-     }
+        // Deal damage continuously every frame while player is standing inside the laser path
+        const lx = this.x;
+        const ly = this.y - this.size * 0.75; // Laser originates from the boss's crown
+        const tx = this.targetLaserPos.x - lx;
+        const ty = this.targetLaserPos.y - ly;
+        const len = Math.hypot(tx, ty) || 1;
+        const endX = lx + (tx / len) * 3000;
+        const endY = ly + (ty / len) * 3000;
 
-     // Missile/BOMB self-detonation timer
-     if ((this.name === 'MISSILE' || this.name === 'BOMB') && BOSS_PROJECTILE_LIFETIME > 0) {
-         this.selfDmgTimer = (this.selfDmgTimer || 0) + dt * 16.67;
-         if (this.selfDmgTimer >= BOSS_PROJECTILE_LIFETIME) {
-             this.hp = 0;
-             this.alive = false;
-             this.deathTime = Date.now();
-             this.dealtHit = true;
-             this.game.spawnParticles(this.x, this.y, '#e74c3c', 15, 8);
-             this.game.spawnParticles(this.x, this.y, '#f39c12', 10, 6);
-             return;
-         }
-     }
+        const dps = BOSS_LASER_DAMAGE_PER_SEC + ((this.level || Math.ceil(this.game.wave) || 1) * BOSS_LASER_DAMAGE_LEVEL_SCALE);
+        const damageThisFrame = dps * (dt * 16.67) / 1000;
 
-     const groundY = getGroundY(this.game.selectedEnv);
+        for (let p of players) {
+          if (p.invulnerable || !p.alive) continue;
+          const dx2 = endX - lx;
+          const dy2 = endY - ly;
+          const lenSq = dx2 * dx2 + dy2 * dy2;
+          const t = Math.max(0, Math.min(1, ((p.x - lx) * dx2 + (p.y - ly) * dy2) / lenSq));
+          const projX = lx + t * dx2;
+          const projY = ly + t * dy2;
+
+          // Collision radius is now exactly this.size * 0.125 + player radius
+          if (Math.hypot(p.x - projX, p.y - projY) < this.size * 0.125 + (p.size || 15)) {
+            if (this.game.isHost) {
+              p.hp -= damageThisFrame;
+              if (p.hp <= 0) { p.hp = 0; p.alive = false; }
+            }
+          }
+        }
+
+        if (this.bossLaserTimer <= 0) {
+          this.bossState = 'IDLE';
+        }
+        return; // Don't move while firing
+      }
+
+      this.missileTimer = (this.missileTimer || 0) + dt;
+      if (this.missileTimer > 150) {
+        this.missileTimer = 0;
+
+        if (this.game.wave >= 2 && Math.random() < 0.4) {
+          this.bossState = 'CHANNELING_LASER';
+          this.bossChannelTimer = BOSS_LASER_CHANNEL_TIME;
+          this.targetLaserPos = { x: targetPlayer.x, y: targetPlayer.y };
+        } else {
+          this.missileIndex = (this.missileIndex || 0) + 1;
+          let missile = new Enemy(this.game, false, false, this.missileIndex);
+          missile.name = 'BOMB';
+          missile.icon = '💣';
+          missile.hp = Math.round(50 * (1 + (this.game.wave - 1) * 0.15));
+          missile.maxHp = missile.hp;
+          missile.atk = this.atk;
+          missile.size = 20;
+          missile.color = '#e74c3c';
+          missile.x = this.x;
+          missile.y = this.y - 20;
+          missile.attackCooldown = 0;
+          missile.id = 'M_' + this.id + '_' + this.missileIndex;
+          missile.spawnTime = Date.now();
+          missile.selfDmgTimer = 0;
+
+          if (targetPlayer) {
+            const dx = targetPlayer.x - missile.x;
+            const dy = targetPlayer.y - missile.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            missile.vx = (dx / dist) * BOSS_PROJECTILE_SPEED;
+            missile.vy = (dy / dist) * BOSS_PROJECTILE_SPEED;
+          } else {
+            missile.vx = 0; missile.vy = BOSS_PROJECTILE_SPEED;
+          }
+          this.game.enemies.push(missile);
+        }
+      }
+    }
+
+    // Missile/BOMB self-detonation timer
+    if ((this.name === 'MISSILE' || this.name === 'BOMB') && BOSS_PROJECTILE_LIFETIME > 0) {
+      this.selfDmgTimer = (this.selfDmgTimer || 0) + dt * 16.67;
+      if (this.selfDmgTimer >= BOSS_PROJECTILE_LIFETIME) {
+        this.hp = 0;
+        this.alive = false;
+        this.deathTime = Date.now();
+        this.dealtHit = true;
+        this.game.spawnParticles(this.x, this.y, '#e74c3c', 15, 8);
+        this.game.spawnParticles(this.x, this.y, '#f39c12', 10, 6);
+        return;
+      }
+    }
+
+    const groundY = getGroundY(this.game.selectedEnv);
     const speedMultiplier = (this.y < groundY) ? ENEMY_SKY_SPEED_MULTIPLIER : 1.0;
 
     if (this.name === 'MISSILE' || this.name === 'BOMB') {
-        if (BOSS_PROJECTILE_HOMING && closestDist > 50) {
-            const tx = targetPlayer.x - this.x;
-            const ty = targetPlayer.y - this.y;
-            const tdist = Math.hypot(tx, ty) || 1;
-            const tvx = (tx / tdist) * BOSS_PROJECTILE_SPEED;
-            const tvy = (ty / tdist) * BOSS_PROJECTILE_SPEED;
-            this.vx = this.vx * 0.96 + tvx * 0.04;
-            this.vy = this.vy * 0.96 + tvy * 0.04;
-        }
-        this.x += (this.vx || 0) * dt;
-        this.y += (this.vy || 0) * dt;
-        this.moveDirX = (this.vx || 0) < 0 ? -1 : 1;
+      if (BOSS_PROJECTILE_HOMING && closestDist > 50) {
+        const tx = targetPlayer.x - this.x;
+        const ty = targetPlayer.y - this.y;
+        const tdist = Math.hypot(tx, ty) || 1;
+        const tvx = (tx / tdist) * BOSS_PROJECTILE_SPEED;
+        const tvy = (ty / tdist) * BOSS_PROJECTILE_SPEED;
+        this.vx = this.vx * 0.96 + tvx * 0.04;
+        this.vy = this.vy * 0.96 + tvy * 0.04;
+      }
+      this.x += (this.vx || 0) * dt;
+      this.y += (this.vy || 0) * dt;
+      this.moveDirX = (this.vx || 0) < 0 ? -1 : 1;
     } else if (closestDist > 50) {
-       this.x += (dx / closestDist) * this.speed * speedMultiplier * dt;
-       this.y += (dy / closestDist) * this.speed * speedMultiplier * dt;
-       this.moveDirX = dx < 0 ? -1 : 1;
-     }
+      this.x += (dx / closestDist) * this.speed * speedMultiplier * dt;
+      this.y += (dy / closestDist) * this.speed * speedMultiplier * dt;
+      this.moveDirX = dx < 0 ? -1 : 1;
+    }
 
     if (closestDist < 55) {
       this.attackTimer += dt;
       if (this.attackTimer >= this.attackCooldown) {
         this.attackTimer = 0;
-        
+
         if (targetPlayer.isLocal) {
-            this.game.dealDamageToPlayer(this.atk);
+          this.game.dealDamageToPlayer(this.atk);
         } else {
-            this.game.net.send_cmd('set_data', { enemyHitPlayer: { id: targetPlayer.id, dmg: this.atk } });
+          this.game.net.send_cmd('set_data', { enemyHitPlayer: { id: targetPlayer.id, dmg: this.atk } });
         }
-        
+
         if (this.name === 'MISSILE' || this.name === 'BOMB') {
-            this.hp = 0;
-            this.alive = false;
-            this.deathTime = Date.now();
-            this.game.spawnParticles(this.x, this.y, '#e74c3c', 20, 5);
+          this.hp = 0;
+          this.alive = false;
+          this.deathTime = Date.now();
+          this.game.spawnParticles(this.x, this.y, '#e74c3c', 20, 5);
         }
       }
     }
@@ -319,92 +319,92 @@ export default class Enemy {
     // Add smooth animation bobbing for moving monsters
     let drawY = this.y;
     if (this.alive && this.name !== 'MISSILE' && this.name !== 'BOMB' && this.bossState !== 'CHANNELING_LASER' && this.bossState !== 'FIRING_LASER') {
-        const bounce = Math.sin(now / 120 + this.x * 0.05) * 3.5;
-        drawY += bounce;
+      const bounce = Math.sin(now / 120 + this.x * 0.05) * 3.5;
+      drawY += bounce;
     }
 
     if (this.name === 'BOSS') {
-       if (this.bossState === 'CHANNELING_LASER') {
-            ctx.strokeStyle = `rgba(255, 0, 0, ${0.2 + (1 - this.bossChannelTimer / BOSS_LASER_CHANNEL_TIME)})`;
-            ctx.lineWidth = 2;
-            ctx.setLineDash([15, 15]);
-            ctx.beginPath();
-            ctx.moveTo(this.x, drawY - this.size * 0.75); // Start at the crown 👑
-            ctx.lineTo(this.targetLaserPos.x, this.targetLaserPos.y);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        } else if (this.bossState === 'FIRING_LASER') {
-            const lx = this.x;
-            const ly = drawY - this.size * 0.75; // Start at the crown 👑
-            const tx = this.targetLaserPos.x - lx;
-            const ty = this.targetLaserPos.y - ly;
-            const len = Math.hypot(tx, ty) || 1;
-            
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = this.size * 0.25; // Adjusted thickness (25% of body size)
-            ctx.beginPath();
-            ctx.moveTo(lx, ly);
-            ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
-            ctx.stroke();
-            
-            // Add a bright core to the laser
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = this.size * 0.08; // Core thickness (approx. 1/3 of laser width)
-            ctx.beginPath();
-            ctx.moveTo(lx, ly);
-            ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
-            ctx.stroke();
-        }
+      if (this.bossState === 'CHANNELING_LASER') {
+        ctx.strokeStyle = `rgba(255, 0, 0, ${0.2 + (1 - this.bossChannelTimer / BOSS_LASER_CHANNEL_TIME)})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([15, 15]);
+        ctx.beginPath();
+        ctx.moveTo(this.x, drawY - this.size * 0.75); // Start at the crown 👑
+        ctx.lineTo(this.targetLaserPos.x, this.targetLaserPos.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else if (this.bossState === 'FIRING_LASER') {
+        const lx = this.x;
+        const ly = drawY - this.size * 0.75; // Start at the crown 👑
+        const tx = this.targetLaserPos.x - lx;
+        const ty = this.targetLaserPos.y - ly;
+        const len = Math.hypot(tx, ty) || 1;
+
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = this.size * 0.25; // Adjusted thickness (25% of body size)
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
+        ctx.stroke();
+
+        // Add a bright core to the laser 
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = this.size * 0.08; // Core thickness (approx. 1/3 of laser width)
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
+        ctx.stroke();
+      }
     }
 
     const flip = (this.moveDirX || 1) < 0;
     if (this.icon && typeof this.icon === 'string' && (this.icon.startsWith('data:image/') || this.icon.startsWith('http') || this.icon.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i))) {
-        let img = flip ? getCachedFlippedImage(this.icon) : getCachedImage(this.icon);
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        if (img) {
-            ctx.drawImage(img, this.x - this.size / 2, drawY - this.size / 2, this.size, this.size);
-        } else {
-            ctx.font = `${this.size}px serif`;
-            ctx.fillText('👾', this.x, drawY);
-        }
-    } else {
-        ctx.save();
-        ctx.translate(this.x, drawY);
-        if (flip) {
-            ctx.scale(-1, 1);
-        }
+      let img = flip ? getCachedFlippedImage(this.icon) : getCachedImage(this.icon);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (img) {
+        ctx.drawImage(img, this.x - this.size / 2, drawY - this.size / 2, this.size, this.size);
+      } else {
         ctx.font = `${this.size}px serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.icon || '👾', 0, 0);
-        ctx.restore();
+        ctx.fillText('👾', this.x, drawY);
+      }
+    } else {
+      ctx.save();
+      ctx.translate(this.x, drawY);
+      if (flip) {
+        ctx.scale(-1, 1);
+      }
+      ctx.font = `${this.size}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.icon || '👾', 0, 0);
+      ctx.restore();
     }
     if (this.name === 'BOSS') {
-        const originalFont = ctx.font;
-        let crownSize = Math.floor(this.size * 0.7);
-        if (this.bossState === 'CHANNELING_LASER') {
-            const glowPhase = Math.abs(Math.sin(now / 100));
-            ctx.shadowColor = '#e74c3c';
-            ctx.shadowBlur = 10 + glowPhase * 20;
-            crownSize = Math.floor(this.size * 0.7) + glowPhase * 8;
-        } else if (this.bossState === 'FIRING_LASER') {
-            ctx.shadowColor = '#ff0000';
-            ctx.shadowBlur = 25;
-            crownSize = Math.floor(this.size * 0.85);
-        }
-        ctx.save();
-        ctx.translate(this.x, drawY - this.size * 0.75);
-        if (flip) {
-            ctx.scale(-1, 1);
-        }
-        ctx.font = `${crownSize}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('👑', 0, 0);
-        ctx.shadowBlur = 0;
-        ctx.restore();
-        ctx.font = originalFont;
+      const originalFont = ctx.font;
+      let crownSize = Math.floor(this.size * 0.7);
+      if (this.bossState === 'CHANNELING_LASER') {
+        const glowPhase = Math.abs(Math.sin(now / 100));
+        ctx.shadowColor = '#e74c3c';
+        ctx.shadowBlur = 10 + glowPhase * 20;
+        crownSize = Math.floor(this.size * 0.7) + glowPhase * 8;
+      } else if (this.bossState === 'FIRING_LASER') {
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 25;
+        crownSize = Math.floor(this.size * 0.85);
+      }
+      ctx.save();
+      ctx.translate(this.x, drawY - this.size * 0.75);
+      if (flip) {
+        ctx.scale(-1, 1);
+      }
+      ctx.font = `${crownSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('👑', 0, 0);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      ctx.font = originalFont;
     }
     ctx.textBaseline = 'alphabetic';
 
