@@ -235,8 +235,7 @@ export default class Projectile {
     if (this.type === 'shockwave') {
       const rot = this.angle;
       const charges = this.charges || 0;
-      const pLife = 1 - (this.life / this.maxLife);
-      const pulse = Math.abs(Math.sin(pLife * Math.PI * 15));
+      const pLife = 1 - (this.life / this.maxLife); // 0 at spawn, 1 at death
       
       const scale = Math.min(3.0, (this.radius || 30) / 30);
       const rx = (30 + pLife * 30) * scale; 
@@ -244,52 +243,65 @@ export default class Projectile {
       
       const sweepHalf = Math.min(Math.PI, Math.PI * 0.4 + charges * 0.15);
       
-      ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(rot);
-      ctx.globalAlpha = alpha * 0.35; // Lower opacity so it doesn't blind the screen
+      ctx.save(); 
+      ctx.translate(this.x, this.y); 
+      ctx.rotate(rot);
       
-      ctx.beginPath();
-      ctx.ellipse(0, 0, rx, ry, 0, -sweepHalf, sweepHalf);
-      ctx.strokeStyle = '#fff'; 
-      ctx.lineWidth = Math.min(10, 3 + charges * 1.5);
+      // Smooth fade out instead of rapid pulse
+      ctx.globalAlpha = alpha * 0.85;
+      
       ctx.shadowColor = this.color; 
-      ctx.shadowBlur = 15 + pulse * 10;
-      ctx.stroke();
+      ctx.shadowBlur = 15;
       
+      // Calculate endpoints of the arc for the crescent curve
+      const tipXBottom = rx * Math.cos(sweepHalf);
+      const tipYBottom = ry * Math.sin(sweepHalf);
+      const tipXTop = rx * Math.cos(-sweepHalf);
+      const tipYTop = ry * Math.sin(-sweepHalf);
+      const cpX = -rx * 0.5; // Inner curve control point
+      
+      // 1. Draw the beautiful gradient crescent body
       ctx.beginPath();
-      ctx.ellipse(-8, 0, rx*0.8, ry*0.85, 0, -sweepHalf*0.875, sweepHalf*0.875);
-      ctx.strokeStyle = this.color; 
-      ctx.lineWidth = Math.min(15, 6 + charges * 2);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.ellipse(0, 0, rx, ry, 0, -sweepHalf, sweepHalf);
-      ctx.ellipse(-8, 0, rx * 0.8, ry * 0.85, 0, sweepHalf, -sweepHalf, true);
-      ctx.fillStyle = this.color;
-      ctx.globalAlpha = alpha * (0.05 + 0.05 * pulse); // Fill is extremely transparent
+      ctx.ellipse(0, 0, rx, ry, 0, -sweepHalf, sweepHalf); // Outer curve
+      ctx.quadraticCurveTo(cpX, 0, tipXTop, tipYTop);      // Inner curve
+      ctx.closePath();
+      
+      const grad = ctx.createLinearGradient(cpX, 0, rx, 0);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      grad.addColorStop(0.5, this.color);
+      grad.addColorStop(1, '#ffffff');
+      
+      ctx.fillStyle = grad;
       ctx.fill();
       
-      if (charges > 0) {
-        ctx.globalAlpha = alpha * (0.2 + 0.2 * pulse);
-        for(let j=1; j<=charges; j++) {
-            const radX = Math.max(0.1, rx*0.9 - j*5);
-            const radY = Math.max(0.1, ry + j*15);
-            ctx.beginPath();
-            ctx.ellipse(-15 * j, 0, radX, radY, 0, -sweepHalf, sweepHalf);
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        }
-      }
+      // 2. Draw a sharp, bright leading edge
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, -sweepHalf, sweepHalf);
+      ctx.strokeStyle = '#ffffff'; 
+      ctx.lineWidth = Math.max(1, 4 - pLife * 2 + charges * 0.5);
+      ctx.stroke();
+      
       ctx.restore();
       
+      // 3. Draw smooth trail crescents
       for (let i = 0; i < this.trailPositions.length; i++) {
         const tp = this.trailPositions[i];
         const tprog = tp.life / tp.maxLife;
-        ctx.globalAlpha = tprog * 0.3;
-        ctx.save(); ctx.translate(tp.x, tp.y); ctx.rotate(rot);
-        ctx.beginPath(); 
-        ctx.ellipse(0, 0, rx * 0.8, ry * 0.8, 0, -sweepHalf*0.75, sweepHalf*0.75);
-        ctx.strokeStyle = this.color; ctx.lineWidth = 2 + charges; ctx.stroke();
+        ctx.globalAlpha = alpha * tprog * 0.4;
+        ctx.save(); 
+        ctx.translate(tp.x, tp.y); 
+        ctx.rotate(rot);
+        
+        const trx = rx * (0.7 + tprog * 0.3);
+        const try_ = ry * (0.7 + tprog * 0.3);
+        const tsweep = sweepHalf * 0.85;
+        
+        ctx.beginPath();
+        ctx.ellipse(0, 0, trx, try_, 0, -tsweep, tsweep);
+        ctx.quadraticCurveTo(-trx * 0.4, 0, trx * Math.cos(-tsweep), try_ * Math.sin(-tsweep));
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        
         ctx.restore();
       }
       ctx.globalAlpha = alpha;
