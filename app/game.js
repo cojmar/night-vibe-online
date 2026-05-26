@@ -87,6 +87,7 @@ export default class Game {
     this.net.on('room.user_join', () => {
       this.checkHost();
       if (this.isHost) {
+        this.net.send_cmd('set_data', { syncProjectiles: false });
         this.net.send_cmd('set_data', {
           syncProjectiles: this.projectiles.map(p => ({
             type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
@@ -131,6 +132,7 @@ export default class Game {
 
 
         if (this.isHost && data.data.requestSync) {
+          this.net.send_cmd('set_data', { syncProjectiles: false });
           this.net.send_cmd('set_data', {
             syncProjectiles: this.projectiles.map(p => ({
               type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
