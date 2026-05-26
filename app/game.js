@@ -1526,7 +1526,6 @@ releaseSkill2() {
           facing: 1
         }));
       }
-      this.spawnParticles(this.player.x, weaponY, spiritColor, 20 + charges * 10, 5);
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
       this.ui.updateHUD(this.player);
     } else {

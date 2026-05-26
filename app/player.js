@@ -722,18 +722,6 @@ export default class Player {
       ctx.fillRect(2, 5, 12, 30);
       ctx.fillStyle = '#333'; ctx.fillRect(-16, 30, 16, 8);
       ctx.fillRect(0, 30, 16, 8);
-      if (gameInstance.s2Cooldown > 0 && this.animTimer > 0) {
-        const crossAlpha = Math.sin((1 - gameInstance.s2Cooldown / 1000) * Math.PI);
-        ctx.globalAlpha = crossAlpha * 0.6;
-        ctx.strokeStyle = cd.s2Color; ctx.lineWidth = 4;
-        ctx.shadowColor = cd.s2Color; ctx.shadowBlur = 15;
-        ctx.beginPath(); ctx.moveTo(-30, -70);
-        ctx.lineTo(30, -10); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(30, -70);
-        ctx.lineTo(-30, -10); ctx.stroke();
-        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-        if (this.isLocal) gameInstance.spawnParticles(this.x, this.y - 40, cd.s2Color, 2, 2);
-      }
     }
 
     if ((this.isMoving || this.action === 'walk') && this.animTimer <= 0) {
