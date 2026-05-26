@@ -15,6 +15,10 @@ export default class Game {
     this.canvas = document.getElementById('game-canvas');
     this.ctx = this.canvas.getContext('2d');
 
+    this.webglCanvas = document.getElementById('webgl-canvas');
+    this.gl = this.webglCanvas.getContext('webgl') || this.webglCanvas.getContext('experimental-webgl');
+    this.initWebGL();
+
     this.state = 'MENU';
     this.wave = 1;
     this.kills = 0;
@@ -514,6 +518,125 @@ export default class Game {
     this.ui.initSettings();
 
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  initWebGL() {
+    const gl = this.gl;
+    if (!gl) return;
+
+    const vsSource = `
+      attribute vec4 aVertexPosition;
+      attribute vec2 aTextureCoord;
+      varying highp vec2 vTextureCoord;
+      void main(void) {
+        gl_Position = aVertexPosition;
+        vTextureCoord = aTextureCoord;
+      }
+    `;
+
+    const fsSource = `
+      varying highp vec2 vTextureCoord;
+      uniform sampler2D uSampler;
+      void main(void) {
+        gl_FragColor = texture2D(uSampler, vTextureCoord);
+      }
+    `;
+
+    const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+    const shaderProgram = gl.createProgram();
+    gl.attachShader(shaderProgram, vertexShader);
+    gl.attachShader(shaderProgram, fragmentShader);
+    gl.linkProgram(shaderProgram);
+
+    this.programInfo = {
+      program: shaderProgram,
+      attribLocations: {
+        vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+        textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
+      },
+      uniformLocations: {
+        uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
+      },
+    };
+
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    const positions = [
+      -1.0,  1.0,
+       1.0,  1.0,
+      -1.0, -1.0,
+       1.0, -1.0,
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+    const textureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+    const textureCoordinates = [
+      0.0,  0.0,
+      1.0,  0.0,
+      0.0,  1.0,
+      1.0,  1.0,
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
+
+    this.buffers = {
+      position: positionBuffer,
+      textureCoord: textureCoordBuffer,
+    };
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    this.texture = texture;
+  }
+
+  loadShader(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+      gl.deleteShader(shader);
+      return null;
+    }
+    return shader;
+  }
+
+  renderWebGL() {
+    const gl = this.gl;
+    if (!gl) return;
+    
+    if (this.webglCanvas.width !== this.canvas.width || this.webglCanvas.height !== this.canvas.height) {
+        this.webglCanvas.width = this.canvas.width;
+        this.webglCanvas.height = this.canvas.height;
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.canvas);
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.position);
+    gl.vertexAttribPointer(this.programInfo.attribLocations.vertexPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(this.programInfo.attribLocations.vertexPosition);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.textureCoord);
+    gl.vertexAttribPointer(this.programInfo.attribLocations.textureCoord, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(this.programInfo.attribLocations.textureCoord);
+
+    gl.useProgram(this.programInfo.program);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    gl.uniform1i(this.programInfo.uniformLocations.uSampler, 0);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
   scheduleLayoutUpdate() {
@@ -3161,6 +3284,7 @@ releaseSkill2() {
 
       this.ctx.restore();
     }
+    this.renderWebGL();
     requestAnimationFrame((t) => this.loop(t));
   }
 }

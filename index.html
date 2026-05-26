@@ -1703,7 +1703,8 @@
     </div>
 
     <div class="main-area" id="main-area" style="display:none;">
-      <canvas id="game-canvas" style="display:none;"></canvas>
+      <canvas id="webgl-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; z-index: 1; pointer-events: none;"></canvas>
+      <canvas id="game-canvas" style="opacity: 0;"></canvas>
       <div class="hud" id="hud">
         <div class="party-list" id="party-list">
           <div class="hp-container player-hud-box" id="player-hp-container" style="cursor:pointer; display: flex; flex-direction: column; gap: 3px;">
