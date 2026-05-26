@@ -993,9 +993,8 @@ export default class Game {
     // Ensure all menu/previous session parameters are fully reset
     this._resetSessionData();
 
-    // First, check if there's an existing host so we can inherit their seed
+    // First, check if there's an existing host so we know whether to sync later or be host ourselves
     let hostFound = false;
-    let inheritedHostData = null;
     if (this.net && this.net.room && this.net.room.users) {
       for (const u in this.net.room.users) {
         if (this.net.me && this.net.me.info && u === this.net.me.info.user) continue;
@@ -1005,7 +1004,6 @@ export default class Game {
         const userData = this.net.room.users[u].data;
         if (userData && userData.isHost && userData.inGame && userData.state === 'PLAYING') {
           hostFound = true;
-          inheritedHostData = userData.hostData || null;
           break;
         }
       }
@@ -1044,18 +1042,18 @@ export default class Game {
     this.s2Cooldown = 0;
     this.ui.recentLogs = [];
 
-    // Set sessionSeed based on whether we found an existing host
-    if (hostFound && inheritedHostData) {
+    // Only generate own seed if we're the host. Otherwise sync from host via syncHostData.
+    if (hostFound) {
       this.isHost = false;
-      this.sessionSeed = inheritedHostData.sessionSeed;
-      this.prng = new PRNG(inheritedHostData.seed !== undefined ? inheritedHostData.seed : (this.sessionSeed + this.wave * 12345));
+      this.sessionSeed = 0;
+      this.prng = null;
     } else {
       this.isHost = true;
       this.sessionSeed = Math.floor(Math.random() * 2000000000);
       this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
     }
 
-   // Set hostData in local room data and broadcast it immediately so joining players get the fresh seed
+    // Host broadcasts its config and fresh hostData to the network
     if (this.isHost && this.net && this.net.room && this.net.me && this.net.room.users[this.net.me.info.user]) {
       const oldGen = this.net.room.users[this.net.me.info.user].data.hostData?.gen || 0;
       const newHostData = {
@@ -1072,57 +1070,22 @@ export default class Game {
       });
     }
 
-    // Inherit host state and sync config if a host was found
-    if (hostFound && inheritedHostData) {
-      this.ui.addLog('📥 Inherited game state from Host.', 'system');
-      const uData = inheritedHostData;
-      this.wave = uData.wave || GAME_INITIAL_WAVE;
-      this.waveTotalEnemies = uData.waveTotal || GAME_INITIAL_WAVE_ENEMIES;
-      this.waveEnemiesKilled = uData.waveKilled || 0;
-      this.waveEnemiesToSpawn = uData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
-      this.bossActive = uData.bossActive || false;
-      this.selectedEnv = uData.env || ENV_LIST[0];
-      this.prng = new PRNG(uData.seed !== undefined ? uData.seed : (this.sessionSeed + this.wave * 12345));
-
-      // Sync ground items and monsters instantly on game entry
-      if (uData.enemies) {
-        uData.enemies.forEach(eData => {
-          let isBoss = eData.name === 'BOSS';
-          let spawnIndex = 0;
-          if (eData.id && eData.id.startsWith('E_')) {
-            const parts = eData.id.split('_');
-            if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
-          }
-          const e = new Enemy(this, isBoss, false, spawnIndex);
-          e.id = eData.id;
-          if (eData.id && eData.id.startsWith('M_')) {
-            e.name = 'MISSILE'; e.icon = '🚀'; e.size = 20; e.color = '#e74c3c';
-          }
-          e.x = eData.x || e.x; e.y = eData.y || e.y;
-          e.serverX = eData.x || e.x; e.serverY = eData.y || e.y;
-          e.hp = eData.hp; e.maxHp = eData.maxHp; e.alive = eData.alive;
-          e.name = eData.name; e.size = eData.size;
-          if (eData.bossState !== undefined) e.bossState = eData.bossState;
-          if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
-          if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
-          if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
-          if (eData.deathTime) e.deathTime = eData.deathTime;
-          this.enemies.push(e);
-        });
-      }
-      if (uData.items) {
-        this.items = uData.items.map(item => ({ ...item }));
-      }
-
-      // Sync host config
-      if (uData.gameplayConfig) {
-        ConfigModule.updateConfig(uData.gameplayConfig);
-        if (uData.gameplayConfigName) ConfigModule.setActivePresetName(uData.gameplayConfigName);
-        if (uData.classData) { ConfigModule.updateClassData(uData.classData); for (const k in uData.classData) if (uData.classData[k].icon && typeof uData.classData[k].icon === 'string') preloadFlippedImagesForAsset(uData.classData[k].icon); }
-        if (uData.enemyTypes) { ConfigModule.updateEnemyTypes(uData.enemyTypes); for (const e of uData.enemyTypes) if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon); }
-        if (uData.itemsDb) { ConfigModule.updateItemsDb(uData.itemsDb); for (const item of uData.itemsDb) if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon); }
-        if (this.ui) { if (this.ui.buildClassesTab) this.ui.buildClassesTab(); if (this.ui.buildMonstersTab) this.ui.buildMonstersTab(); if (this.ui.buildItemsTab) this.ui.buildItemsTab(); if (this.ui.updateClassCarousel) this.ui.updateClassCarousel(); }
-        this.ui.addLog(`📥 Synced gameplay balance config from the Host.`, 'system');
+    // Inherit gameplay config from host if found (but NOT hostData — that syncs via syncHostData)
+    if (hostFound) {
+      for (const u in this.net.room.users) {
+        const uInfo = this.net.room.users[u].info;
+        if (uInfo && uInfo.disconnected !== false) continue;
+        const userData = this.net.room.users[u].data;
+        if (userData && userData.isHost && userData.gameplayConfig) {
+          ConfigModule.updateConfig(userData.gameplayConfig);
+          if (userData.gameplayConfigName) ConfigModule.setActivePresetName(userData.gameplayConfigName);
+          if (userData.classData) { ConfigModule.updateClassData(userData.classData); for (const k in userData.classData) if (userData.classData[k].icon && typeof userData.classData[k].icon === 'string') preloadFlippedImagesForAsset(userData.classData[k].icon); }
+          if (userData.enemyTypes) { ConfigModule.updateEnemyTypes(userData.enemyTypes); for (const e of userData.enemyTypes) if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon); }
+          if (userData.itemsDb) { ConfigModule.updateItemsDb(userData.itemsDb); for (const item of userData.itemsDb) if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon); }
+          if (this.ui) { if (this.ui.buildClassesTab) this.ui.buildClassesTab(); if (this.ui.buildMonstersTab) this.ui.buildMonstersTab(); if (this.ui.buildItemsTab) this.ui.buildItemsTab(); if (this.ui.updateClassCarousel) this.ui.updateClassCarousel(); }
+          this.ui.addLog(`📥 Synced gameplay balance config from the Host.`, 'system');
+          break;
+        }
       }
     }
 
@@ -1422,8 +1385,6 @@ export default class Game {
       myData.spd = base.spd;
       myData.maxHp = base.hp;
       myData.hp = base.hp;
-      // Clear stale host data so do_merge replaces with fresh values on next broadcast
-      myData.hostData = null;
     }
   }
 
