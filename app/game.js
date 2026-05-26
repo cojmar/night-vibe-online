@@ -464,7 +464,12 @@ export default class Game {
       if (eData.y !== undefined) e.serverY = eData.y;
       if (eData.hp !== undefined) e.hp = eData.hp;
       if (eData.maxHp !== undefined) e.maxHp = eData.maxHp;
-      if (eData.alive !== undefined) e.alive = eData.alive;
+      if (eData.alive !== undefined) {
+        if (e.alive && !eData.alive) {
+          this.spawnEnemyDeathExplosion(e);
+        }
+        e.alive = eData.alive;
+      }
       if (eData.name !== undefined) e.name = eData.name;
       if (eData.size !== undefined) e.size = eData.size;
       if (eData.bossState !== undefined) e.bossState = eData.bossState;
