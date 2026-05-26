@@ -252,7 +252,7 @@ export default class Game {
         // Sync Gameplay balance config from the Host
         if (data.data.gameplayConfig && !this.isHost) {
           const op = this.otherPlayers[data.user];
-          const isSenderHost = data.data.isHost || (op && op.isHost);
+          const isSenderHost = (data.data.isHost || (op && op.isHost)) && op && op.state !== 'MENU';
           if (isSenderHost) {
             ConfigModule.updateConfig(data.data.gameplayConfig);
             if (data.data.gameplayConfigName) {
@@ -366,7 +366,7 @@ export default class Game {
         }
       } else {
         const op = this.otherPlayers[u] || (this.net.room && this.net.room.users[u] && this.net.room.users[u].data);
-        if (op && op.isHost) {
+        if (op && op.isHost && op.state !== 'MENU') {
           currentHosts.push(u);
         }
       }
@@ -1293,14 +1293,9 @@ export default class Game {
     target.sessionStatPoints = savedStatPoints;
     target.levelUpStatPoints = 0;
 
-    try {
-      const savedInv = localStorage.getItem('nightvibe-inventory');
-      if (savedInv) target.inventory = JSON.parse(savedInv);
-      const savedEq = localStorage.getItem('nightvibe-equipment');
-      if (savedEq) target.equipment = JSON.parse(savedEq);
-    } catch (e) {
-      console.error('Failed to parse saved items', e);
-    }
+    // Inventory and Equipment are strictly session-based and are lost on return to menu
+    target.inventory = [];
+    target.equipment = {};
 
     if (!myData) return;
 
@@ -1339,8 +1334,8 @@ export default class Game {
   saveLocalProgression() {
     if (!this.player) return;
     localStorage.setItem('nightvibe-resets', this.player.resets || 0);
-    localStorage.setItem('nightvibe-inventory', JSON.stringify(this.player.inventory || []));
-    localStorage.setItem('nightvibe-equipment', JSON.stringify(this.player.equipment || {}));
+    localStorage.removeItem('nightvibe-inventory');
+    localStorage.removeItem('nightvibe-equipment');
   }
 
   quitToMenu() {

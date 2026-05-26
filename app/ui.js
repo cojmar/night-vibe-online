@@ -2585,14 +2585,8 @@ export default class UI {
         if (this.game && this.game.player) {
             p = this.game.player;
         } else {
-            // Player not spawned yet (Main Menu), pull directly from local storage
-            try {
-                const savedInv = JSON.parse(localStorage.getItem('nightvibe-inventory') || '[]');
-                const savedEq = JSON.parse(localStorage.getItem('nightvibe-equipment') || '{}');
-                p = { inventory: savedInv, equipment: savedEq };
-            } catch (e) {
-                p = { inventory: [], equipment: {} };
-            }
+            // Player not spawned yet (Main Menu), session-based items are cleared.
+            p = { inventory: [], equipment: {} };
         }
 
         const detailsPanel = document.getElementById('inventory-details-panel');
@@ -2709,9 +2703,6 @@ export default class UI {
                     this.game.saveLocalProgression();
                     this.game.broadcastState();
                     this.updateHUD(p);
-                } else {
-                    localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
-                    localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
                 }
                 this.renderInventory();
             };
@@ -2735,9 +2726,6 @@ export default class UI {
                     this.game.saveLocalProgression();
                     this.game.broadcastState();
                     this.updateHUD(p);
-                } else {
-                    localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory));
-                    localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment));
                 }
 
                 // Select next item in inventory or equipment after dropping
