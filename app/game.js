@@ -138,12 +138,12 @@ export default class Game {
           });
         }
         
-        if (data.data.spawnedProjectile) {
+        if (this.state === 'PLAYING' && data.data.spawnedProjectile) {
           if (!this.projectiles.find(p => p.id === data.data.spawnedProjectile.id)) {
             this.projectiles.push(new Projectile(data.data.spawnedProjectile));
           }
         }
-        if (data.data.syncProjectiles) {
+        if (this.state === 'PLAYING' && data.data.syncProjectiles) {
           for (let sp of data.data.syncProjectiles) {
             if (!this.projectiles.find(p => p.id === sp.id)) {
               this.projectiles.push(new Projectile(sp));
@@ -188,7 +188,7 @@ export default class Game {
         }
 
         // Handle remote hits
-        if (data.data.hits) {
+        if (this.state === 'PLAYING' && data.data.hits) {
           data.data.hits.forEach(hit => {
             let e = this.enemies.find(ex => ex.id === hit.id);
             if (e && e.alive) {
@@ -233,7 +233,7 @@ export default class Game {
         }
 
         // Handle Host Sync
-        if (data.data.hostData && !this.isHost) {
+        if (this.state === 'PLAYING' && data.data.hostData && !this.isHost) {
           this.syncHostData(data.data.hostData);
         }
 
