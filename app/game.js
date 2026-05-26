@@ -1395,7 +1395,7 @@ export default class Game {
        this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
     } else if (skillType === 'Psionic Slash' || this.player.classType === 'magicgladiator') {
       const mgScale = 1 + (this.player.atk - cd.atk) * 0.005;
-      this.spawnProjectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 20, maxLife: 20, color: cd.s1Color || '#e74c3c', radius: 60 * mgScale * lvlScale, hitInner: 0, hitOuter: 80 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps });
+      this.spawnProjectile({ type: 'psionic_slash', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * 9, vy: Math.sin(aimAngle) * 9, angle: aimAngle, speed: 9, life: 30, maxLife: 30, color: cd.s1Color || '#e74c3c', radius: 45 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps });
       this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#e74c3c', 7, 4);
     } else {
       // Default fallback is Warrior Bash style
