@@ -1494,12 +1494,11 @@ releaseSkill2() {
     if (skillType === 'Sword Slash' || this.player.classType === 'warrior') {
       const effectiveSpd = Math.min(200, this.player.spd);
       const spdDiff = Math.max(0, effectiveSpd - cd.spd);
-      const baseWaveCount = 1 + charges;
-      // We limit effective SPD to 200. At 200 SPD, spdDiff is around 150.
-      // We want about 3 waves total (reduced by 90% from 30).
-      const waveCount = Math.min(3, baseWaveCount + Math.floor(spdDiff / 75));
+      // charges now give half as many waves at overcharge
+      const baseWaveCount = 1 + Math.floor(charges / 2);
+      // We want about 2-3 waves total.
+      const waveCount = Math.min(3, baseWaveCount + Math.floor(spdDiff / 100));
       const waveDistance = Math.min(this.gameW * 0.25, (120 + spdDiff * 6) * areaMulti);
-      // Ensure the spread doesn't overlap excessively or shoot too densely
       const waveSpread = Math.min(0.6, (Math.PI * 2) / Math.max(1, waveCount));
 
       const areaMultiRadius = Math.min(2.0, areaMulti);
@@ -1590,10 +1589,12 @@ releaseSkill2() {
       this.ui.updateHUD(this.player);
     } else {
       // Default fallback: Warrior Shockwave style
-      const waveCount = 1 + charges;
-      const spdDiff = Math.max(0, this.player.spd - cd.spd);
+      const effectiveSpd = Math.min(200, this.player.spd);
+      const spdDiff = Math.max(0, effectiveSpd - cd.spd);
+      const baseWaveCount = 1 + Math.floor(charges / 2);
+      const waveCount = Math.min(3, baseWaveCount + Math.floor(spdDiff / 100));
       const waveDistance = Math.min(this.gameW * 0.25, (120 + spdDiff * 6) * areaMulti);
-      const waveSpread = 0.12 + (aoeScale - 1) * 0.08;
+      const waveSpread = Math.min(0.6, (Math.PI * 2) / Math.max(1, waveCount));
 
       const areaMultiRadius = Math.min(2.0, areaMulti);
       for (let i = 0; i < waveCount; i++) {
