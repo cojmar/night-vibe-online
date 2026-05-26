@@ -1402,23 +1402,6 @@ export default class Game {
     this.floatingTexts = [];
 
     if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
-      // Send set_data with null for any object properties to prevent deep merge accumulation from previous sessions
-      this.net.send_cmd('set_data', {
-        inventory: null,
-        equipment: null,
-        syncProjectiles: null,
-        hits: null,
-        spawnItem: null,
-        giveItem: null,
-        giveBuff: null,
-        spawnedProjectile: null,
-        enemyKilled: null,
-        classData: null,
-        enemyTypes: null,
-        itemsDb: null,
-        gameplayConfig: null
-      });
-
       const myData = this.net.room.users[this.net.me.info.user].data;
       myData.resets = savedResets;
       myData.bonusStatPoints = savedStatPoints;
