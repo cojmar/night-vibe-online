@@ -1623,18 +1623,15 @@ releaseSkill2() {
     const bx = this.player.x, by = this.player.y - 40;
     const bloodCount = Math.floor(10 * (this.settings ? this.settings.particles : 1.0));
     for (let i = 0; i < bloodCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spd = 0.8 + Math.random() * 2.0;
-      const isDark = Math.random() > 0.5;
       this.particles.push({
-        x: bx + (Math.random() - 0.5) * 8,
-        y: by + (Math.random() - 0.5) * 8,
-        vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd - 0.5,
-        life: 18 + Math.floor(Math.random() * 12),
+        x: bx,
+        y: by,
+        vx: (Math.random() - 0.5) * 5,
+        vy: (Math.random() - 0.5) * 5,
+        life: 20 + Math.floor(Math.random() * 10),
         maxLife: 30,
-        color: isDark ? '#8b0000' : '#a01010',
-        size: 3.5 + Math.random() * 3.5
+        color: Math.random() > 0.5 ? '#8b0000' : '#a01010',
+        size: 4 + Math.random() * 3
       });
     }
     this.ui.updateHUD(this.player);
