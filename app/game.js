@@ -1629,7 +1629,8 @@ releaseSkill2() {
         vy: -Math.random() * 2.5 - 0.5,
         life: 25, maxLife: 25,
         color: '#8b0000',
-        size: 5 + Math.random() * 3
+        size: 5 + Math.random() * 3,
+        isBlood: true
       });
     }
     this.ui.updateHUD(this.player);
@@ -2839,7 +2840,7 @@ releaseSkill2() {
         }
         p.life -= dt;
         const progress = Math.max(0, p.life / p.maxLife);
-        this.ctx.globalAlpha = progress;
+        this.ctx.globalAlpha = (p.isBlood ? (1 - progress) * 0.5 + 0.5 : progress);
         
         if (p.isShockwave) {
           const currentSize = p.size * (1 + (1 - progress) * 1.5);
