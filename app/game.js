@@ -156,7 +156,23 @@ export default class Game {
         const oldIsHost = this.otherPlayers[data.user].isHost;
         const oldHitFlash = this.otherPlayers[data.user].hitFlash || 0;
 
-        this.otherPlayers[data.user].set(data.data);
+        // Only save game-specific data for other players if we are actually playing!
+        // If we are in the menu, we don't care about their projectiles, HP, etc.
+        if (this.state === 'MENU') {
+          // Still need to know if they are inGame/MENU and if they are host for the lobby UI
+          const basicInfo = {};
+          if (data.data.nick !== undefined) basicInfo.nick = data.data.nick;
+          if (data.data.inGame !== undefined) basicInfo.inGame = data.data.inGame;
+          if (data.data.state !== undefined) basicInfo.state = data.data.state;
+          if (data.data.isHost !== undefined) basicInfo.isHost = data.data.isHost;
+          if (data.data.classType !== undefined) basicInfo.classType = data.data.classType;
+          if (data.data.level !== undefined) basicInfo.level = data.data.level;
+          this.otherPlayers[data.user].set(basicInfo);
+          // Force their projectiles to be empty since we aren't in game
+          this.otherPlayers[data.user].projectiles = [];
+        } else {
+          this.otherPlayers[data.user].set(data.data);
+        }
 
         if (data.data.hitFlash !== undefined && data.data.hitFlash > oldHitFlash) {
           this.spawnDamageParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y);
