@@ -128,7 +128,7 @@ try {
     DEFAULTS = { ...FALLBACK_DEFAULTS, ...loadedDefaults };
     // Prevent nulls (from generated JSON files) from breaking the equipment slots UI
     if (!DEFAULTS.EQUIPMENT_SLOTS) {
-        DEFAULTS.EQUIPMENT_SLOTS = FALLBACK_DEFAULTS.EQUIPMENT_SLOTS;
+      DEFAULTS.EQUIPMENT_SLOTS = FALLBACK_DEFAULTS.EQUIPMENT_SLOTS;
     }
   }
 } catch (error) {
@@ -164,10 +164,10 @@ export const CONFIG_METADATA = {
   // 4. Potions & Elixirs (Advanced Buffs)
   POTION_BUFF_DURATION: { label: "Vampirism Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
   POTION_LIFESTEAL_PERCENT: { label: "Vampirism Heal Percentage", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
-POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
-   POTION_BLUE_CD_MULTIPLIER: { label: "Mana Potion CD Recovery Mult", type: "number", min: 1.0, max: 20.0, step: 0.5, category: "Potions & Elixirs" },
-   POTION_RED_DROP_CHANCE: { label: "Red Buff Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
-   POTION_BLUE_DROP_CHANCE: { label: "Blue Buff Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
+  POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
+  POTION_BLUE_CD_MULTIPLIER: { label: "Mana Potion CD Recovery Mult", type: "number", min: 1.0, max: 20.0, step: 0.5, category: "Potions & Elixirs" },
+  POTION_RED_DROP_CHANCE: { label: "Red Buff Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
+  POTION_BLUE_DROP_CHANCE: { label: "Blue Buff Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
 
   // 5. Viewport & Display (Environmental / Display settings)
   GAME_W: { label: "Game Width", type: "number", min: 800, max: 2560, step: 80, category: "Viewport & Display" },
@@ -229,8 +229,8 @@ POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", m
   GEAR_RARITY_RARE: { label: "Rare Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
   GEAR_STAT_MULTIPLIER: { label: "Gear Base Stat Multiplier", type: "number", min: 0.5, max: 5.0, step: 0.1, category: "Gear Drops & Stats" },
   GEAR_STAT_VARIANCE: { label: "Gear Stat Variance (+/- %)", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
-   GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" },
-   CLEAR_ITEMS_ON_START: { label: "Clear Items on Game Start", type: "boolean", category: "Gear Drops & Stats" }
+  GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" },
+  CLEAR_ITEMS_ON_START: { label: "Clear Items on Game Start", type: "boolean", category: "Gear Drops & Stats" }
 };
 
 // ==========================================
@@ -263,7 +263,7 @@ function _resolveActivePresetId() {
           delete presets['last_game_config'];
           localStorage.setItem('nightvibe-config-presets', JSON.stringify(presets));
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     localStorage.setItem('nightvibe-active-preset-id', DEFAULT_STARTUP_PRESET);
     localStorage.setItem('nightvibe-defaults-hash', defaultsHash);
@@ -388,15 +388,15 @@ export let EQUIPMENT_SLOTS = activeConfig.EQUIPMENT_SLOTS;
 export let ENFORCE_GEAR_SLOTS = activeConfig.ENFORCE_GEAR_SLOTS;
 
 export let GEAR_DROP_RATE = activeConfig.GEAR_DROP_RATE;
- export let GEAR_RARITY_NORMAL = activeConfig.GEAR_RARITY_NORMAL;
- export let GEAR_RARITY_MAGIC = activeConfig.GEAR_RARITY_MAGIC;
- export let GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
- export let GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
- export let GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
- export let GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
- export let CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
- export let POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
- export let POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
+export let GEAR_RARITY_NORMAL = activeConfig.GEAR_RARITY_NORMAL;
+export let GEAR_RARITY_MAGIC = activeConfig.GEAR_RARITY_MAGIC;
+export let GEAR_RARITY_RARE = activeConfig.GEAR_RARITY_RARE;
+export let GEAR_STAT_MULTIPLIER = activeConfig.GEAR_STAT_MULTIPLIER;
+export let GEAR_STAT_VARIANCE = activeConfig.GEAR_STAT_VARIANCE;
+export let GEAR_DROP_ONLY_BOSS = activeConfig.GEAR_DROP_ONLY_BOSS;
+export let CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
+export let POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
+export let POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
 
 // Static-structure configurations
 export const MOVE_STOP_DIST = 3;
@@ -412,7 +412,7 @@ export const FALLBACK_CLASS_DATA = {
   warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
   mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
   archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
-  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Evil Spirits', s2Color: '#ffd700', bodyType: 'magicgladiator' }
+  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Evil Spirits', s2Color: '#4dff00', bodyType: 'magicgladiator' }
 };
 
 export const CLASS_DATA = JSON.parse(JSON.stringify(FALLBACK_CLASS_DATA));
@@ -510,7 +510,7 @@ export const SKILL_DESC = {
   },
   magicgladiator: {
     s1: { name: 'Psionic Slash', desc: 'Double wide arc. 110% ATK, 12% crit.', ctrl: 'Left-click enemy' },
-    s2: { name: 'Evil Spirits', desc: 'Summon golden spirits that chase enemies. 80% ATK per spirit. Heals for 50% of damage dealt.', ctrl: 'Right-click / long-press' }
+    s2: { name: 'Cross Slash', desc: 'Massive AoE explosion. 300% ATK.', ctrl: 'Right-click / long-press' }
   }
 };
 
