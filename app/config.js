@@ -398,7 +398,7 @@ export let CLEAR_ITEMS_ON_START = activeConfig.CLEAR_ITEMS_ON_START;
 export let POTION_RED_DROP_CHANCE = activeConfig.POTION_RED_DROP_CHANCE;
 export let POTION_BLUE_DROP_CHANCE = activeConfig.POTION_BLUE_DROP_CHANCE;
 
-// Static-structure configurations
+// Static-structure configurations 
 export const MOVE_STOP_DIST = 3;
 export const PLAYER_MOVE_SPEEDS = {
   warrior: 2.5,
