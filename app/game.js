@@ -1620,7 +1620,7 @@ releaseSkill2() {
     this.player.hp -= actualDamage;
     this.player.hitFlash = 15;
     this.screenShake = 15;
-    const px = this.player.x, py = this.player.y - 40;
+    const px = this.player.x, py = this.player.y - 5;
     const count = Math.floor(8 * (this.settings ? this.settings.particles : 1.0));
     for (let i = 0; i < count; i++) {
       this.particles.push({
