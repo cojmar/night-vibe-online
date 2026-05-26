@@ -1645,7 +1645,8 @@ export default class Game {
       const waveDistance = Math.min(this.gameW * 0.4, (150 + spdDiff * 8) * areaMulti);
       const areaMultiRadius = Math.min(3.0, areaMulti * (1 + powerMulti * 0.2));
       
-      const singleDamage = this.player.atk * 2.0 * dmgMulti * powerMulti;
+      // Damage reduced to 25% of its previous value (2.0 -> 0.5)
+      const singleDamage = this.player.atk * 0.5 * dmgMulti * powerMulti;
       // Base radius increased, scales up with power
       const singleRadius = 25 * aoeScale * areaMultiRadius * lvlScale;
       

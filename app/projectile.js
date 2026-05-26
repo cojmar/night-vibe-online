@@ -247,8 +247,8 @@ export default class Projectile {
       ctx.translate(this.x, this.y); 
       ctx.rotate(rot);
       
-      // Smooth fade out instead of rapid pulse
-      ctx.globalAlpha = alpha * 0.85;
+      // Increased transparency (lowered alpha from 0.85 to 0.5)
+      ctx.globalAlpha = alpha * 0.5;
       
       ctx.shadowColor = this.color; 
       ctx.shadowBlur = 15;
@@ -287,7 +287,8 @@ export default class Projectile {
       for (let i = 0; i < this.trailPositions.length; i++) {
         const tp = this.trailPositions[i];
         const tprog = tp.life / tp.maxLife;
-        ctx.globalAlpha = alpha * tprog * 0.4;
+        // Increased transparency for trails (0.4 -> 0.25)
+        ctx.globalAlpha = alpha * tprog * 0.25;
         ctx.save(); 
         ctx.translate(tp.x, tp.y); 
         ctx.rotate(rot);
