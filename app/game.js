@@ -290,6 +290,14 @@ export default class Game {
 
     // Filter users to only those who are actively playing (in status 'PLAYING' and not in menu or game over)
     const activeUsers = uniqueUsers.filter(user => {
+      // Disconnected users cannot be active or host candidates
+      if (this.net.room && this.net.room.users && this.net.room.users[user]) {
+        const uInfo = this.net.room.users[user].info;
+        if (uInfo && uInfo.disconnected !== false && uInfo.disconnected !== undefined) {
+          return false;
+        }
+      }
+
       if (this.net.me && this.net.me.info && user === this.net.me.info.user) {
         // Local player: must be playing and not in menu or game over
         return this.state === 'PLAYING' && this.state !== 'MENU' && this.state !== 'GAME_OVER';
