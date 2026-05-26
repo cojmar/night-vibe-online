@@ -191,7 +191,13 @@ export default class Player {
       if (this.input_data.mouseX !== undefined) this.mouseX = this.input_data.mouseX;
       if (this.input_data.mouseY !== undefined) this.mouseY = this.input_data.mouseY;
       if (this.input_data.isChargingS2 !== undefined) this.isChargingS2 = this.input_data.isChargingS2;
-      if (this.input_data.s2ChargeCount !== undefined) this.s2ChargeCount = this.input_data.s2ChargeCount;
+      if (this.input_data.s2ChargeCount !== undefined) {
+        // Spawn charge particles locally when we receive a charge count increase from a remote player
+        if (this.input_data.s2ChargeCount > (this.s2ChargeCount || 0) && typeof window !== 'undefined' && window.gameInstance) {
+          window.gameInstance.spawnParticles(this.x, this.y - 40, '#ffd700', 15, 4);
+        }
+        this.s2ChargeCount = this.input_data.s2ChargeCount;
+      }
       if (this.input_data.projectiles) this.projectiles = this.input_data.projectiles;
       if (this.input_data.inventory !== undefined) this.inventory = this.input_data.inventory;
       if (this.input_data.equipment !== undefined) this.equipment = this.input_data.equipment;
@@ -202,6 +208,20 @@ export default class Player {
   }
 
   updateMovement(dt, gameInstance) {
+    if (this.isChargingS2 && this.classType === 'magicgladiator' && Math.random() < 0.15 * dt) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 20 + Math.random() * 25;
+      if (typeof window !== 'undefined' && window.gameInstance) {
+        window.gameInstance.particles.push({
+          x: this.x + Math.cos(angle) * dist,
+          y: this.y - 40 + Math.sin(angle) * dist,
+          vx: Math.cos(angle) * 0.3,
+          vy: Math.sin(angle) * 0.3 - 0.5,
+          life: 40, maxLife: 40, color: '#9b4dff', size: 3
+        });
+      }
+    }
+
     if (this.hitFlash > 0) this.hitFlash -= dt;
     if (this.animTimer > 0) this.animTimer -= dt;
     if (this.chatTimer > 0) {
