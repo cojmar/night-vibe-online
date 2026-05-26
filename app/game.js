@@ -450,15 +450,15 @@ export default class Game {
       this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
     }
 
-    if (this.selectedEnv !== hostData.env) {
-      this.selectedEnv = hostData.env || 'forest';
+    if (hostData.env && this.selectedEnv !== hostData.env) {
+      this.selectedEnv = hostData.env;
       this.generateScenery();
       if (this.state === 'PLAYING') this.ui.updateEnvironment(this.selectedEnv);
       this.initBgParticles();
     }
 
     // Sync enemies position/hp to host
-    hostData.enemies.forEach(eData => {
+    if (hostData.enemies) hostData.enemies.forEach(eData => {
       let e = this.enemies.find(ex => ex.id === eData.id);
       if (!e) {
         let isBoss = eData.name === 'BOSS';
@@ -504,9 +504,11 @@ export default class Game {
       if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
     });
     // Remove enemies not in host, but keep dead ones until their death animation finishes
-    this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
+    if (hostData.enemies) {
+      this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
+    }
 
-    if (hostData.items) {
+    if (hostData.items && Array.isArray(hostData.items)) {
       this.items = hostData.items.map(item => ({ ...item }));
     }
   }
@@ -1797,9 +1799,8 @@ export default class Game {
       this.pendingHits = [];
     }
     if (this.isHost) {
-      this.net.send_cmd('set_data', { hostData: { enemies: false, items: false } });
       data.hostData = {
-        wave: this.wave, kills: this.kills, seed: this.prng.seed, env: this.selectedEnv, time: this.globalTime,
+        wave: this.wave, kills: this.kills, seed: this.prng.seed, env: this.selectedEnv, time: this.globalTime, sessionSeed: this.sessionSeed,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
           id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
