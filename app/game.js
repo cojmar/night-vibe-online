@@ -129,7 +129,7 @@ export default class Game {
           this.otherPlayers[data.user] = new Player(data.user, false, data.data.classType || 'warrior', data.data.x || this.gameW / 2, data.data.y || (getGroundY(this.selectedEnv) + this.gameH) / 2);
         }
 
-        
+
         if (this.isHost && data.data.requestSync) {
           this.net.send_cmd('set_data', {
             syncProjectiles: this.projectiles.map(p => ({
@@ -141,7 +141,7 @@ export default class Game {
             }))
           });
         }
-        
+
         if (this.state === 'PLAYING' && data.data.spawnedProjectile) {
           if (!this.projectiles.find(p => p.id === data.data.spawnedProjectile.id)) {
             this.projectiles.push(new Projectile(data.data.spawnedProjectile));
@@ -249,7 +249,7 @@ export default class Game {
           this.syncHostData(data.data.hostData);
         }
 
-        // Sync Gameplay balance config from the Host
+        // Sync Gameplay balance config from the Host 
         if (data.data.gameplayConfig && !this.isHost) {
           const op = this.otherPlayers[data.user];
           const isSenderHost = (data.data.isHost || (op && op.isHost)) && op && op.state !== 'MENU';
@@ -261,7 +261,7 @@ export default class Game {
             if (data.data.classData) ConfigModule.updateClassData(data.data.classData);
             if (data.data.enemyTypes) ConfigModule.updateEnemyTypes(data.data.enemyTypes);
             if (data.data.itemsDb) ConfigModule.updateItemsDb(data.data.itemsDb);
-            
+
             // Pre-cache all custom base64 images and their flipped versions to prevent mid-game lag
             if (data.data.classData) {
               for (const k in data.data.classData) {
@@ -279,7 +279,7 @@ export default class Game {
                 if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
               }
             }
-            
+
             if (this.updateLayout) this.updateLayout();
             if (this.ui) {
               if (this.ui.buildClassesTab) this.ui.buildClassesTab();
@@ -301,7 +301,7 @@ export default class Game {
       }
       return;
     }
-    
+
     // Players in the menu cannot be hosts
     if (this.state !== 'PLAYING') {
       if (this.isHost) {
@@ -390,12 +390,12 @@ export default class Game {
       this.isHost = isHost;
       this.ui.addLog(this.isHost ? '👑 You are the Host!' : '👥 You are a Client', 'reward');
       if (this.isHost) {
-        this.net.send_cmd('set_data', { 
-            isHost: true, 
-            gameplayConfig: ConfigModule.activeConfig,
-            classData: ConfigModule.CLASS_DATA,
-            enemyTypes: ConfigModule.ENEMY_TYPES,
-            itemsDb: ConfigModule.ITEMS_DB
+        this.net.send_cmd('set_data', {
+          isHost: true,
+          gameplayConfig: ConfigModule.activeConfig,
+          classData: ConfigModule.CLASS_DATA,
+          enemyTypes: ConfigModule.ENEMY_TYPES,
+          itemsDb: ConfigModule.ITEMS_DB
         });
         // If we just became host, make sure we sync the global time to avoid jump
         if (this.globalTime) {
@@ -568,20 +568,20 @@ export default class Game {
     const positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     const positions = [
-      -1.0,  1.0,
-       1.0,  1.0,
+      -1.0, 1.0,
+      1.0, 1.0,
       -1.0, -1.0,
-       1.0, -1.0,
+      1.0, -1.0,
     ];
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
     const textureCoordBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
     const textureCoordinates = [
-      0.0,  0.0,
-      1.0,  0.0,
-      0.0,  1.0,
-      1.0,  1.0,
+      0.0, 0.0,
+      1.0, 0.0,
+      0.0, 1.0,
+      1.0, 1.0,
     ];
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
 
@@ -613,11 +613,11 @@ export default class Game {
   renderWebGL() {
     const gl = this.gl;
     if (!gl) return;
-    
+
     if (this.webglCanvas.width !== this.canvas.width || this.webglCanvas.height !== this.canvas.height) {
-        this.webglCanvas.width = this.canvas.width;
-        this.webglCanvas.height = this.canvas.height;
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      this.webglCanvas.width = this.canvas.width;
+      this.webglCanvas.height = this.canvas.height;
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     }
 
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -765,7 +765,7 @@ export default class Game {
       this.zoomTarget = Math.max(zoomOutMin, Math.min(zoomInMax, this.zoomTarget));
     }, { passive: false });
 
-  let touchActive = false;
+    let touchActive = false;
     let touchLongPressTimer = null;
     let touchLeftClickTimer = null;
 
@@ -832,7 +832,7 @@ export default class Game {
       }
     });
 
-  const cdRingBtn = document.getElementById('cd-ring');
+    const cdRingBtn = document.getElementById('cd-ring');
     const startUltBtn = (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
       e.preventDefault(); e.stopPropagation();
@@ -983,7 +983,7 @@ export default class Game {
     }
     // Ensure all menu/previous session parameters are fully reset
     this._resetSessionData();
-    
+
     this.state = 'PLAYING';
     this.selectedEnv = ENV_LIST[0];
     this.kills = GAME_INITIAL_KILLS;
@@ -1026,7 +1026,7 @@ export default class Game {
         if (this.net.me && this.net.me.info && u === this.net.me.info.user) continue;
         const uInfo = this.net.room.users[u].info;
         if (uInfo && uInfo.disconnected !== false && uInfo.disconnected !== undefined) continue;
-        
+
         const userData = this.net.room.users[u].data;
         if (userData && userData.isHost && userData.inGame && userData.state === 'PLAYING') {
           hostFound = true;
@@ -1037,23 +1037,23 @@ export default class Game {
               ConfigModule.setActivePresetName(userData.gameplayConfigName);
             }
             if (userData.classData) {
-                ConfigModule.updateClassData(userData.classData);
-                for (const k in userData.classData) {
-                    if (userData.classData[k].icon && typeof userData.classData[k].icon === 'string') preloadFlippedImagesForAsset(userData.classData[k].icon);
-                }
+              ConfigModule.updateClassData(userData.classData);
+              for (const k in userData.classData) {
+                if (userData.classData[k].icon && typeof userData.classData[k].icon === 'string') preloadFlippedImagesForAsset(userData.classData[k].icon);
               }
+            }
             if (userData.enemyTypes) {
-                ConfigModule.updateEnemyTypes(userData.enemyTypes);
-                for (const e of userData.enemyTypes) {
-                    if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
-                }
+              ConfigModule.updateEnemyTypes(userData.enemyTypes);
+              for (const e of userData.enemyTypes) {
+                if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
               }
+            }
             if (userData.itemsDb) {
-                ConfigModule.updateItemsDb(userData.itemsDb);
-                for (const item of userData.itemsDb) {
-                    if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
-                }
+              ConfigModule.updateItemsDb(userData.itemsDb);
+              for (const item of userData.itemsDb) {
+                if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
               }
+            }
             if (this.ui) {
               if (this.ui.buildClassesTab) this.ui.buildClassesTab();
               if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
@@ -1071,7 +1071,7 @@ export default class Game {
             this.selectedEnv = userData.hostData.env || ENV_LIST[0];
             this.sessionSeed = userData.hostData.sessionSeed || 0;
             this.prng = new PRNG(userData.hostData.seed !== undefined ? userData.hostData.seed : (this.sessionSeed + this.wave * 12345));
-            
+
             // Sync ground items and monsters instantly on game entry
             if (userData.hostData.enemies) {
               this.enemies = [];
@@ -1120,13 +1120,13 @@ export default class Game {
       this.isHost = true;
       this.ui.addLog('👑 You are the Host!', 'reward');
       if (this.net && this.net.me) {
-        this.net.send_cmd('set_data', { 
-            isHost: true, 
-            gameplayConfig: ConfigModule.activeConfig,
-            gameplayConfigName: ConfigModule.activePresetName || 'Default',
-            classData: ConfigModule.CLASS_DATA,
-            enemyTypes: ConfigModule.ENEMY_TYPES,
-            itemsDb: ConfigModule.ITEMS_DB
+        this.net.send_cmd('set_data', {
+          isHost: true,
+          gameplayConfig: ConfigModule.activeConfig,
+          gameplayConfigName: ConfigModule.activePresetName || 'Default',
+          classData: ConfigModule.CLASS_DATA,
+          enemyTypes: ConfigModule.ENEMY_TYPES,
+          itemsDb: ConfigModule.ITEMS_DB
         });
       }
     }
@@ -1228,17 +1228,17 @@ export default class Game {
     this.saveLocalProgression();
   }
 
-   async requestRebirth() {
-      if (!this.player) return;
-      const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
-      if (this.player.level < reqLevel) return;
+  async requestRebirth() {
+    if (!this.player) return;
+    const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
+    if (this.player.level < reqLevel) return;
 
-      await this.ui.showRebirthConfirm(
-        "🔄 Rebirth",
-        `Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * REBIRTH_POINTS_PER_LEVEL} unallocated bonus stats on your next play!`,
-        () => { this.performRebirth(); },
-      );
-    }
+    await this.ui.showRebirthConfirm(
+      "🔄 Rebirth",
+      `Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * REBIRTH_POINTS_PER_LEVEL} unallocated bonus stats on your next play!`,
+      () => { this.performRebirth(); },
+    );
+  }
 
   performRebirth() {
     if (!this.player) return;
@@ -1363,7 +1363,7 @@ export default class Game {
 
     // Broadcast leaving the game
     if (this.net && this.net.me) {
-      
+
       // Reset in-game progression stats locally so next game starts fresh at level 1.
       // Persistent progression (resets, bonusStatPoints) is already saved in localStorage
       // and will be restored by restoreWebsocketStats() on the next game start.
@@ -1416,7 +1416,7 @@ export default class Game {
     this.broadcastState();
   }
 
- handleLeftClick(cx, cy) {
+  handleLeftClick(cx, cy) {
     if (!this.player || !this.player.alive) return;
     this.autoRestartS2 = false;
     this.player.lastInputTime = Date.now();
@@ -1526,33 +1526,33 @@ export default class Game {
       const mageLife = Math.round(60 * mageRangeMult);
       this.spawnProjectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: cd.s1Color || '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps });
       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#3498db', 3, 2);
-   } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
-       const archerBaseAtk = cd.atk;
-       const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
-       const archerLife = Math.round(50 * archerRangeMult);
-       const speed = 10;
-       const archerS1Scale = Math.min(5, 1 + (this.player.atk - archerBaseAtk) * 0.0227);
-       const arrowRadius = 12 * archerS1Scale * lvlScale;
-       this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, ...projProps });
-       const extraArrows = Math.max(0, Math.floor((this.player.atk - 100) / 100));
-       if (extraArrows > 0) {
-         let nearest = null, nearDist = Infinity;
-         for (let e of this.enemies) {
-           if (!e.alive) continue;
-           const d = Math.hypot(e.x - this.player.x, e.y - weaponY);
-           if (d < nearDist) { nearDist = d; nearest = e; }
-         }
-         if (nearest) {
-           const targetAngle = Math.atan2(nearest.y - weaponY, nearest.x - this.player.x);
-           const spread = 0.12;
-           for (let i = 0; i < extraArrows; i++) {
-             const offset = (i - (extraArrows - 1) / 2) * spread;
-             const a = targetAngle + offset;
-             this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, tx: nearest.x, ty: nearest.y, angle: a, facing: this.player.facing, critChance: 0.1 });
-           }
-         }
-       }
-       this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
+    } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
+      const archerBaseAtk = cd.atk;
+      const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
+      const archerLife = Math.round(50 * archerRangeMult);
+      const speed = 10;
+      const archerS1Scale = Math.min(5, 1 + (this.player.atk - archerBaseAtk) * 0.0227);
+      const arrowRadius = 12 * archerS1Scale * lvlScale;
+      this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, ...projProps });
+      const extraArrows = Math.max(0, Math.floor((this.player.atk - 100) / 100));
+      if (extraArrows > 0) {
+        let nearest = null, nearDist = Infinity;
+        for (let e of this.enemies) {
+          if (!e.alive) continue;
+          const d = Math.hypot(e.x - this.player.x, e.y - weaponY);
+          if (d < nearDist) { nearDist = d; nearest = e; }
+        }
+        if (nearest) {
+          const targetAngle = Math.atan2(nearest.y - weaponY, nearest.x - this.player.x);
+          const spread = 0.12;
+          for (let i = 0; i < extraArrows; i++) {
+            const offset = (i - (extraArrows - 1) / 2) * spread;
+            const a = targetAngle + offset;
+            this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, tx: nearest.x, ty: nearest.y, angle: a, facing: this.player.facing, critChance: 0.1 });
+          }
+        }
+      }
+      this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
     } else if (skillType === 'Psionic Slash' || this.player.classType === 'magicgladiator') {
       const mgScale = 1 + (this.player.atk - cd.atk) * 0.002;
       this.spawnProjectile({ type: 'psionic_slash', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * 8, vy: Math.sin(aimAngle) * 8, angle: aimAngle, speed: 8, life: 8, maxLife: 8, color: cd.s1Color || '#e74c3c', radius: 45 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps });
@@ -1581,7 +1581,7 @@ export default class Game {
     this.broadcastState();
   }
 
-releaseSkill2() {
+  releaseSkill2() {
     if (!this.player || !this.player.isChargingS2) return;
     this.queuedFireball = null;
     this.player.lastInputTime = Date.now();
@@ -1924,7 +1924,7 @@ releaseSkill2() {
   spawnEnemyDeathExplosion(e) {
     const size = e.size || 30;
     const pCount = Math.floor(45 * (this.settings ? this.settings.particles : 1.0));
-    
+
     // 1. Shatter/dissolve starting positions all across the monster's visual area
     for (let i = 0; i < pCount; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -1933,7 +1933,7 @@ releaseSkill2() {
       const startAngle = Math.random() * Math.PI * 2;
       const px = e.x + Math.cos(startAngle) * r;
       const py = (e.y - size * 0.4) + Math.sin(startAngle) * r;
-      
+
       this.particles.push({
         x: px, y: py,
         vx: Math.cos(angle) * spd,
@@ -1967,7 +1967,7 @@ releaseSkill2() {
 
   triggerLevelUpAnimation(p) {
     const size = p.level ? Math.max(24, 24 * (0.5 + 0.5 * (p.level / 10))) : 28;
-    
+
     // 1. Moderate Expanding Golden Halo (Sun crown wave) at player's feet
     this.particles.push({
       x: p.x, y: p.y + 10,
@@ -1984,7 +1984,7 @@ releaseSkill2() {
       const angle = (i / rayCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.1;
       const spd = 1.2 + Math.random() * 2.0;
       const length = size * 1.5 + Math.random() * size * 0.5; // Scaled down ray lengths
-      
+
       this.particles.push({
         x: p.x,
         y: p.y - size * 0.4, // radiate from player's chest center
@@ -2248,13 +2248,13 @@ releaseSkill2() {
       }
 
       const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
-      
+
       // Calculate celestial body heights (0 at horizon, 1 at peak)
       const sunHeight = Math.max(0, Math.sin(cycle * 2 * Math.PI));
       const moonHeight = Math.max(0, Math.sin(cycle * 2 * Math.PI - Math.PI));
-      
+
       this.dayAlpha = sunHeight;
-      
+
       // Sky darkness: 0 at noon, 1 at twilight, 0.6 at midnight (moonlight)
       this.nightAlpha = Math.max(0, 1.0 - sunHeight - (moonHeight * 0.4));
 
@@ -2694,7 +2694,7 @@ releaseSkill2() {
           renderables.push({
             y: p.y, draw: (ctx) => {
               p.draw(ctx, dt, this);
-              
+
             }
           });
         }
@@ -3041,7 +3041,7 @@ releaseSkill2() {
         p.life -= dt;
         const progress = Math.max(0, p.life / p.maxLife);
         this.ctx.globalAlpha = progress;
-        
+
         if (p.isShockwave) {
           const currentSize = p.size * (1 + (1 - progress) * 1.5);
           const grad = this.ctx.createRadialGradient(p.x, p.y, currentSize * 0.1, p.x, p.y, currentSize);
@@ -3076,7 +3076,7 @@ releaseSkill2() {
           this.ctx.beginPath();
           this.ctx.arc(p.x, p.y, p.size * progress, 0, Math.PI * 2);
           this.ctx.fill();
-          
+
           if (Math.random() < 0.20) {
             this.ctx.strokeStyle = '#ffffff';
             this.ctx.lineWidth = 0.8;
@@ -3147,7 +3147,7 @@ releaseSkill2() {
         }
       }
 
-   if (this.s2Cooldown > 0) {
+      if (this.s2Cooldown > 0) {
         this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier);
         if (this.s2Cooldown <= 0 && this.autoRestartS2 && this.player && !this.player.isMoving) {
           this.autoRestartS2 = false;
@@ -3265,7 +3265,7 @@ releaseSkill2() {
             if (Math.hypot(cx - item.x, cy - item.y) < 40) { hoveredItem = item; break; }
           }
         }
-        
+
         if (hoveredEnemy) {
           currentTarget = hoveredEnemy;
           isHover = true;
@@ -3277,7 +3277,7 @@ releaseSkill2() {
         } else if (this.player.targetedItemId) {
           currentTarget = this.items.find(i => i.id === this.player.targetedItemId);
         }
-        
+
         this.ui.updateTargetPanel(currentTarget, isHover);
       }
 
