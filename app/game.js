@@ -870,6 +870,9 @@ export default class Game {
     if (this.net && this.net.room && this.net.room.users) {
       for (const u in this.net.room.users) {
         if (this.net.me && this.net.me.info && u === this.net.me.info.user) continue;
+        const uInfo = this.net.room.users[u].info;
+        if (uInfo && uInfo.disconnected !== false && uInfo.disconnected !== undefined) continue;
+        
         const userData = this.net.room.users[u].data;
         if (userData && userData.isHost && userData.inGame && userData.state === 'PLAYING') {
           hostFound = true;
