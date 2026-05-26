@@ -1620,17 +1620,14 @@ releaseSkill2() {
     this.player.hp -= actualDamage;
     this.player.hitFlash = 15;
     this.screenShake = 15;
-    const px = this.player.x, py = this.player.y - 5;
-    const count = Math.floor(3 * (this.settings ? this.settings.particles : 1.0));
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < 2; i++) {
       this.particles.push({
-        x: px, y: py,
+        x: this.player.x, y: this.player.y - 5,
         vx: (Math.random() - 0.5) * 3,
-        vy: -Math.random() * 2.5 - 0.5,
-        life: 25, maxLife: 25,
+        vy: -Math.random() * 3,
+        life: 20, maxLife: 20,
         color: '#8b0000',
-        size: 5 + Math.random() * 3,
-        isBlood: true
+        size: 8
       });
     }
     this.ui.updateHUD(this.player);
@@ -2840,7 +2837,7 @@ releaseSkill2() {
         }
         p.life -= dt;
         const progress = Math.max(0, p.life / p.maxLife);
-        this.ctx.globalAlpha = (p.isBlood ? (1 - progress) * 0.5 + 0.5 : progress);
+        this.ctx.globalAlpha = progress;
         
         if (p.isShockwave) {
           const currentSize = p.size * (1 + (1 - progress) * 1.5);
