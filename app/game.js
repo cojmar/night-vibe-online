@@ -162,6 +162,14 @@ export default class Game {
           this.spawnDamageParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y);
         }
 
+        // If the other player transitions to MENU or GAME_OVER, explicitly clear their local game state data
+        // so they don't leave frozen projectiles/ghosts on our screen!
+        if (data.data.state === 'MENU' || data.data.inGame === false) {
+          this.otherPlayers[data.user].projectiles = [];
+          this.otherPlayers[data.user].hp = 0; // Consider them inactive
+        }
+
+
         this.otherPlayers[data.user].lastDataTime = Date.now();
         if (data.data.lastInputTime !== undefined) {
           this.otherPlayers[data.user].lastInputTime = data.data.lastInputTime;
