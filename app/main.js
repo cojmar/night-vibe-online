@@ -20,7 +20,7 @@ window.app = new class {
         this.net = new Network();
         this.ui = new UI(null); // Will set game instance later
         this.game = null;
-        window.net - this.net
+        window.net = this.net
         // this.net.on("cmd", data => console.log(data))
 
         // Setup Nickname
