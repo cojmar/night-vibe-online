@@ -1199,10 +1199,8 @@ export default class Game {
     // Clear any lingering game over state
     this.net.send_cmd('set_data', { gameOver: 0 });
 
-    // Broadcast our spawn after a short delay to ensure previous set_data (like null resets) are processed by the network
-    setTimeout(() => {
-      this.broadcastState();
-    }, 150);
+    // Broadcast our spawn
+    this.broadcastState();
   }
 
   upgradeStat(statType, amount = 1) {
@@ -1406,7 +1404,6 @@ export default class Game {
     if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
       // Send set_data with null for any object properties to prevent deep merge accumulation from previous sessions
       this.net.send_cmd('set_data', {
-        hostData: null,
         inventory: null,
         equipment: null,
         syncProjectiles: null,
