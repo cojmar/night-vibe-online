@@ -1496,8 +1496,8 @@ releaseSkill2() {
       const spdDiff = Math.max(0, effectiveSpd - cd.spd);
       // charges now give half as many waves at overcharge
       const baseWaveCount = 1 + Math.floor(charges / 2);
-      // We want about 2-3 waves total.
-      const waveCount = Math.min(3, baseWaveCount + Math.floor(spdDiff / 100));
+      // We want about 2 waves max.
+      const waveCount = Math.min(2, baseWaveCount + Math.floor(spdDiff / 100));
       const waveDistance = Math.min(this.gameW * 0.25, (120 + spdDiff * 6) * areaMulti);
       const waveSpread = Math.min(0.6, (Math.PI * 2) / Math.max(1, waveCount));
 
@@ -1592,7 +1592,7 @@ releaseSkill2() {
       const effectiveSpd = Math.min(200, this.player.spd);
       const spdDiff = Math.max(0, effectiveSpd - cd.spd);
       const baseWaveCount = 1 + Math.floor(charges / 2);
-      const waveCount = Math.min(3, baseWaveCount + Math.floor(spdDiff / 100));
+      const waveCount = Math.min(2, baseWaveCount + Math.floor(spdDiff / 100));
       const waveDistance = Math.min(this.gameW * 0.25, (120 + spdDiff * 6) * areaMulti);
       const waveSpread = Math.min(0.6, (Math.PI * 2) / Math.max(1, waveCount));
 
