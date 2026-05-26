@@ -243,7 +243,7 @@ export default class Projectile {
 
       ctx.beginPath();
       ctx.ellipse(0, 0, rx, ry, 0, -sweepHalf, sweepHalf);
-      if (sweepHalf < Math.PI) ctx.lineTo(-rx*0.6, 0);
+      ctx.ellipse(-8, 0, rx * 0.8, ry * 0.85, 0, sweepHalf, -sweepHalf, true);
       ctx.fillStyle = this.color;
       ctx.globalAlpha = alpha * (0.15 + 0.1 * pulse); // Fill is very transparent
       ctx.fill();
