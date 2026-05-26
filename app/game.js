@@ -1790,10 +1790,12 @@ export default class Game {
       // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
     };
     if (this.pendingHits && this.pendingHits.length > 0) {
+      this.net.send_cmd('set_data', { hits: false });
       data.hits = this.pendingHits;
       this.pendingHits = [];
     }
     if (this.isHost) {
+      this.net.send_cmd('set_data', { hostData: { enemies: false, items: false } });
       data.hostData = {
         wave: this.wave, kills: this.kills, seed: this.prng.seed, env: this.selectedEnv, time: this.globalTime,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,

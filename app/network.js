@@ -25,7 +25,7 @@ export default class {
 				data1[n] = data2[n];
 				if (!ret) ret = true;
 			} else {
-				if (typeof data1[n] === 'object' && typeof data2[n] === 'object' && !Array.isArray(data1[n]) && !Array.isArray(data2[n])) {
+				if (typeof data1[n] === 'object' && typeof data2[n] === 'object') {
 					var ret2 = this.do_merge(data1[n], data2[n]);
 					if (!ret) ret = ret2;
 				} else {
