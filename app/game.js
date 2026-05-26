@@ -119,8 +119,7 @@ export default class Game {
         this.otherPlayers[data.user].set(data.data);
 
         if (data.data.hitFlash !== undefined && data.data.hitFlash > oldHitFlash) {
-          this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 40, '#e74c3c', 20, 12);
-          this.spawnParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y - 40, '#c0392b', 15, 16);
+          this.spawnDamageParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y);
         }
 
         this.otherPlayers[data.user].lastDataTime = Date.now();
@@ -1620,16 +1619,7 @@ releaseSkill2() {
     this.player.hp -= actualDamage;
     this.player.hitFlash = 15;
     this.screenShake = 15;
-    for (let i = 0; i < 2; i++) {
-      this.particles.push({
-        x: this.player.x, y: this.player.y - 5,
-        vx: (Math.random() - 0.5) * 3,
-        vy: -Math.random() * 3,
-        life: 20, maxLife: 20,
-        color: '#8b0000',
-        size: 8
-      });
-    }
+    this.spawnDamageParticles(this.player.x, this.player.y);
     this.ui.updateHUD(this.player);
     this.ui.addLog(`💔 Took -${actualDamage} damage!`, 'enemy');
     this.floatingTexts.push({
@@ -1699,6 +1689,19 @@ releaseSkill2() {
     enemy.x = Math.max(enemy.size, Math.min(this.gameW - enemy.size, enemy.x));
     enemy.y = Math.max(enemy.size, Math.min(groundY - enemy.size, enemy.y));
     if (enemy.attackTimer !== undefined) enemy.attackTimer = Math.max(enemy.attackTimer, 30);
+  }
+
+  spawnDamageParticles(x, y) {
+    for (let i = 0; i < 2; i++) {
+      this.particles.push({
+        x: x, y: y - 5,
+        vx: (Math.random() - 0.5) * 3,
+        vy: -Math.random() * 3,
+        life: 20, maxLife: 20,
+        color: '#8b0000',
+        size: 8
+      });
+    }
   }
 
   spawnParticles(x, y, color, count = 20, speed = 5, sizeScale = 1.0) {
