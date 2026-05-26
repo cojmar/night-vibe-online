@@ -87,12 +87,6 @@ export default class Game {
     this.net.on('room.user_join', () => {
       this.checkHost();
       if (this.isHost) {
-        // Reset only the object arrays with another variable type (false) to clear deep merge history
-        // This preserves the scalar values like seed and sessionSeed intact.
-        this.net.send_cmd('set_data', { hostData: { enemies: false, items: false } });
-        this.broadcastState(); // Re-populate the clean arrays instantly
-
-        this.net.send_cmd('set_data', { syncProjectiles: false });
         this.net.send_cmd('set_data', {
           syncProjectiles: this.projectiles.map(p => ({
             type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
@@ -137,7 +131,6 @@ export default class Game {
 
 
         if (this.isHost && data.data.requestSync) {
-          this.net.send_cmd('set_data', { syncProjectiles: false });
           this.net.send_cmd('set_data', {
             syncProjectiles: this.projectiles.map(p => ({
               type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
@@ -455,15 +448,15 @@ export default class Game {
       this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
     }
 
-    if (hostData.env && this.selectedEnv !== hostData.env) {
-      this.selectedEnv = hostData.env;
+    if (this.selectedEnv !== hostData.env) {
+      this.selectedEnv = hostData.env || 'forest';
       this.generateScenery();
       if (this.state === 'PLAYING') this.ui.updateEnvironment(this.selectedEnv);
       this.initBgParticles();
     }
 
     // Sync enemies position/hp to host
-    if (hostData.enemies) hostData.enemies.forEach(eData => {
+    hostData.enemies.forEach(eData => {
       let e = this.enemies.find(ex => ex.id === eData.id);
       if (!e) {
         let isBoss = eData.name === 'BOSS';
@@ -509,11 +502,9 @@ export default class Game {
       if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
     });
     // Remove enemies not in host, but keep dead ones until their death animation finishes
-    if (hostData.enemies) {
-      this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
-    }
+    this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
 
-    if (hostData.items && Array.isArray(hostData.items)) {
+    if (hostData.items) {
       this.items = hostData.items.map(item => ({ ...item }));
     }
   }
@@ -1799,13 +1790,12 @@ export default class Game {
       // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
     };
     if (this.pendingHits && this.pendingHits.length > 0) {
-      this.net.send_cmd('set_data', { hits: false });
       data.hits = this.pendingHits;
       this.pendingHits = [];
     }
     if (this.isHost) {
       data.hostData = {
-        wave: this.wave, kills: this.kills, seed: this.prng.seed, env: this.selectedEnv, time: this.globalTime, sessionSeed: this.sessionSeed,
+        wave: this.wave, kills: this.kills, seed: this.prng.seed, env: this.selectedEnv, time: this.globalTime,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
           id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
