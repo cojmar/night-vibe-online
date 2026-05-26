@@ -63,9 +63,6 @@ export default class Player {
     this.buffManaTimer = 0;
     this.isChargingS2 = false;
     this.s2ChargeCount = 0;
-
-    // Buffer for projectile fire events to be sent via broadcastState
-    this.projectileFires = [];
   }
 
   get atk() {
@@ -199,11 +196,6 @@ export default class Player {
       if (this.input_data.inventory !== undefined) this.inventory = this.input_data.inventory;
       if (this.input_data.equipment !== undefined) this.equipment = this.input_data.equipment;
       if (this.input_data.targetedItemId !== undefined) this.targetedItemId = this.input_data.targetedItemId;
-      if (this.input_data.projectileFires !== undefined) {
-        if (Array.isArray(this.input_data.projectileFires)) {
-          this.projectileFires = this.projectileFires.concat(this.input_data.projectileFires);
-        }
-      }
 
       this.input_data = null;
     }
