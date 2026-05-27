@@ -3482,6 +3482,22 @@ export default class Game {
         timeContainer.style.display = 'none';
       }
 
+      // Update FPS Display
+      const fpsContainer = document.getElementById('fps-container');
+      const fpsDisplay = document.getElementById('fps-display');
+      if (fpsContainer && fpsDisplay && this.state === 'PLAYING') {
+        const roundedFps = Math.round(this.fps);
+        if (fpsDisplay.textContent !== roundedFps.toString()) {
+          fpsDisplay.textContent = roundedFps;
+          if (roundedFps < 30) fpsDisplay.style.color = '#e74c3c';
+          else if (roundedFps < 50) fpsDisplay.style.color = '#f1c40f';
+          else fpsDisplay.style.color = '#2ecc71';
+        }
+        fpsContainer.style.display = 'flex';
+      } else if (fpsContainer) {
+        fpsContainer.style.display = 'none';
+      }
+
       this.ctx.restore();
     }
     this.renderWebGL();
