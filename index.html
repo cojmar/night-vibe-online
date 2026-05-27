@@ -954,13 +954,19 @@
     .death-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.2);
       z-index: 20;
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 15px;
+      justify-content: flex-end;
+      padding-bottom: 50px;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .death-overlay * {
+      pointer-events: auto;
     }
 
     .death-overlay.show {
@@ -969,20 +975,22 @@
 
     .death-overlay h2 {
       color: #e74c3c;
-      font-size: 2.5em;
+      font-size: 1.8em;
+      margin: 0;
     }
 
     .death-overlay p {
-      color: #aaa;
-      font-size: 1.1em;
+      color: #ccc;
+      font-size: 0.9em;
+      margin: 0;
     }
 
     .death-overlay .wait-msg {
-      padding: 15px 30px;
+      padding: 10px 20px;
       border: 2px dashed #f1c40f;
       background: rgba(241, 196, 15, 0.1);
       color: #f1c40f;
-      font-size: 1.2em;
+      font-size: 1em;
       font-weight: bold;
       letter-spacing: 1px;
       text-align: center;

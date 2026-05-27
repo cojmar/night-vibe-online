@@ -771,7 +771,7 @@ export default class Game {
 
     // Mouse wheel zoom
     this.canvas.addEventListener('wheel', (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
+      if (this.state !== 'PLAYING' || !this.player || !this.player.alive) return;
       e.preventDefault();
       const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
       this.zoomTarget *= zoomFactor;
@@ -953,6 +953,22 @@ export default class Game {
   }
 
   applyViewport(dt = 0) {
+    if (this.player && !this.player.alive) {
+      if (!this.savedZoomTarget) {
+        this.savedZoomTarget = this.zoomTarget;
+      }
+      const cw = this.canvas.width / (this.pixelRatio || 1);
+      const ch = this.canvas.height / (this.pixelRatio || 1);
+      const zoomOutMinWidth = (cw / this.gameW) / this.viewScale;
+      const zoomOutMinHeight = (ch / this.gameH) / this.viewScale;
+      this.zoomTarget = Math.max(zoomOutMinWidth, zoomOutMinHeight);
+    } else {
+      if (this.savedZoomTarget) {
+        this.zoomTarget = this.savedZoomTarget;
+        this.savedZoomTarget = null;
+      }
+    }
+
     // Smooth zoom transition
     if (Math.abs(this.zoomScale - this.zoomTarget) > 0.001) {
       this.zoomScale += (this.zoomTarget - this.zoomScale) * Math.min(0.2, 0.15 * dt);
