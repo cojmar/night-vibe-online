@@ -3451,20 +3451,28 @@ export default class Game {
       const timeContainer = document.getElementById('game-time-container');
       const timeDisplay = document.getElementById('game-time-display');
       if (timeContainer && timeDisplay && effectiveStartTime > 0) {
-        const elapsed = Date.now() - effectiveStartTime;
-        const totalSec = Math.floor(elapsed / 1000);
-        const s = totalSec % 60;
-        const m = Math.floor(totalSec / 60) % 60;
-        const h = Math.floor(totalSec / 3600) % 24;
-        const d = Math.floor(totalSec / 86400) % 365;
-        const y = Math.floor(totalSec / 31536000);
-        
+        const cycleDur = ConfigModule.DAY_CYCLE_DURATION || 60;
+        const totalGameDays = Math.floor(this.globalTime / cycleDur);
+        const gameYears = Math.floor(totalGameDays / 360);
+        const gameMonths = Math.floor((totalGameDays % 360) / 30);
+        const gameDays = totalGameDays % 30;
+
+        const currentCycle = (this.globalTime % cycleDur) / cycleDur;
+        // cycle 0 = Sunrise (06:00 AM)
+        const gameHoursFloat = (currentCycle * 24 + 6) % 24;
+        const h = Math.floor(gameHoursFloat);
+        const gameMinutesFloat = (gameHoursFloat % 1) * 60;
+        const m = Math.floor(gameMinutesFloat);
+        const s = Math.floor((gameMinutesFloat % 1) * 60);
+
         let timeStr = '';
-        if (y > 0) timeStr += `${y}a `;
-        if (d > 0 || y > 0) timeStr += `${d}z `;
-        if (h > 0 || d > 0 || y > 0) timeStr += `${h}h `;
-        if (m > 0 || h > 0 || d > 0 || y > 0) timeStr += `${m}m `;
-        timeStr += `${s}s`;
+        if (gameYears > 0) timeStr += `${gameYears}a `;
+        if (gameMonths > 0) timeStr += `${gameMonths}l `;
+        if (gameDays > 0) timeStr += `${gameDays}z `;
+        
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const displayH = h % 12 || 12;
+        timeStr += `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
         
         if (timeDisplay.textContent !== timeStr) {
           timeDisplay.textContent = timeStr;
