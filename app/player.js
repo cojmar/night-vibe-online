@@ -235,10 +235,6 @@ export default class Player {
 
     if (this.hitFlash > 0) this.hitFlash -= dt;
     if (this.animTimer > 0) this.animTimer -= dt;
-    if (!this.isLocal && (this.isMoving || this.action === 'walk')) {
-      this.animTimer = (this.animTimer > 0 ? this.animTimer : 0) + dt * 10;
-      if (this.animTimer > 100) this.animTimer = 0;
-    }
     
     if (this.chatTimer > 0) {
       this.chatTimer -= dt * 16.67;

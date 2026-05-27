@@ -1081,37 +1081,52 @@ export default class Game {
 
           // Sync ground items and monsters instantly on game entry
           if (userData.hostData.enemies) {
-            this.enemies = [];
             userData.hostData.enemies.forEach(eData => {
-              let isBoss = eData.name === 'BOSS';
-              let spawnIndex = 0;
-              if (eData.id && eData.id.startsWith('E_')) {
-                const parts = eData.id.split('_');
-                if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+              let e = this.enemies.find(ex => ex.id === eData.id);
+              if (e) {
+                // Update existing
+                // Only snap position if it diverged significantly, to allow local smooth movement
+                const dist = Math.hypot(e.x - eData.x, e.y - eData.y);
+                if (dist > 50) {
+                  e.x = eData.x;
+                  e.y = eData.y;
+                }
+                e.serverX = eData.x;
+                e.serverY = eData.y;
+                if (e.hp > eData.hp && eData.hp <= 0) e.deathTime = eData.deathTime || Date.now();
+                e.hp = eData.hp;
+                e.alive = eData.alive;
+                if (eData.bossState !== undefined) e.bossState = eData.bossState;
+                if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
+                if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
+                if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
+              } else {
+                // Spawn new
+                let isBoss = eData.name === 'BOSS';
+                let spawnIndex = 0;
+                if (eData.id && eData.id.startsWith('E_')) {
+                  const parts = eData.id.split('_');
+                  if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+                }
+                const newE = new Enemy(this, isBoss, false, spawnIndex);
+                newE.id = eData.id;
+                if (eData.id && eData.id.startsWith('M_')) {
+                  newE.name = 'MISSILE';
+                  newE.icon = '🚀';
+                  newE.size = 20;
+                  newE.color = '#e74c3c';
+                }
+                newE.x = eData.x || newE.x;
+                newE.y = eData.y || newE.y;
+                newE.serverX = eData.x || newE.x;
+                newE.serverY = eData.y || newE.y;
+                newE.hp = eData.hp;
+                newE.maxHp = eData.maxHp;
+                newE.alive = eData.alive;
+                newE.name = eData.name;
+                newE.size = eData.size;
+                this.enemies.push(newE);
               }
-              const e = new Enemy(this, isBoss, false, spawnIndex);
-              e.id = eData.id;
-              if (eData.id && eData.id.startsWith('M_')) {
-                e.name = 'MISSILE';
-                e.icon = '🚀';
-                e.size = 20;
-                e.color = '#e74c3c';
-              }
-              e.x = eData.x || e.x;
-              e.y = eData.y || e.y;
-              e.serverX = eData.x || e.x;
-              e.serverY = eData.y || e.y;
-              e.hp = eData.hp;
-              e.maxHp = eData.maxHp;
-              e.alive = eData.alive;
-              e.name = eData.name;
-              e.size = eData.size;
-              if (eData.bossState !== undefined) e.bossState = eData.bossState;
-              if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
-              if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
-              if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
-              if (eData.deathTime) e.deathTime = eData.deathTime;
-              this.enemies.push(e);
             });
           }
           if (userData.hostData.items) {
@@ -1839,6 +1854,11 @@ export default class Game {
       data.mouseY = this.player.mouseY;
     }
 
+    if (this.player.action === 'attack' || this.player.isChargingS2) {
+      data.mouseX = this.player.mouseX;
+      data.mouseY = this.player.mouseY;
+    }
+
     if (this.pendingHits && this.pendingHits.length > 0) {
       data.hits = this.pendingHits;
       this.pendingHits = [];
@@ -1871,8 +1891,13 @@ export default class Game {
       }
     }
 
-    if (hasChanges) {
+    if (hasChanges && this.net && this.net.me) {
       this.net.send_cmd('set_data', delta);
+      delete this.lastBroadcastStr['hits'];
+      delete this.lastBroadcastStr['enemyHitPlayer'];
+      delete this.lastBroadcastStr['spawnedProjectile'];
+      delete this.lastBroadcastStr['enemyKilled'];
+      delete this.lastBroadcastStr['spawnItem'];
     }
   }
 
@@ -3292,7 +3317,7 @@ export default class Game {
         }
       }
 
-      if (this.isHost && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
+      if (this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
         this.enemySpawnTimer += 16.67 * dt;
         if (this.enemySpawnTimer >= this.enemySpawnInterval) {
           this.enemySpawnTimer = 0;
@@ -3305,7 +3330,7 @@ export default class Game {
         }
       }
 
-      this.syncTimer += 16.67 * dt;
+      this.syncTimer = (this.syncTimer || 0) + 16.67 * dt;
       if (this.syncTimer >= 100) {
         this.syncTimer = 0;
         this.checkHost();
