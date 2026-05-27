@@ -2377,14 +2377,21 @@ export default class Game {
 
       const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
 
-      // Calculate celestial body heights (0 at horizon, 1 at peak)
-      const sunHeight = Math.max(0, Math.sin(cycle * 2 * Math.PI));
-      const moonHeight = Math.max(0, Math.sin(cycle * 2 * Math.PI - Math.PI));
+      // Calculate altitude curve (1 at noon, 0 at sunrise/sunset, -1 at midnight)
+      const sunAltitude = Math.sin(cycle * 2 * Math.PI);
 
-      this.dayAlpha = sunHeight;
+      this.dayAlpha = Math.max(0, sunAltitude);
 
-      // Sky darkness: 0 at noon, 1 at twilight, 0.6 at midnight (moonlight)
-      this.nightAlpha = Math.max(0, 1.0 - sunHeight - (moonHeight * 0.4));
+      // Night darkness curve: 0 at noon, 0.4 at twilight, 0.85 at midnight
+      let targetNightAlpha = 0;
+      if (sunAltitude > 0.2) {
+         targetNightAlpha = 0;
+      } else if (sunAltitude > 0) {
+         targetNightAlpha = (0.2 - sunAltitude) * 2.0; // Fades from 0 to 0.4
+      } else {
+         targetNightAlpha = 0.4 + (-sunAltitude) * 0.45; // Fades from 0.4 to 0.85
+      }
+      this.nightAlpha = targetNightAlpha;
 
       if (this.isHost) {
         const currentDay = Math.floor(this.globalTime / ConfigModule.DAY_CYCLE_DURATION);
