@@ -1854,7 +1854,24 @@ export default class Game {
         }))
       };
     }
-    this.net.send_cmd('set_data', data);
+    if (!this.lastBroadcastStr) this.lastBroadcastStr = {};
+    const delta = {};
+    let hasChanges = false;
+
+    for (const key in data) {
+      const valStr = JSON.stringify(data[key]);
+      if (valStr !== this.lastBroadcastStr[key]) {
+        this.lastBroadcastStr[key] = valStr;
+        if (data[key] !== undefined) {
+          delta[key] = data[key];
+          hasChanges = true;
+        }
+      }
+    }
+
+    if (hasChanges) {
+      this.net.send_cmd('set_data', delta);
+    }
   }
 
   dealDamageToPlayer(damage) {
