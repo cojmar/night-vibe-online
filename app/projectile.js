@@ -26,7 +26,6 @@ export default class Projectile {
       if (this.trailTimer > 1.5) {
         this.trailTimer = 0;
         this.trailPositions.push({ x: this.x, y: this.y, life: 20, maxLife: 20 });
-        gameInstance.spawnParticles(this.x, this.y, this.color, 2, 2);
       }
       this.trailPositions = this.trailPositions.filter(t => t.life > 0);
       for (let t of this.trailPositions) t.life -= dt;
@@ -57,14 +56,12 @@ export default class Projectile {
           if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage, this.critChance);
           gameInstance.applyKnockback(e, this.angle, 50);
           this.hitIds.add(e);
-          gameInstance.spawnParticles(e.x, e.y, this.color, 6, 3);
         }
       }
       
       if (this.traveled >= this.maxDistance ||
           this.x < -50 || this.x > gameInstance.gameW + 50 ||
           this.y < -50 || this.y > gameInstance.gameH + 50) {
-        gameInstance.spawnParticles(this.x, this.y, this.color, 15, 5);
         this.life = 0;
       }
     }
@@ -247,8 +244,8 @@ export default class Projectile {
       ctx.translate(this.x, this.y); 
       ctx.rotate(rot);
       
-      // Smooth fade out instead of rapid pulse
-      ctx.globalAlpha = alpha * 0.85;
+      // Increased transparency (lowered alpha from 0.85 to 0.5)
+      ctx.globalAlpha = alpha * 0.5;
       
       ctx.shadowColor = this.color; 
       ctx.shadowBlur = 15;
@@ -287,7 +284,8 @@ export default class Projectile {
       for (let i = 0; i < this.trailPositions.length; i++) {
         const tp = this.trailPositions[i];
         const tprog = tp.life / tp.maxLife;
-        ctx.globalAlpha = alpha * tprog * 0.4;
+        // Increased transparency for trails (0.4 -> 0.25)
+        ctx.globalAlpha = alpha * tprog * 0.25;
         ctx.save(); 
         ctx.translate(tp.x, tp.y); 
         ctx.rotate(rot);
