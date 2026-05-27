@@ -2625,7 +2625,7 @@ export default class Game {
       if (this.player && this.player.alive) activePlayers.push(this.player);
       for (let key in this.otherPlayers) {
         let p = this.otherPlayers[key];
-        if (p.inGame && p.hp > 0) activePlayers.push(p);
+        if (p.inGame && p.hp > 0 && p.alive) activePlayers.push(p);
       }
 
       if (this.isHost && activePlayers.length === 0 && this.state === 'PLAYING') {

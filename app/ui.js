@@ -3219,6 +3219,11 @@ export default class UI {
         if (overlay && overlay.classList.contains('show')) {
             document.getElementById('death-kills').textContent = waveTotal > 1 ? `${waveKilled}/${waveTotal}` : waveKilled;
             document.getElementById('death-wave').textContent = wave;
+            
+            const deathWaveProgressBar = document.getElementById('death-wave-progress-bar');
+            if (deathWaveProgressBar && waveTotal > 0) {
+                deathWaveProgressBar.style.width = Math.min(100, Math.max(0, (waveKilled / waveTotal) * 100)) + '%';
+            }
         }
     }
 
