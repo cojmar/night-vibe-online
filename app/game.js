@@ -1157,7 +1157,26 @@ export default class Game {
       myData = this.net.room.users[this.net.me.info.user].data;
     }
 
-    this.player = new Player(this.net.me.info.user, true, selectedClass, this.gameW / 2, (getGroundY(this.selectedEnv) + this.gameH) / 2);
+    let spawnX = this.gameW / 2;
+    let spawnY = (getGroundY(this.selectedEnv) + this.gameH) / 2;
+    
+    // If we are joining an existing game, spawn near the host
+    if (bestHost && !amIHost && this.net && this.net.room && this.net.room.users[bestHost]) {
+      const hd = this.net.room.users[bestHost].data;
+      if (hd && hd.x !== undefined && hd.y !== undefined) {
+        // Create a deterministic PRNG based on the session seed + player ID so everyone calculates the exact same spawn
+        const userHash = this.net.me.info.user.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const spawnPrng = new PRNG(this.sessionSeed + userHash);
+        
+        spawnX = hd.x + (spawnPrng.nextFloat() - 0.5) * 150;
+        spawnY = hd.y + (spawnPrng.nextFloat() - 0.5) * 60;
+        // Clamp to bounds
+        spawnX = Math.max(20, Math.min(this.gameW - 20, spawnX));
+        spawnY = Math.max(getGroundY(this.selectedEnv) - 50, Math.min(this.gameH - 45, spawnY));
+      }
+    }
+
+    this.player = new Player(this.net.me.info.user, true, selectedClass, spawnX, spawnY);
 
     this.checkHost();
 
@@ -1394,6 +1413,7 @@ export default class Game {
         state: 'MENU', 
         isHost: false,
         gameStartTime: 0,
+        gameOver: false,
         hostData: { wave: 1, kills: 0, enemies: [], items: [], bossActive: false },
         hits: [],
         syncProjectiles: [],
@@ -1444,8 +1464,10 @@ export default class Game {
   respawnPlayer() {
     document.getElementById('death-overlay').classList.remove('show');
     if (this.player) {
-      this.player.x = this.gameW / 2;
-      this.player.y = (getGroundY(this.selectedEnv) + this.gameH) / 2;
+      // Do not change this.player.x or this.player.y to respawn where they died
+      this.player.moveTargetX = this.player.x;
+      this.player.moveTargetY = this.player.y;
+      this.player.hasTarget = false;
       this.player.hp = this.player.maxHp;
       this.player.alive = true;
     } else {
@@ -1855,8 +1877,6 @@ export default class Game {
     if (this.player.hp <= 0) {
       this.player.hp = 0;
       this.player.alive = false;
-      // Move body behind horizon
-      this.player.y = this.gameH * 0.45;
       this.broadcastState();
       // Keep state PLAYING so the network host continues to run the simulation
       this.ui.showDeathScreen(this.kills, this.wave);

@@ -161,6 +161,11 @@ export default class Player {
       if (this.input_data.y !== undefined) this.targetY = this.input_data.y;
       if (this.input_data.x !== undefined || this.input_data.y !== undefined) {
         this.hasTarget = true;
+        if (!this.hasReceivedFirstPosition) {
+          this.x = this.targetX;
+          this.y = this.targetY;
+          this.hasReceivedFirstPosition = true;
+        }
       }
       if (this.input_data.hp !== undefined) this.hp = this.input_data.hp;
       if (this.input_data.facing !== undefined) this.facing = this.input_data.facing;
@@ -239,7 +244,12 @@ export default class Player {
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const dist = Math.hypot(dx, dy);
-        if (dist > 0.5) {
+        
+        if (dist > 300) {
+          this.x = this.targetX;
+          this.y = this.targetY;
+          this.hasTarget = false;
+        } else if (dist > 0.5) {
           // moveSpeed units per 16.67ms (1 frame at 60fps)
           // Scale dt to match this: dt is in frame units (dt=1 = 16.67ms)
           const speedPerFrame = this.moveSpeed || 2.5;
@@ -379,10 +389,7 @@ export default class Player {
     ctx.ellipse(px, feetY, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    if (isDead) {
-      ctx.globalAlpha = 1;
-      return;
-    }
+
 
     const reqLevel = 4 + (this.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.level - 1) / Math.max(1, reqLevel - 1));
