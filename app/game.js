@@ -1859,7 +1859,10 @@ export default class Game {
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
     } else if (skillType === 'Evil Spirits' || this.player.classType === 'magicgladiator') {
       const existingSpirits = this.projectiles.filter(p => p.type === 'spirit').length;
-      const spiritCount = Math.min(8 + charges * 4, 50 - existingSpirits);
+      const baseCount = 8 + charges * 4;
+      const spdDiff = Math.max(0, this.player.spd - baseSpd);
+      const boost = Math.floor(baseCount * (spdDiff / (1000 - baseSpd)));
+      const spiritCount = Math.min(baseCount + boost, 25 - existingSpirits);
       const spiritDamage = this.player.atk * 0.8 * dmgMulti;
       const spiritRadius = Math.min(20, 10 + charges * 1.5);
       const spiritLife = Math.round(90 + charges * 15);
