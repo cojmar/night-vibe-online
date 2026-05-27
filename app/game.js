@@ -94,8 +94,8 @@ export default class Game {
             originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
             ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
             critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
-            retargetTimer: p.retrackTimer, wobble: p.wobble, trailTimer: p.trailTimer,
-            trailPositions: p.trailPositions || []
+            casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
+            trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
           }))
         });
       }
