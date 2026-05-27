@@ -1408,6 +1408,7 @@ export default class Game {
       this._resetSessionData();
       this.isHost = false;
       this.gameStartTime = 0;
+      this.lastBroadcastStr = {}; // Clear delta cache so next join sends a full packet
       this.net.send_cmd('set_data', { 
         inGame: false, 
         state: 'MENU', 
