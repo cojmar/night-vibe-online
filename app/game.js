@@ -1042,8 +1042,8 @@ export default class Game {
     this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
     this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
     
-    // Set our game start time using the internal global time (so it's immune to PC clock skew)
-    this.gameStartTime = this.globalTime || 0;
+    // Set our game start time using a real chronological timestamp to prevent host stealing
+    this.gameStartTime = Date.now();
 
     // Inherit current room state and gameplay configuration from the deterministically computed host
     let hostFound = false;
