@@ -332,8 +332,31 @@ export default class Game {
       return null;
     }
 
-    // Return the first active user based on natural server insertion order (longest time in room)
-    return activeUsers[0];
+    // Deterministic selection: sort by gameStartTime (oldest first) to prevent host stealing when a player returns from menu.
+    // Fallback to alphabetical username sort if timestamps are identical.
+    const hostCandidates = activeUsers.sort((a, b) => {
+      let timeA = Infinity;
+      let timeB = Infinity;
+
+      if (this.net.me && this.net.me.info && a === this.net.me.info.user) {
+        timeA = this.gameStartTime || Infinity;
+      } else if (this.net.room && this.net.room.users && this.net.room.users[a] && this.net.room.users[a].data) {
+        timeA = this.net.room.users[a].data.gameStartTime || Infinity;
+      }
+
+      if (this.net.me && this.net.me.info && b === this.net.me.info.user) {
+        timeB = this.gameStartTime || Infinity;
+      } else if (this.net.room && this.net.room.users && this.net.room.users[b] && this.net.room.users[b].data) {
+        timeB = this.net.room.users[b].data.gameStartTime || Infinity;
+      }
+
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return a.localeCompare(b);
+    });
+
+    return hostCandidates[0];
   }
 
   checkHost() {
@@ -992,6 +1015,9 @@ export default class Game {
     this.sessionSeed = Math.floor(Math.random() * 2000000000);
     this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
     this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
+    
+    // Set our game start time so getDeterministicHost knows we are the newest player in the game
+    this.gameStartTime = Date.now();
 
     // Inherit current room state and gameplay configuration from the deterministically computed host
     let hostFound = false;
@@ -1749,6 +1775,7 @@ export default class Game {
 
     const data = {
       inGame: true,
+      gameStartTime: this.gameStartTime || Date.now(),
       nick: this.player.nick,
       state: this.state,
       alive: this.player.alive,
