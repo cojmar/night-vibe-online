@@ -176,7 +176,12 @@ export default class Player {
       }
       if (this.input_data.hp !== undefined) this.hp = this.input_data.hp;
       if (this.input_data.facing !== undefined) this.facing = this.input_data.facing;
-      if (this.input_data.action !== undefined) this.action = this.input_data.action;
+      if (this.input_data.action !== undefined) {
+        if (this.input_data.action !== this.action && (this.input_data.action === 'attack' || this.input_data.action === 'skill')) {
+          this.animTimer = 15;
+        }
+        this.action = this.input_data.action;
+      }
       if (this.input_data.classType !== undefined && this.classType !== this.input_data.classType) {
         this.classType = this.input_data.classType;
         const cd = CLASS_DATA[this.classType];
