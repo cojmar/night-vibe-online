@@ -1846,9 +1846,9 @@ export default class Game {
 
     const data = {
       inGame: true,
-      gameStartTime: this.gameStartTime !== undefined ? this.gameStartTime : (this.globalTime || 0),
-      nick: this.player.nick,
+      gameStartTime: this.gameStartTime || 0,
       state: this.state,
+      nick: this.player.nick,
       alive: this.player.alive,
       x: this.player.x,
       y: this.player.y,
