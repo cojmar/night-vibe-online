@@ -80,6 +80,7 @@ window.app = new class {
             if (msg && this.game && this.game.player) {
                 this.game.player.chatMsg = msg;
                 this.game.player.chatTimer = CHAT_MESSAGE_DURATION;
+                this.game.ui.addLog(`💬 [${this.game.player.nick || 'Me'}]: ${msg}`, 'player');
                 this.game.broadcastState();
                 gameChatInput.value = '';
             }
@@ -222,6 +223,7 @@ window.app = new class {
 
             // Initialize Game engine
             this.game = new Game(this);
+            window.gameInstance = this.game; // Make globally available for player/enemy modules
             this.ui.game = this.game; // Link UI to Game
             this.game.init();
         });

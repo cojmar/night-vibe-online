@@ -195,7 +195,6 @@ export default class Game {
           const oldLevel = this.otherPlayers[data.user].level || 1;
           if (data.data.level > oldLevel) {
             this.triggerLevelUpAnimation(this.otherPlayers[data.user]);
-            this.ui.addLog(`🌟 ${data.user.substring(0, 8)} Leveled Up! (Lv.${data.data.level})`, 'reward');
           }
         }
 

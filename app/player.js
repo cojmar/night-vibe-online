@@ -210,7 +210,12 @@ export default class Player {
       if (this.input_data.moveSpeed !== undefined) this.moveSpeed = this.input_data.moveSpeed;
       if (this.input_data.chatMsg !== undefined && this.input_data.chatMsg !== this.chatMsg) {
         this.chatMsg = this.input_data.chatMsg;
-        if (this.chatMsg) this.chatTimer = CHAT_MESSAGE_DURATION;
+        if (this.chatMsg) {
+          this.chatTimer = CHAT_MESSAGE_DURATION;
+          if (typeof window !== 'undefined' && window.gameInstance && window.gameInstance.ui) {
+            window.gameInstance.ui.addLog(`💬 [${this.nick || this.id.substring(0, 8)}]: ${this.chatMsg}`, 'player');
+          }
+        }
       }
       if (this.input_data.aimAngle !== undefined) this.aimAngle = this.input_data.aimAngle;
       if (this.input_data.isChargingS2 !== undefined) this.isChargingS2 = this.input_data.isChargingS2;
