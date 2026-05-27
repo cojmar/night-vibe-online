@@ -93,7 +93,9 @@ export default class Game {
             angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
             originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
             ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
-            critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage
+            critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
+            retargetTimer: p.retrackTimer, wobble: p.wobble, trailTimer: p.trailTimer,
+            trailPositions: p.trailPositions || []
           }))
         });
       }
@@ -137,7 +139,9 @@ export default class Game {
               angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
               originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
               ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
-              critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage
+              critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
+        retargetTimer: p.retargetTimer, wobble: p.wobble, trailTimer: p.trailTimer,
+              trailPositions: p.trailPositions || []
             }))
           });
         }
@@ -1840,6 +1844,7 @@ export default class Game {
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
           speed: speed,
+          casterSpd: this.player.spd,
           life: spiritLife,
           maxLife: spiritLife,
           color: spiritColor,

@@ -196,8 +196,8 @@ export default class Projectile {
       }
     }
     else if (this.type === 'spirit') {
-      // Retargeting with SPD scaling - 2s base at 0spd, 0s at 1000spd (always agile)
-      const effectiveSpd = gameInstance.player?.spd ?? this.speed ?? 0;
+      // Retargeting with SPD scaling - uses caster's synced SPD
+      const effectiveSpd = this.casterSpd ?? this.speed ?? 0;
       const retargetFrames = Math.max(0, Math.round(120 * (1 - Math.pow(effectiveSpd / 1000, 0.5))));
       this.retargetTimer = (this.retargetTimer || 0) + dt;
       if (this.retargetTimer >= retargetFrames) {
