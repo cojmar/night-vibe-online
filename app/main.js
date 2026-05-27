@@ -43,6 +43,23 @@ window.app = new class {
         });
 
 
+        const btnWipeData = document.getElementById('btn-wipe-data');
+        if (btnWipeData) {
+            btnWipeData.addEventListener('click', () => {
+                if (confirm("Are you SURE you want to WIPE ALL DATA? This will permanently delete your progression, stats, inventory, and equipment. This action cannot be undone.")) {
+                    const keysToRemove = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && (key.startsWith('nightvibe-') || key.startsWith('night-vibe-online'))) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                    keysToRemove.forEach(k => localStorage.removeItem(k));
+                    alert("All data has been wiped. The page will now reload.");
+                    window.location.reload();
+                }
+            });
+        }
 
         // In-game chat modal logic
         const gameChatModal = document.getElementById('game-chat-modal');
