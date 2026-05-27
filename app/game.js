@@ -145,6 +145,10 @@ export default class Game {
         if (this.state === 'PLAYING' && data.data.spawnedProjectile) {
           if (!this.projectiles.find(p => p.id === data.data.spawnedProjectile.id)) {
             this.projectiles.push(new Projectile(data.data.spawnedProjectile));
+            if (this.otherPlayers[data.user]) {
+              this.otherPlayers[data.user].animTimer = 15;
+              this.otherPlayers[data.user].action = 'attack';
+            }
           }
         }
         if (this.state === 'PLAYING' && data.data.syncProjectiles) {
