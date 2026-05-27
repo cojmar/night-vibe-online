@@ -3008,6 +3008,7 @@ export default class UI {
         const tooltip = document.getElementById('log-tooltip');
         tooltip.innerHTML = this.recentLogs.map(l => `<div class="log-entry ${l.type}">${l.text}</div>`).join('');
         tooltip.classList.add('show');
+        tooltip.scrollTop = tooltip.scrollHeight;
     }
 
     hideTooltip() {
@@ -3019,8 +3020,8 @@ export default class UI {
         const timeStr = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
         const fullText = `${timeStr} ${text}`;
 
-        this.recentLogs.unshift({ text: fullText, type, time: Date.now() });
-        if (this.recentLogs.length > this.MAX_LOGS) this.recentLogs.pop();
+        this.recentLogs.push({ text: fullText, type, time: Date.now() });
+        if (this.recentLogs.length > this.MAX_LOGS) this.recentLogs.shift();
         this.updateCompactLog();
     }
 
@@ -3030,9 +3031,15 @@ export default class UI {
             d.textContent = 'Waiting for action...';
             d.className = 'log-content';
         } else {
-            const l = this.recentLogs[0];
+            const l = this.recentLogs[this.recentLogs.length - 1];
             d.textContent = l.text;
             d.className = `log-content ${l.type}`;
+        }
+        
+        const tooltip = document.getElementById('log-tooltip');
+        if (tooltip && tooltip.classList.contains('show')) {
+            tooltip.innerHTML = this.recentLogs.map(l => `<div class="log-entry ${l.type}">${l.text}</div>`).join('');
+            tooltip.scrollTop = tooltip.scrollHeight;
         }
     }
 
