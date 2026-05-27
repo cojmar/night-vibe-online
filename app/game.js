@@ -672,6 +672,21 @@ export default class Game {
       if (this.player) {
         this.player.mouseX = pos.x;
         this.player.mouseY = pos.y;
+
+        const reqLevel = 4 + (this.player.resets || 0) * 5;
+        const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
+        const py = this.player.y;
+        const weaponY = py - 40 * lvlScale;
+        const computedAimAngle = parseFloat(Math.atan2(this.player.mouseY - weaponY, this.player.mouseX - this.player.x).toFixed(1));
+
+        const oldFacing = this.player.facing;
+        this.player.facing = this.player.mouseX > this.player.x ? 1 : -1;
+        const oldAimAngle = this.player.aimAngle;
+        this.player.aimAngle = computedAimAngle;
+
+        if (this.player.facing !== oldFacing || this.player.aimAngle !== oldAimAngle) {
+          this.broadcastState();
+        }
       }
     });
 
@@ -1819,6 +1834,11 @@ export default class Game {
     for (const key in CONFIG_METADATA) {
       activeConfig[key] = ConfigModule[key];
     }
+    
+    const reqLevel = 4 + (this.player.resets || 0) * 5;
+    const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
+    const weaponY = this.player.y - 40 * lvlScale;
+    const computedAimAngle = parseFloat(Math.atan2(this.player.mouseY - weaponY, this.player.mouseX - this.player.x).toFixed(1));
 
     const data = {
       inGame: true,
@@ -1837,6 +1857,7 @@ export default class Game {
       kills: this.player.kills,
       reqKills: this.player.reqKills,
       facing: this.player.facing,
+      aimAngle: computedAimAngle,
       action: this.player.action,
       classType: this.player.classType,
       hitFlash: this.player.hitFlash,
@@ -1849,15 +1870,6 @@ export default class Game {
       // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
     };
 
-    if (this.player.action === 'attack' || this.player.isChargingS2) {
-      data.mouseX = this.player.mouseX;
-      data.mouseY = this.player.mouseY;
-    }
-
-    if (this.player.action === 'attack' || this.player.isChargingS2) {
-      data.mouseX = this.player.mouseX;
-      data.mouseY = this.player.mouseY;
-    }
 
     if (this.pendingHits && this.pendingHits.length > 0) {
       data.hits = this.pendingHits;

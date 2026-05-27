@@ -199,8 +199,7 @@ export default class Player {
         this.chatMsg = this.input_data.chatMsg;
         if (this.chatMsg) this.chatTimer = CHAT_MESSAGE_DURATION;
       }
-      if (this.input_data.mouseX !== undefined) this.mouseX = this.input_data.mouseX;
-      if (this.input_data.mouseY !== undefined) this.mouseY = this.input_data.mouseY;
+      if (this.input_data.aimAngle !== undefined) this.aimAngle = this.input_data.aimAngle;
       if (this.input_data.isChargingS2 !== undefined) this.isChargingS2 = this.input_data.isChargingS2;
       if (this.input_data.s2ChargeCount !== undefined) {
         // Spawn charge particles locally when we receive a charge count increase from a remote player
@@ -420,7 +419,7 @@ export default class Player {
     if (this.isLocal || this.action === 'attack' || this.isChargingS2) {
       rawAim = Math.atan2(this.mouseY - (py - 40), this.mouseX - px);
     } else {
-      rawAim = this.facing > 0 ? 0 : Math.PI;
+      rawAim = this.aimAngle !== undefined ? this.aimAngle : (this.facing > 0 ? 0 : Math.PI);
     }
     let localAim = (this.facing < 0) ? Math.PI - rawAim : rawAim;
     const animP = this.animTimer / 15;
