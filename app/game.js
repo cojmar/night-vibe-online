@@ -1824,27 +1824,28 @@ export default class Game {
       facing: this.player.facing,
       action: this.player.action,
       classType: this.player.classType,
-      animTimer: this.player.animTimer,
       hitFlash: this.player.hitFlash,
       lastInputTime: this.player.lastInputTime || 0,
       lastSkill: this.player.lastSkill || 1,
       isChargingS2: this.player.isChargingS2,
       s2ChargeCount: this.player.s2ChargeCount,
-      mouseX: this.player.mouseX,
-      mouseY: this.player.mouseY,
       chatMsg: this.player.chatMsg,
-      buffHpTimer: this.player.buffHpTimer,
-      buffManaTimer: this.player.buffManaTimer,
       targetedItemId: this.player.targetedItemId,
       // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
     };
+
+    if (this.player.action === 'attack' || this.player.isChargingS2) {
+      data.mouseX = this.player.mouseX;
+      data.mouseY = this.player.mouseY;
+    }
+
     if (this.pendingHits && this.pendingHits.length > 0) {
       data.hits = this.pendingHits;
       this.pendingHits = [];
     }
     if (this.isHost) {
       data.hostData = {
-        wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv, time: this.globalTime,
+        wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
           id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
