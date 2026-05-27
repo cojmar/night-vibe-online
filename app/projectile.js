@@ -80,7 +80,14 @@ export default class Projectile {
           if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage, this.critChance);
           this.hitIds.add(e);
           if (this.isKnockback) gameInstance.applyKnockback(e, this.knockbackDir, this.knockback);
+          e.stunTimer = Math.max(e.stunTimer, 12);
           gameInstance.spawnParticles(e.x, e.y, this.color, 6, 3);
+          // Star burst particles on hit
+          for (let i = 0; i < 5; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const speed = 1.5 + Math.random() * 2.5;
+            gameInstance.spawnParticles(e.x, e.y - 10, i % 2 === 0 ? '#ffd700' : '#fff', 1, speed, 1.5);
+          }
         }
       }
       if (this.life <= this.maxLife * 0.3) { this.life = 0; }
@@ -332,23 +339,73 @@ export default class Projectile {
       const arcRadius = this.radius || 70;
       const progress = 1 - (this.life / this.maxLife);
       const sweepAngle = progress * Math.PI * 0.7;
-      ctx.strokeStyle = this.color; ctx.lineWidth = 3;
-      ctx.shadowColor = this.color; ctx.shadowBlur = 10;
+      
+      // Outer glow arc
+      ctx.globalAlpha = alpha * 0.3;
+      ctx.strokeStyle = this.color; ctx.lineWidth = 12;
+      ctx.shadowColor = this.color; ctx.shadowBlur = 25;
       ctx.beginPath();
       ctx.arc(this.originX, this.originY, arcRadius, this.angle - sweepAngle*0.5, this.angle + sweepAngle*0.5);
       ctx.stroke();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-      ctx.globalAlpha = alpha*0.5; ctx.shadowBlur = 0;
+      
+      // Main arc
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = this.color; ctx.lineWidth = 4;
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(this.originX, this.originY, arcRadius, this.angle - sweepAngle*0.5, this.angle + sweepAngle*0.5);
+      ctx.stroke();
+      
+      // Inner highlight arc
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.globalAlpha = alpha * 0.7; ctx.shadowBlur = 5;
       ctx.beginPath();
       ctx.arc(this.originX, this.originY, arcRadius-8, this.angle - sweepAngle*0.3, this.angle + sweepAngle*0.3);
       ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.shadowBlur = 5;
+      
+      // Stars along the arc
+      ctx.globalAlpha = alpha;
+      ctx.shadowBlur = 10;
+      const starCount = Math.floor(sweepAngle / 0.35);
+      for (let i = 0; i < starCount; i++) {
+        const a = this.angle - sweepAngle*0.5 + (i / Math.max(1, starCount-1)) * sweepAngle;
+        const sx = this.originX + Math.cos(a) * arcRadius;
+        const sy = this.originY + Math.sin(a) * arcRadius;
+        const starSize = 2 + Math.sin(progress * 10 + i) * 1.5;
+        
+        ctx.fillStyle = i % 2 === 0 ? '#ffd700' : '#fff';
+        ctx.shadowColor = ctx.fillStyle;
+        
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(a);
+        ctx.beginPath();
+        for (let s = 0; s < 8; s++) {
+          const sa = s * Math.PI / 4;
+          const sr = s % 2 === 0 ? starSize : starSize * 0.3;
+          const px = Math.cos(sa - Math.PI / 2) * sr;
+          const py = Math.sin(sa - Math.PI / 2) * sr;
+          s === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      
+      // Endpoint stars
+      ctx.fillStyle = '#ffd700'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 12;
       const ep1X = this.originX+Math.cos(this.angle-sweepAngle*0.5)*arcRadius;
       const ep1Y = this.originY+Math.sin(this.angle-sweepAngle*0.5)*arcRadius;
       const ep2X = this.originX+Math.cos(this.angle+sweepAngle*0.5)*arcRadius;
       const ep2Y = this.originY+Math.sin(this.angle+sweepAngle*0.5)*arcRadius;
-      ctx.beginPath(); ctx.arc(ep1X, ep1Y, 3, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(ep2X, ep2Y, 3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ep1X, ep1Y, 4, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ep2X, ep2Y, 4, 0, Math.PI*2); ctx.fill();
+      
+      // Inner endpoint glow
+      ctx.fillStyle = '#fff'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.arc(ep1X, ep1Y, 2, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ep2X, ep2Y, 2, 0, Math.PI*2); ctx.fill();
+      
       ctx.shadowBlur = 0;
     }
     else if (this.type === 'psionic_slash') {

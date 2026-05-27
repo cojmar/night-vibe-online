@@ -1652,7 +1652,11 @@ export default class Game {
     if (skillType === 'Bash' || this.player.classType === 'warrior') {
       const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
       this.spawnProjectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps });
-      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 5, 3);
+      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 8, 4);
+      for (let i = 0; i < 6; i++) {
+        const a = Math.random() * Math.PI * 2;
+        gameInstance.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, Math.random() > 0.5 ? '#ffd700' : '#fff', 1, 2 + Math.random() * 3, 2);
+      }
     } else if (skillType === 'Magic Bolt' || this.player.classType === 'mage') {
       const mageBaseAtk = cd.atk;
       const mageRangeMult = Math.pow(this.player.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
@@ -1694,7 +1698,11 @@ export default class Game {
       // Default fallback is Warrior Bash style
       const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
       this.spawnProjectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps });
-      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 5, 3);
+      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 8, 4);
+      for (let i = 0; i < 6; i++) {
+        const a = Math.random() * Math.PI * 2;
+        gameInstance.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, Math.random() > 0.5 ? '#ffd700' : '#fff', 1, 2 + Math.random() * 3, 2);
+      }
     }
     this.broadcastState();
   }

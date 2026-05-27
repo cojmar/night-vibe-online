@@ -5,13 +5,14 @@ export default class Enemy {
     this.game = gameInstance;
     if (isClient) {
       this.id = ''; this.serverX = 0; this.serverY = 0;
-      this.alive = true; this.hitFlash = 0;
+      this.alive = true; this.hitFlash = 0; this.stunTimer = 0;
       return;
     }
 
     // Deterministic random generation per enemy
     const localPrng = new PRNG((gameInstance.prng ? gameInstance.prng.seed : 1) + spawnIndex * 1337);
     this.id = 'E_' + gameInstance.wave + '_' + spawnIndex;
+    this.stunTimer = 0;
     const wave = gameInstance.wave;
 
     // Calculate average player level
@@ -291,6 +292,7 @@ export default class Enemy {
       }
     }
     if (this.hitFlash > 0) this.hitFlash -= dt;
+    if (this.stunTimer > 0) this.stunTimer -= dt;
   }
 
   draw(ctx, groundY) {
@@ -329,6 +331,39 @@ export default class Enemy {
     if (this.alive && this.name !== 'MISSILE' && this.name !== 'BOMB' && this.bossState !== 'CHANNELING_LASER' && this.bossState !== 'FIRING_LASER') {
       const bounce = Math.sin(now / 120 + this.x * 0.05) * 3.5;
       drawY += bounce;
+    }
+
+    // Stun stars
+    if (this.stunTimer > 0 && this.alive && this.name !== 'MISSILE' && this.name !== 'BOMB') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const starCount = 5;
+      for (let i = 0; i < starCount; i++) {
+        const angle = (now / 200 + i * Math.PI * 2 / starCount) % (Math.PI * 2);
+        const dist = 14 + Math.sin(now / 100 + i * 1.5) * 4;
+        const sx = this.x + Math.cos(angle) * dist;
+        const sy = drawY - this.size * 0.6 + Math.sin(angle) * dist * 0.4 - 8;
+        const size = 2.5 + Math.sin(now / 80 + i * 2) * 1;
+        const alpha = Math.min(1, this.stunTimer / 15) * (0.5 + Math.sin(now / 60 + i) * 0.5);
+        
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = i % 2 === 0 ? '#ffd700' : '#fff';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 8;
+        
+        // Draw 4-point star
+        ctx.beginPath();
+        for (let s = 0; s < 8; s++) {
+          const sa = s * Math.PI / 4;
+          const sr = s % 2 === 0 ? size : size * 0.35;
+          const px = sx + Math.cos(sa - Math.PI / 2) * sr;
+          const py = sy + Math.sin(sa - Math.PI / 2) * sr;
+          s === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
     }
 
     if (this.name === 'BOSS') {
