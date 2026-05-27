@@ -335,19 +335,19 @@ export default class Game {
     // Deterministic selection: sort by gameStartTime (oldest first) to prevent host stealing when a player returns from menu.
     // Fallback to alphabetical username sort if timestamps are identical.
     const hostCandidates = activeUsers.sort((a, b) => {
-      let timeA = Infinity;
-      let timeB = Infinity;
+      let timeA = 0;
+      let timeB = 0;
 
       if (this.net.me && this.net.me.info && a === this.net.me.info.user) {
-        timeA = this.gameStartTime || Infinity;
+        timeA = this.gameStartTime || 0;
       } else if (this.net.room && this.net.room.users && this.net.room.users[a] && this.net.room.users[a].data) {
-        timeA = this.net.room.users[a].data.gameStartTime || Infinity;
+        timeA = this.net.room.users[a].data.gameStartTime || 0;
       }
 
       if (this.net.me && this.net.me.info && b === this.net.me.info.user) {
-        timeB = this.gameStartTime || Infinity;
+        timeB = this.gameStartTime || 0;
       } else if (this.net.room && this.net.room.users && this.net.room.users[b] && this.net.room.users[b].data) {
-        timeB = this.net.room.users[b].data.gameStartTime || Infinity;
+        timeB = this.net.room.users[b].data.gameStartTime || 0;
       }
 
       if (timeA !== timeB) {
