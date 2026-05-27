@@ -416,7 +416,12 @@ export default class Player {
     // Adjust py offset in calculations since we scaled
     const unscaledPy = py;
     // Aim calculations based on synced mouse position
-    let rawAim = Math.atan2(this.mouseY - (py - 40), this.mouseX - px);
+    let rawAim;
+    if (this.isLocal || this.action === 'attack' || this.isChargingS2) {
+      rawAim = Math.atan2(this.mouseY - (py - 40), this.mouseX - px);
+    } else {
+      rawAim = this.facing > 0 ? 0 : Math.PI;
+    }
     let localAim = (this.facing < 0) ? Math.PI - rawAim : rawAim;
     const animP = this.animTimer / 15;
     let armAnim = getArmAnim(this.animTimer);
