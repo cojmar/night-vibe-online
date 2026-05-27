@@ -2296,6 +2296,7 @@ export default class Game {
 
     if (!this.scenery) this.generateScenery();
     for (let s of this.scenery) {
+      if (s.x > this.cullMaxX || s.x + s.w < this.cullMinX) continue;
       this.ctx.fillStyle = s.color;
       this.ctx.beginPath();
       this.ctx.moveTo(s.x, gY);
@@ -2306,6 +2307,7 @@ export default class Game {
 
     if (this.horizonFoliage) {
       for (let h of this.horizonFoliage) {
+        if (h.x > this.cullMaxX || h.x + (h.w||0) < this.cullMinX) continue;
         this.ctx.fillStyle = h.color;
         const sway = Math.sin(this.globalTime * h.speed + h.phase) * (h.h * 0.1);
         this.ctx.beginPath();
@@ -2540,6 +2542,7 @@ export default class Game {
         }
         if (p.x < -10) p.x = this.gameW + 10;
         if (p.x > this.gameW + 10) p.x = -10;
+        if (p.x < this.cullMinX || p.x > this.cullMaxX || p.y < this.cullMinY || p.y > this.cullMaxY) continue;
         this.ctx.fillStyle = `rgba(255,255,255,${p.alpha * 0.3})`;
         this.ctx.beginPath(); this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); this.ctx.fill();
       }
@@ -2812,6 +2815,7 @@ export default class Game {
       }
 
       for (let e of this.enemies) {
+        if (e.x < this.cullMinX || e.x > this.cullMaxX || e.y < this.cullMinY || e.y > this.cullMaxY) continue;
         renderables.push({
           y: e.y, draw: (ctx) => {
             if (this.player && this.player.autoAttackTarget === e) {
@@ -2837,6 +2841,7 @@ export default class Game {
       for (const key in this.otherPlayers) {
         const p = this.otherPlayers[key];
         if (p.inGame) {
+          if (p.x < this.cullMinX || p.x > this.cullMaxX || p.y < this.cullMinY || p.y > this.cullMaxY) continue;
           renderables.push({
             y: p.y, draw: (ctx) => {
               p.draw(ctx, dt, this);
@@ -2989,6 +2994,8 @@ export default class Game {
             }
           }
 
+          if (item.x < this.cullMinX || item.x > this.cullMaxX || item.y < this.cullMinY || item.y > this.cullMaxY) continue;
+
           renderables.push({
             y: item.y, draw: (ctx) => {
               if (this.player && this.player.targetedItemId === item.id) {
@@ -3115,6 +3122,7 @@ export default class Game {
 
       if (this.groundFoliage) {
         for (let gf of this.groundFoliage) {
+          if (gf.x < this.cullMinX || gf.x > this.cullMaxX || gf.y < this.cullMinY || gf.y > this.cullMaxY) continue;
           renderables.push({
             y: gf.y, draw: (ctx) => {
               ctx.save();
@@ -3148,7 +3156,10 @@ export default class Game {
       renderables.sort((a, b) => a.y - b.y);
       renderables.forEach(r => r.draw(this.ctx));
 
-      for (let p of this.projectiles) { p.update(dt, this); p.draw(this.ctx); }
+      for (let p of this.projectiles) {
+        p.update(dt, this);
+        if (p.x >= this.cullMinX && p.x <= this.cullMaxX && p.y >= this.cullMinY && p.y <= this.cullMaxY) p.draw(this.ctx);
+      }
       this.projectiles = this.projectiles.filter(p => p.life > 0);
 
       if (this.queuedFireball && this.player) {
@@ -3186,6 +3197,7 @@ export default class Game {
         }
         p.life -= dt;
         const progress = Math.max(0, p.life / p.maxLife);
+        if (p.x < this.cullMinX || p.x > this.cullMaxX || p.y < this.cullMinY || p.y > this.cullMaxY) continue;
         this.ctx.globalAlpha = progress;
 
         if (p.isShockwave) {
@@ -3244,6 +3256,7 @@ export default class Game {
       // Render atmospheric effects behind UI
       if (this.atmosEffects && this.atmosEffects.length > 0) {
         for (let ef of this.atmosEffects) {
+          if (ef.x < this.cullMinX || ef.x > this.cullMaxX || ef.y < this.cullMinY || ef.y > this.cullMaxY) continue;
           this.ctx.fillStyle = ef.color;
           this.ctx.beginPath();
           if (ef.type === 'rain') {
@@ -3257,6 +3270,7 @@ export default class Game {
 
       for (let ft of this.floatingTexts) {
         ft.y -= 0.8 * dt; ft.life -= dt;
+        if (ft.x < this.cullMinX || ft.x > this.cullMaxX || ft.y < this.cullMinY || ft.y > this.cullMaxY) continue;
         const fadeStart = ft.maxLife * 0.4;
         this.ctx.globalAlpha = ft.life > fadeStart ? 1 : Math.max(0, ft.life / fadeStart);
         this.ctx.font = `bold ${ft.isCrit ? 18 : 14}px sans-serif`; this.ctx.textAlign = 'center';
