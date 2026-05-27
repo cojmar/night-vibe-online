@@ -407,6 +407,9 @@ export default class Game {
   }
 
   syncHostData(hostData) {
+    if (hostData.gameStartTime !== undefined) {
+      this.hostGameStartTime = hostData.gameStartTime;
+    }
     if (hostData.time !== undefined) {
       this.globalTime = hostData.time;
     }
@@ -1881,6 +1884,7 @@ export default class Game {
     }
     if (this.isHost) {
       data.hostData = {
+        gameStartTime: this.gameStartTime,
         wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
@@ -3408,8 +3412,9 @@ export default class Game {
       // Update Game Time Display
       const timeContainer = document.getElementById('game-time-container');
       const timeDisplay = document.getElementById('game-time-display');
-      if (timeContainer && timeDisplay && this.gameStartTime > 0) {
-        const elapsed = Date.now() - this.gameStartTime;
+      const effectiveStartTime = this.hostGameStartTime || this.gameStartTime;
+      if (timeContainer && timeDisplay && effectiveStartTime > 0) {
+        const elapsed = Date.now() - effectiveStartTime;
         const totalSec = Math.floor(elapsed / 1000);
         const s = totalSec % 60;
         const m = Math.floor(totalSec / 60) % 60;
