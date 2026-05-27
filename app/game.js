@@ -302,7 +302,7 @@ export default class Game {
       return;
     }
 
-    // Players in the menu cannot be hosts
+    // A player in the menu cannot be the host
     if (this.state !== 'PLAYING') {
       if (this.isHost) {
         this.isHost = false;
@@ -310,13 +310,15 @@ export default class Game {
       }
       return;
     }
-    const users = Object.keys(this.net.room.users);
-    if (this.net.me && this.net.me.info) users.push(this.net.me.info.user);
-    const uniqueUsers = [...new Set(users)];
 
-    // Filter users to only those who are actively playing (in status 'PLAYING' and not in menu or game over)
-    const activeUsers = uniqueUsers.filter(user => {
-      // Disconnected users cannot be active or host candidates
+    const users = Object.keys(this.net.room.users);
+    if (this.net.me && this.net.me.info && !users.includes(this.net.me.info.user)) {
+      users.push(this.net.me.info.user);
+    }
+
+    // Filter to active playing users
+    const activeUsers = users.filter(user => {
+      // Must not be disconnected
       if (this.net.room && this.net.room.users && this.net.room.users[user]) {
         const uInfo = this.net.room.users[user].info;
         if (uInfo && uInfo.disconnected !== false && uInfo.disconnected !== undefined) {
@@ -325,79 +327,38 @@ export default class Game {
       }
 
       if (this.net.me && this.net.me.info && user === this.net.me.info.user) {
-        // Local player: must be playing and not in menu or game over
-        return this.state === 'PLAYING' && this.state !== 'MENU' && this.state !== 'GAME_OVER';
+        // Local player
+        return this.state === 'PLAYING';
       } else {
-        // Remote player: check inGame status and state from otherPlayers or from room data
-        const otherPlayer = this.otherPlayers[user];
+        // Remote player
         const roomUser = this.net.room && this.net.room.users && this.net.room.users[user];
+        if (!roomUser || !roomUser.data) return false;
         
-        // If the player hasn't sent any network data in 3 seconds, consider them idle/inactive
-        if (otherPlayer && otherPlayer.lastDataTime && Date.now() - otherPlayer.lastDataTime > 3000) {
-          return false;
-        }
+        const inGame = roomUser.data.inGame === true;
+        const pState = roomUser.data.state;
 
-        let inGame = false;
-        let pState = 'MENU';
-
-        if (otherPlayer && otherPlayer.inGame !== undefined) {
-          inGame = otherPlayer.inGame;
-        } else if (roomUser && roomUser.data && roomUser.data.inGame !== undefined) {
-          inGame = roomUser.data.inGame;
-        }
-
-        if (otherPlayer && otherPlayer.state !== undefined) {
-          pState = otherPlayer.state;
-        } else if (roomUser && roomUser.data && roomUser.data.state !== undefined) {
-          pState = roomUser.data.state;
-        }
-
-        return inGame && pState !== 'MENU' && pState !== 'GAME_OVER';
+        return inGame && pState === 'PLAYING';
       }
     });
 
-    const hostCandidates = activeUsers;
-
-    if (hostCandidates.length === 0) {
+    if (activeUsers.length === 0) {
       if (this.isHost) {
         this.isHost = false;
-        this.net.send_cmd('set_data', { isHost: false });
       }
       return;
     }
 
-    let currentHosts = [];
-
-    for (const u of hostCandidates) {
-      if (u === (this.net.me && this.net.me.info ? this.net.me.info.user : null)) {
-        if (this.isHost) {
-          currentHosts.push(u);
-        }
-      } else {
-        const op = this.otherPlayers[u] || (this.net.room && this.net.room.users[u] && this.net.room.users[u].data);
-        if (op && op.isHost && op.state !== 'MENU') {
-          currentHosts.push(u);
-        }
-      }
-    }
-
-    let bestHost = null;
-
-    if (currentHosts.length > 0) {
-      // Keep the current host (or resolve ties alphabetically if multiple claim to be host)
-      bestHost = currentHosts.sort((a, b) => a.localeCompare(b))[0];
-    } else if (hostCandidates.length > 0) {
-      // No current host exists among active players, pick a new one alphabetically
-      bestHost = hostCandidates.sort((a, b) => a.localeCompare(b))[0];
-    } else {
-      bestHost = null; // No one is playing
-    }
+    // Deterministic selection: alphabetical sort
+    const hostCandidates = activeUsers.sort((a, b) => a.localeCompare(b));
+    const bestHost = hostCandidates[0];
 
     const isHost = bestHost === (this.net.me && this.net.me.info ? this.net.me.info.user : null);
 
     if (this.isHost !== isHost) {
       this.isHost = isHost;
       this.ui.addLog(this.isHost ? '👑 You are the Host!' : '👥 You are a Client', 'reward');
+      
+      // Even though host is determined purely locally by everyone, we still send config if we become host
       if (this.isHost) {
         this.net.send_cmd('set_data', {
           isHost: true,
@@ -406,10 +367,6 @@ export default class Game {
           enemyTypes: ConfigModule.ENEMY_TYPES,
           itemsDb: ConfigModule.ITEMS_DB
         });
-        // If we just became host, make sure we sync the global time to avoid jump
-        if (this.globalTime) {
-          // Time is already matched
-        }
       } else {
         this.net.send_cmd('set_data', { isHost: false });
       }
