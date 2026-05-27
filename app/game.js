@@ -2244,10 +2244,17 @@ export default class Game {
     const nightAlpha = this.nightAlpha || 0;
     const dayAlpha = this.dayAlpha || 0;
     const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
+    const dayFraction = 14 / 24;
+    let mappedCycle = cycle;
+    if (cycle <= dayFraction) {
+      mappedCycle = (cycle / dayFraction) * 0.5;
+    } else {
+      mappedCycle = 0.5 + ((cycle - dayFraction) / (1 - dayFraction)) * 0.5;
+    }
 
     const cx = this.gameW / 2, cy = gY;
-    // Shift angle so cycle=0 is sunrise (angle = PI)
-    const angle = cycle * Math.PI * 2 + Math.PI;
+    // Shift angle so mappedCycle=0 is sunrise (angle = PI)
+    const angle = mappedCycle * Math.PI * 2 + Math.PI;
     const sunX = cx - Math.cos(angle) * 350;
     const sunY = cy + Math.sin(angle) * 250;
     if (sunY < gY + 40) {
@@ -2386,9 +2393,16 @@ export default class Game {
       }
 
       const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
+      const dayFraction = 14 / 24;
+      let mappedCycle = cycle;
+      if (cycle <= dayFraction) {
+        mappedCycle = (cycle / dayFraction) * 0.5;
+      } else {
+        mappedCycle = 0.5 + ((cycle - dayFraction) / (1 - dayFraction)) * 0.5;
+      }
 
       // Calculate altitude curve (1 at noon, 0 at sunrise/sunset, -1 at midnight)
-      const sunAltitude = Math.sin(cycle * 2 * Math.PI);
+      const sunAltitude = Math.sin(mappedCycle * 2 * Math.PI);
 
       this.dayAlpha = Math.max(0, sunAltitude);
 
@@ -3397,7 +3411,7 @@ export default class Game {
       
       const celestialArcCenterX = this.gameW / 2;
       const celestialArcCenterY = gY;
-      const sunAngle = cycle * Math.PI * 2 + Math.PI;
+      const sunAngle = mappedCycle * Math.PI * 2 + Math.PI;
       const sunX = celestialArcCenterX - Math.cos(sunAngle) * 350;
       const sunY = celestialArcCenterY + Math.sin(sunAngle) * 250;
       const moonAngle = sunAngle + Math.PI;
