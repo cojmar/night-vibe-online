@@ -246,7 +246,10 @@ export default class Game {
 
         // Handle Host Sync
         if (this.state === 'PLAYING' && data.data.hostData && !this.isHost) {
-          this.syncHostData(data.data.hostData);
+          const currentBestHost = this.getDeterministicHost();
+          if (data.user === currentBestHost) {
+            this.syncHostData(data.data.hostData);
+          }
         }
 
         // Sync Gameplay balance config from the Host 
@@ -443,6 +446,10 @@ export default class Game {
     }
 
     // Sync enemies position/hp to host
+    // First, purge any enemies we have locally that the host no longer has (ghosts)
+    const hostEnemyIds = hostData.enemies.map(e => e.id);
+    this.enemies = this.enemies.filter(e => hostEnemyIds.includes(e.id));
+
     hostData.enemies.forEach(eData => {
       let e = this.enemies.find(ex => ex.id === eData.id);
       if (!e) {
@@ -1016,8 +1023,8 @@ export default class Game {
     this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
     this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
     
-    // Set our game start time so getDeterministicHost knows we are the newest player in the game
-    this.gameStartTime = Date.now();
+    // Set our game start time using the internal global time (so it's immune to PC clock skew)
+    this.gameStartTime = this.globalTime || 0;
 
     // Inherit current room state and gameplay configuration from the deterministically computed host
     let hostFound = false;
@@ -1381,10 +1388,12 @@ export default class Game {
     if (this.net && this.net.me) {
       this._resetSessionData();
       this.isHost = false;
+      this.gameStartTime = 0;
       this.net.send_cmd('set_data', { 
         inGame: false, 
         state: 'MENU', 
         isHost: false,
+        gameStartTime: false,
         hostData: false,
         hits: false,
         syncProjectiles: false,
@@ -1775,7 +1784,7 @@ export default class Game {
 
     const data = {
       inGame: true,
-      gameStartTime: this.gameStartTime || Date.now(),
+      gameStartTime: this.gameStartTime !== undefined ? this.gameStartTime : (this.globalTime || 0),
       nick: this.player.nick,
       state: this.state,
       alive: this.player.alive,
