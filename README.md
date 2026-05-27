@@ -61,7 +61,7 @@ Choose your fighter wisely. Each class offers a completely different combat expe
 | Skill | Type | Description |
 |-------|------|-------------|
 | **Bash** (S1) | Melee | A wide arc slash with knockback. Deals 100% ATK damage. Left-click an enemy to use. |
-| **Sword Slash** (S2) | AoE Projectile | Fires a traveling shockwave dealing 250% ATK damage with knockback. Charge by right-click/long-press to increase damage (+25% per charge) and AOE size (+15% per charge). |
+| **Sword Slash** (S2) | AoE Projectile | Fires a massive shockwave dealing 50% ATK damage base. Damage and AOE size scale massively with charges and your SPD stat. Charge by right-click/long-press. |
 
 **Playstyle:** Hold the line. Use knockback to control enemy positioning and let your shockwaves clear groups.
 
@@ -80,7 +80,7 @@ Choose your fighter wisely. Each class offers a completely different combat expe
 | Skill | Type | Description |
 |-------|------|-------------|
 | **Magic Bolt** (S1) | Ranged | A fast single-target bolt dealing 90% ATK damage. |
-| **Fireball** (S2) | AoE | An exploding fireball dealing 220% ATK damage in an area burst. Leaves a lingering fire trail. Charge to amplify damage and explosion radius. |
+| **Fireball** (S2) | AoE | An exploding fireball dealing 100% ATK damage base. Leaves a lingering fire trail. Charge to amplify damage and explosion radius. |
 
 **Playstyle:** Keep your distance. Pick off enemies with Magic Bolts and detonate Fireballs into tight groups.
 
@@ -98,8 +98,8 @@ Choose your fighter wisely. Each class offers a completely different combat expe
 
 | Skill | Type | Description |
 |-------|------|-------------|
-| **Quick Shot** (S1) | Ranged | A fast arrow dealing 95% ATK damage with a 15% crit chance (2x damage). |
-| **Arrow Barrage** (S2) | Spread | Fires 3+ arrows in a spread pattern. Each deals 130% ATK damage with 15% crit chance. Arrow count scales with your SPD stat. Charge to increase spread and damage. |
+| **Quick Shot** (S1) | Ranged | A fast arrow dealing 110% ATK damage with a 10% crit chance. |
+| **Arrow Barrage** (S2) | Spread | Fires a barrage of arrows in a spread pattern. Each arrow deals 200% ATK damage with a 15% crit chance. Base 4 arrows, count scales significantly with your SPD stat. Charge to increase damage and AOE scale. |
 
 **Playstyle:** Kite enemies and shred them with crit-heavy arrows. Your speed lets you reposition between volleys.
 
@@ -117,8 +117,8 @@ Choose your fighter wisely. Each class offers a completely different combat expe
 
 | Skill | Type | Description |
 |-------|------|-------------|
-| **Psionic Slash** (S1) | Melee | A double wide arc slash dealing 110% ATK damage with 12% crit chance. |
-| **Evil Spirits** (S2) | Spirit Summon | Summons golden spirits that chase enemies (max 50 on screen). 80% ATK per spirit, 25% crit chance. **Heals you for 50% of damage dealt.** Charge to increase spirit count and stats. |
+| **Psionic Slash** (S1) | Melee | A double wide arc slash dealing 110% ATK damage with a 12% crit chance. |
+| **Evil Spirits** (S2) | Spirit Summon | Summons a swarm of spirits (base 8) that chase enemies. Each deals ~80% ATK damage with a 25% crit chance. **Heals you for 50% of your ATK.** Spirit count and healing scale with charges. |
 
 **Playstyle:** Dive into the fray. Your S2 sustains you in combat — the more damage you deal, the harder you stay alive.
 

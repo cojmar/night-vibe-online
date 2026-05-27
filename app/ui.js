@@ -2942,14 +2942,41 @@ export default class UI {
         document.getElementById('stat-mp').innerHTML = `<strong style="color:#9b59b6">SPD (Speed): ${cd.spd}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Increases movement speed, S2 AOE size, and reduces S2 cooldown — higher SPD = faster and bigger attacks.</span>`;
         document.getElementById('stat-atk').innerHTML = `<strong style="color:#f39c12">ATK (Attack Damage): ${cd.atk}</strong><br><span style="color:#bdc3c7;font-size:0.9em;">Base value of damage dealt to enemies. Scales with level and stat upgrades.</span>`;
 
-        const sk = ConfigModule.SKILL_DESC[this.selectedClass] || {
-            s1: { name: cd.s1Name || 'Basic Attack', desc: 'Standard attack', ctrl: 'Left-click enemy' },
-            s2: { name: cd.s2Name || 'Special Attack', desc: 'Special ability', ctrl: 'Right-click / long-press' }
+        let s1Desc = '';
+        let s2Desc = '';
+        let s1Name = cd.s1Name || 'Basic Attack';
+        let s2Name = cd.s2Name || 'Special Attack';
+
+        if (this.selectedClass === 'warrior') {
+            s1Desc = 'Wide arc strike. 100% ATK + knockback.';
+            s2Desc = 'Shockwave projectile. 50% ATK base. Damage and AOE scale massively with charges and SPD.';
+        } else if (this.selectedClass === 'mage') {
+            s1Desc = 'Fast bolt. 90% ATK single-target.';
+            s2Desc = 'Exploding AoE fireball. 100% ATK base. Area and damage scale with charges.';
+        } else if (this.selectedClass === 'archer') {
+            s1Desc = 'Fast arrow. 110% ATK, 10% crit.';
+            s2Desc = 'Arrow spread. 200% ATK each, 15% crit. Base 4 arrows, count scales with SPD.';
+        } else if (this.selectedClass === 'magicgladiator') {
+            s1Desc = 'Double wide arc. 110% ATK, 12% crit.';
+            s2Desc = 'Summons 8 spirits. ~80% ATK each, 25% crit. Heals you for 50% ATK. Count and heal scale with charges.';
+        } else {
+            s1Desc = 'Standard attack.';
+            s2Desc = 'Special ability.';
+        }
+
+        const sk = {
+            s1: { name: s1Name, desc: s1Desc, ctrl: 'Left-click enemy' },
+            s2: { name: s2Name, desc: s2Desc, ctrl: 'Right-click / long-press' }
         };
 
         // Calculate derived stats from HP/MP/ATK
         const baseMoveSpeed = ConfigModule.PLAYER_MOVE_SPEEDS[this.selectedClass] || 2.5;
-        const baseS2Cooldown = 5000;
+        
+        // Cooldown base formula based on SPD difference from class base spd
+        const baseSpd = cd.spd;
+        const diff = Math.max(0, cd.spd - baseSpd);
+        const baseS2Cooldown = Math.max(1000, 5000 - diff * 200);
+        
         const s1Scale = 1.0;
         const aoeScale = 1.0;
         const armor = Math.floor(cd.hp / 10);
