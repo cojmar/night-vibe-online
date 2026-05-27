@@ -189,6 +189,27 @@ export default class Projectile {
       }
     }
     else if (this.type === 'spirit') {
+      // Retargeting every 2 seconds (approx 120 frames)
+      this.retargetTimer = (this.retargetTimer || 0) + dt;
+      if (this.retargetTimer >= 120) {
+        this.retargetTimer = 0;
+        let nearest = null;
+        let nearDist = Infinity;
+        for (let e of gameInstance.enemies) {
+          if (!e.alive || this.hitIds.has(e)) continue;
+          const d = Math.hypot(e.x - this.x, e.y - this.y);
+          if (d < nearDist) {
+            nearDist = d;
+            nearest = e;
+          }
+        }
+        if (nearest) {
+          const a = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+          this.vx = Math.cos(a) * this.speed;
+          this.vy = Math.sin(a) * this.speed;
+        }
+      }
+
       // Wobbly movement
       this.wobble = (this.wobble || 0) + 0.25 * dt;
       this.x += (this.vx || 0) * dt + Math.sin(this.wobble) * 0.8 * dt;
@@ -199,7 +220,7 @@ export default class Projectile {
       if (this.trailTimer > 1.0) {
         this.trailTimer = 0;
         if (!this.trailPositions) this.trailPositions = [];
-        this.trailPositions.push({ x: this.x, y: this.y, life: 20, maxLife: 20 });
+        this.trailPositions.push({ x: this.x, y: this.y, life: 40, maxLife: 40 }); // Made trail 2x longer
         gameInstance.spawnParticles(this.x, this.y, this.color || '#9b4dff', 1, 1.5);
       }
       if (this.trailPositions) {
@@ -493,7 +514,7 @@ export default class Projectile {
       ctx.beginPath();
       ctx.moveTo(this.x - 6, this.y + 6);
       ctx.lineTo(this.x + 6, this.y + 6);
-      ctx.lineTo(this.x, this.y + 16);
+      ctx.lineTo(this.x, this.y + 26); // Doubled length (from 16 to 26)
       ctx.fill();
       ctx.restore();
     }
