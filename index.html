@@ -1772,9 +1772,14 @@
             </div>
 
             <!-- Bottom row: Wave and Environment -->
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: bold; margin-top: 3px;">
-              <span style="background: linear-gradient(135deg, rgba(243,156,18,0.3), rgba(230,126,34,0.1)); border: 1px solid #f39c12; padding: 3px 8px; border-radius: 4px; color: #fff; box-shadow: 0 0 8px rgba(243,156,18,0.4); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">📊 Wave <span id="wave-count" style="color: #ffd700; font-size: 1.4em; text-shadow: 0 0 3px #000;">1</span></span>
-              <span style="background: rgba(41,128,185,0.2); border: 1px solid #2980b9; padding: 3px 8px; border-radius: 4px; color: #bdc3c7; display: flex; align-items: center; gap: 4px;">🌍 <span id="env-name" style="color: #3498db;">Forest</span></span>
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 3px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: bold;">
+                <span style="background: linear-gradient(135deg, rgba(243,156,18,0.3), rgba(230,126,34,0.1)); border: 1px solid #f39c12; padding: 3px 8px; border-radius: 4px; color: #fff; box-shadow: 0 0 8px rgba(243,156,18,0.4); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">📊 Wave <span id="wave-count" style="color: #ffd700; font-size: 1.4em; text-shadow: 0 0 3px #000;">1</span></span>
+                <span style="background: rgba(41,128,185,0.2); border: 1px solid #2980b9; padding: 3px 8px; border-radius: 4px; color: #bdc3c7; display: flex; align-items: center; gap: 4px;">🌍 <span id="env-name" style="color: #3498db;">Forest</span></span>
+              </div>
+              <div style="width: 100%; background: rgba(0,0,0,0.6); height: 5px; border-radius: 3px; overflow: hidden; border: 1px solid #f39c12; display: none;" id="wave-progress-container">
+                <div id="wave-progress-bar" style="width: 0%; height: 100%; background: #f39c12; transition: width 0.3s ease-out; box-shadow: 0 0 6px #f39c12;"></div>
+              </div>
             </div>
             
             <!-- Game Time -->

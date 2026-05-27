@@ -3273,8 +3273,20 @@ export default class UI {
             const xpPct = player.reqKills > 0 ? Math.max(0, Math.min(100, (player.kills / player.reqKills) * 100)) : 100;
             document.getElementById('xp-bar').style.width = xpPct + '%';
         }
-        const progress = waveTotal > 1 ? ` [${waveKilled}/${waveTotal}]` : '';
-        document.getElementById('wave-count').textContent = wave + progress;
+        if (waveTotal > 1) {
+            const progressStr = ` [${waveKilled}/${waveTotal}]`;
+            document.getElementById('wave-count').textContent = wave + progressStr;
+            const waveProgressContainer = document.getElementById('wave-progress-container');
+            const waveProgressBar = document.getElementById('wave-progress-bar');
+            if (waveProgressContainer && waveProgressBar) {
+                waveProgressContainer.style.display = 'block';
+                waveProgressBar.style.width = Math.min(100, Math.max(0, (waveKilled / waveTotal) * 100)) + '%';
+            }
+        } else {
+            document.getElementById('wave-count').textContent = wave;
+            const waveProgressContainer = document.getElementById('wave-progress-container');
+            if (waveProgressContainer) waveProgressContainer.style.display = 'none';
+        }
     }
 
     updateEnvironment(selectedEnv) {
