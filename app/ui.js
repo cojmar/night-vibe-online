@@ -2585,8 +2585,15 @@ export default class UI {
         if (this.game && this.game.player) {
             p = this.game.player;
         } else {
-            // Player not spawned yet (Main Menu), session-based items are cleared.
-            p = { inventory: [], equipment: {} };
+            let dummyInv = [];
+            let dummyEq = {};
+            try {
+                const sInv = localStorage.getItem('nightvibe-inventory');
+                if (sInv) dummyInv = JSON.parse(sInv);
+                const sEq = localStorage.getItem('nightvibe-equipment');
+                if (sEq) dummyEq = JSON.parse(sEq);
+            } catch(e) {}
+            p = { inventory: dummyInv, equipment: dummyEq };
         }
 
         const detailsPanel = document.getElementById('inventory-details-panel');

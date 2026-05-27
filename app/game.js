@@ -3363,22 +3363,44 @@ export default class Game {
       }
 
       // Global Day/Night Lighting Overlays
+      const env = ENV_CONFIG[this.selectedEnv];
+      const gY = this.gameH * (env ? env.groundY : 0.5);
+      
+      const celestialArcCenterX = this.gameW / 2;
+      const celestialArcRadius = this.gameW * 0.45;
+      const celestialArcCenterY = gY + 100;
+      const sunAngle = Math.PI - cycle * 2 * Math.PI;
+      const sunX = celestialArcCenterX + Math.cos(sunAngle) * celestialArcRadius;
+      const sunY = celestialArcCenterY - Math.sin(sunAngle) * celestialArcRadius;
+      const moonX = celestialArcCenterX + Math.cos(sunAngle - Math.PI) * celestialArcRadius;
+      const moonY = celestialArcCenterY - Math.sin(sunAngle - Math.PI) * celestialArcRadius;
+
+      // Seed-based tinting
+      const lightPrng = new PRNG(this.sessionSeed || 1);
+      const nightR = 5 + Math.floor(lightPrng.nextFloat() * 15);
+      const nightG = 10 + Math.floor(lightPrng.nextFloat() * 15);
+      const nightB = 25 + Math.floor(lightPrng.nextFloat() * 30);
+      const dayR = 255;
+      const dayG = 220 + Math.floor(lightPrng.nextFloat() * 35);
+      const dayB = 100 + Math.floor(lightPrng.nextFloat() * 100);
+
       if (this.nightAlpha > 0) {
-        const env = ENV_CONFIG[this.selectedEnv];
-        const gY = this.gameH * (env ? env.groundY : 0.5);
-        const nightGrad = this.ctx.createLinearGradient(0, 0, 0, this.gameH);
-        // Moon illuminates the sky and background scenery
-        nightGrad.addColorStop(0, `rgba(15, 20, 40, ${this.nightAlpha * 0.25})`);
-        nightGrad.addColorStop(gY / this.gameH, `rgba(5, 10, 25, ${this.nightAlpha * 0.35})`);
-        // Ground stays very dark
-        nightGrad.addColorStop(gY / this.gameH + 0.01, `rgba(0, 0, 5, ${this.nightAlpha * 0.5})`);
-        nightGrad.addColorStop(1, `rgba(0, 0, 0, ${this.nightAlpha * 0.65})`);
+        // Moon illuminates the sky and background scenery based on its position
+        const nightGrad = this.ctx.createRadialGradient(moonX, Math.max(0, moonY), this.gameH * 0.1, moonX, Math.max(0, moonY), this.gameW * 1.2);
+        nightGrad.addColorStop(0, `rgba(${nightR+10}, ${nightG+10}, ${nightB+15}, ${this.nightAlpha * 0.25})`);
+        nightGrad.addColorStop(gY / this.gameH, `rgba(${nightR}, ${nightG}, ${nightB}, ${this.nightAlpha * 0.45})`);
+        nightGrad.addColorStop(1, `rgba(0, 0, 5, ${this.nightAlpha * 0.7})`);
 
         this.ctx.fillStyle = nightGrad;
         this.ctx.fillRect(0, 0, this.gameW, this.gameH);
       }
       if (this.dayAlpha > 0) {
-        this.ctx.fillStyle = `rgba(255, 230, 150, ${this.dayAlpha * 0.1})`;
+        // Sun glare and terrain highlight based on its position
+        const dayGrad = this.ctx.createRadialGradient(sunX, Math.max(0, sunY), this.gameH * 0.2, sunX, Math.max(0, sunY), this.gameW);
+        dayGrad.addColorStop(0, `rgba(${dayR}, ${dayG}, ${dayB}, ${this.dayAlpha * 0.15})`);
+        dayGrad.addColorStop(1, `rgba(${dayR}, ${dayG}, ${dayB}, 0)`);
+        
+        this.ctx.fillStyle = dayGrad;
         this.ctx.fillRect(0, 0, this.gameW, this.gameH);
       }
 
