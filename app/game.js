@@ -135,13 +135,13 @@ export default class Game {
         if (this.isHost && data.data.requestSync) {
           this.net.send_cmd('set_data', {
             syncProjectiles: this.projectiles.map(p => ({
-              type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
-              angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
-              originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
-              ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
-              critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
-        retargetTimer: p.retargetTimer, wobble: p.wobble, trailTimer: p.trailTimer,
-              trailPositions: p.trailPositions || []
+           type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
+            angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
+            originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
+            ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
+            critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
+            casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
+            trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
             }))
           });
         }
