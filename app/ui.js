@@ -3214,6 +3214,12 @@ export default class UI {
             const waveProgressContainer = document.getElementById('wave-progress-container');
             if (waveProgressContainer) waveProgressContainer.style.display = 'none';
         }
+
+        const overlay = document.getElementById('death-overlay');
+        if (overlay && overlay.classList.contains('show')) {
+            document.getElementById('death-kills').textContent = waveTotal > 1 ? `${waveKilled}/${waveTotal}` : waveKilled;
+            document.getElementById('death-wave').textContent = wave;
+        }
     }
 
     updateEnvironment(selectedEnv) {

@@ -1967,7 +1967,7 @@ export default class Game {
       this.player.alive = false;
       this.broadcastState();
       // Keep state PLAYING so the network host continues to run the simulation
-      this.ui.showDeathScreen(this.kills, this.wave);
+      this.ui.showDeathScreen(`${this.waveEnemiesKilled}/${this.waveTotalEnemies}`, this.wave);
     } else {
       this.broadcastState();
     }
