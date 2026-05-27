@@ -404,9 +404,18 @@ export default class Player {
     const shadowAlpha = (0.2 + depthRatio * 0.3) * baseAlpha;
     const shadowWidth = 22 + depthRatio * 8 + ((this.isMoving || this.action === 'walk') ? 3 : 0);
     const shadowHeight = 6 + depthRatio * 4;
-    ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
+
+    // Dynamic shadow based on light source
+    const lightDx = px - (gameInstance.lightX !== undefined ? gameInstance.lightX : (gameInstance.gameW / 2));
+    const stretch = (lightDx / (gameInstance.gameW / 2)) * 40; // Max 40px stretch
+    const intensity = gameInstance.lightIntensity !== undefined ? (gameInstance.lightIntensity * 0.8 + 0.2) : 1;
+    
+    const finalShadowAlpha = shadowAlpha * intensity;
+    const finalShadowWidth = shadowWidth + Math.abs(stretch) * 0.5;
+
+    ctx.fillStyle = `rgba(0,0,0,${finalShadowAlpha})`;
     ctx.beginPath();
-    ctx.ellipse(px, feetY, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
+    ctx.ellipse(px + stretch, feetY, finalShadowWidth, shadowHeight, 0, 0, Math.PI * 2);
     ctx.fill();
 
 

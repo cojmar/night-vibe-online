@@ -3367,13 +3367,17 @@ export default class Game {
       const gY = this.gameH * (env ? env.groundY : 0.5);
       
       const celestialArcCenterX = this.gameW / 2;
-      const celestialArcRadius = this.gameW * 0.45;
-      const celestialArcCenterY = gY + 100;
-      const sunAngle = Math.PI - cycle * 2 * Math.PI;
-      const sunX = celestialArcCenterX + Math.cos(sunAngle) * celestialArcRadius;
-      const sunY = celestialArcCenterY - Math.sin(sunAngle) * celestialArcRadius;
-      const moonX = celestialArcCenterX + Math.cos(sunAngle - Math.PI) * celestialArcRadius;
-      const moonY = celestialArcCenterY - Math.sin(sunAngle - Math.PI) * celestialArcRadius;
+      const celestialArcCenterY = gY;
+      const sunAngle = cycle * Math.PI * 2 + Math.PI;
+      const sunX = celestialArcCenterX - Math.cos(sunAngle) * 350;
+      const sunY = celestialArcCenterY + Math.sin(sunAngle) * 250;
+      const moonAngle = sunAngle + Math.PI;
+      const moonX = celestialArcCenterX - Math.cos(moonAngle) * 350;
+      const moonY = celestialArcCenterY + Math.sin(moonAngle) * 250;
+
+      this.lightX = this.dayAlpha > this.nightAlpha ? sunX : moonX;
+      this.lightY = this.dayAlpha > this.nightAlpha ? sunY : moonY;
+      this.lightIntensity = Math.max(this.dayAlpha, this.nightAlpha);
 
       // Seed-based tinting
       const lightPrng = new PRNG(this.sessionSeed || 1);
