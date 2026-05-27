@@ -796,10 +796,19 @@ export default class Game {
     let touchActive = false;
     let touchLongPressTimer = null;
     let touchLeftClickTimer = null;
+    let pinchStartDist = 0;
+    let pinchStartZoom = 0;
 
     this.canvas.addEventListener('touchstart', (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
       e.preventDefault();
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchStartDist = Math.hypot(dx, dy);
+        pinchStartZoom = this.zoomTarget;
+        return;
+      }
       const t = e.touches[0];
       const pos = this.toGameCoords(t.clientX, t.clientY);
       touchActive = true;
@@ -833,13 +842,33 @@ export default class Game {
     this.canvas.addEventListener('touchmove', (e) => {
       if (this.state !== 'PLAYING' || !this.player) return;
       e.preventDefault();
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const currentDist = Math.hypot(dx, dy);
+        const scale = currentDist / pinchStartDist;
+        this.zoomTarget = pinchStartZoom * scale;
+
+        const cw = this.canvas.width / (this.pixelRatio || 1);
+        const ch = this.canvas.height / (this.pixelRatio || 1);
+        const zoomOutMinWidth = (cw / this.gameW) / this.viewScale;
+        const zoomOutMinHeight = (ch / this.gameH) / this.viewScale;
+        const zoomOutMin = Math.max(zoomOutMinWidth, zoomOutMinHeight);
+        const zoomInMax = Math.max(5, (ch / 30) / this.viewScale);
+        this.zoomTarget = Math.max(zoomOutMin, Math.min(zoomInMax, this.zoomTarget));
+        return;
+      }
       const t = e.touches[0];
       const pos = this.toGameCoords(t.clientX, t.clientY);
       this.player.mouseX = pos.x;
       this.player.mouseY = pos.y;
     }, { passive: false });
 
-    this.canvas.addEventListener('touchend', () => {
+    this.canvas.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        pinchStartDist = 0;
+        pinchStartZoom = 0;
+      }
       touchActive = false;
       clearTimeout(touchLongPressTimer);
       clearTimeout(touchLeftClickTimer);
@@ -849,7 +878,11 @@ export default class Game {
         this.releaseSkill2();
       }
     });
-    this.canvas.addEventListener('touchcancel', () => {
+    this.canvas.addEventListener('touchcancel', (e) => {
+      if (e.touches.length < 2) {
+        pinchStartDist = 0;
+        pinchStartZoom = 0;
+      }
       touchActive = false;
       clearTimeout(touchLongPressTimer);
       clearTimeout(touchLeftClickTimer);
