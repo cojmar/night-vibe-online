@@ -176,7 +176,13 @@ export default class Player {
         this.color = cd.color;
         this.accent = cd.accent;
       }
-      if (this.input_data.inGame !== undefined) this.inGame = this.input_data.inGame;
+      if (this.input_data.inGame !== undefined) {
+        if (!this.inGame && this.input_data.inGame) {
+          // Transitioning from menu to game: reset snap flag so they teleport to new spawn
+          this.hasReceivedFirstPosition = false;
+        }
+        this.inGame = this.input_data.inGame;
+      }
       if (this.input_data.state !== undefined) this.state = this.input_data.state;
       if (this.input_data.alive !== undefined) this.alive = this.input_data.alive;
       if (this.input_data.animTimer !== undefined) this.animTimer = this.input_data.animTimer;
@@ -365,7 +371,8 @@ export default class Player {
     const isDead = !this.alive;
     let baseAlpha = 1;
     if (isDead) {
-      baseAlpha = 0.3;
+      // Pulse alpha smoothly between 0.1 and 0.3
+      baseAlpha = 0.2 + Math.sin(Date.now() / 400) * 0.1;
     } else if (this.hitFlash > 0) {
       baseAlpha = 0.5 + Math.sin(this.hitFlash * 2) * 0.5;
     }
