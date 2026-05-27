@@ -996,6 +996,14 @@ export default class Game {
     const camY = this.cameraY;
     const viewOX = this.viewOX || 0;
 
+    const cullMargin = 150;
+    const cwHalf = (cw / 2) / effectiveScale;
+    const chHalf = (ch / 2) / effectiveScale;
+    this.cullMinX = camX - cwHalf - cullMargin;
+    this.cullMaxX = camX + cwHalf + cullMargin;
+    this.cullMinY = camY - chHalf - cullMargin;
+    this.cullMaxY = camY + chHalf + cullMargin;
+
     // Center transform: translate to screen center, scale, translate by camera offset
     this.ctx.translate(cw / 2 + viewOX + shakeX, ch / 2 + shakeY);
     this.ctx.scale(effectiveScale, effectiveScale);
