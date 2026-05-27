@@ -1367,15 +1367,29 @@ export default class Game {
     this.enemies = [];
     this.projectiles = [];
     this.particles = [];
+    this.items = [];
+    this.floatingTexts = [];
+    this.bgParticles = [];
+    this.pendingHits = [];
+    
+    this.wave = 1;
+    this.kills = 0;
+    this.waveTotalEnemies = 10;
+    this.waveEnemiesKilled = 0;
+    this.waveEnemiesToSpawn = 10;
+    this.bossActive = false;
+    this.waveTransitionTimer = 0;
+
+    this.s2Cooldown = 0;
+    this.mouseDown = false;
+    this.autoRestartS2 = false;
+    this.queuedFireball = null;
+    this.enemySpawnTimer = 0;
 
     this.ui.addLog('🎮 Returned to character selection!', 'player');
 
     // Broadcast leaving the game
     if (this.net && this.net.me) {
-
-      // Reset in-game progression stats locally so next game starts fresh at level 1.
-      // Persistent progression (resets, bonusStatPoints) is already saved in localStorage
-      // and will be restored by restoreWebsocketStats() on the next game start.
       this._resetSessionData();
       this.isHost = false;
       this.net.send_cmd('set_data', { inGame: false, state: 'MENU', isHost: false });
@@ -1795,7 +1809,7 @@ export default class Game {
     }
     if (this.isHost) {
       data.hostData = {
-        wave: this.wave, kills: this.kills, seed: this.prng.seed, env: this.selectedEnv, time: this.globalTime,
+        wave: this.wave, kills: this.kills, seed: this.prng.seed, sessionSeed: this.sessionSeed, env: this.selectedEnv, time: this.globalTime,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
           id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
