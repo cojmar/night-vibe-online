@@ -25,7 +25,8 @@ export default class {
 				data1[n] = data2[n];
 				if (!ret) ret = true;
 			} else {
-				if (typeof data1[n] === 'object' && typeof data2[n] === 'object') {
+				// Do not deep-merge arrays (which causes old elements to stick around). Overwrite them instead.
+				if (typeof data1[n] === 'object' && typeof data2[n] === 'object' && !Array.isArray(data2[n])) {
 					var ret2 = this.do_merge(data1[n], data2[n]);
 					if (!ret) ret = ret2;
 				} else {

@@ -1393,16 +1393,16 @@ export default class Game {
         inGame: false, 
         state: 'MENU', 
         isHost: false,
-        gameStartTime: false,
-        hostData: false,
-        hits: false,
-        syncProjectiles: false,
-        spawnedProjectile: false,
-        enemyHitPlayer: false,
-        gameplayConfig: false,
-        classData: false,
-        enemyTypes: false,
-        itemsDb: false
+        gameStartTime: 0,
+        hostData: { wave: 1, kills: 0, enemies: [], items: [], bossActive: false },
+        hits: [],
+        syncProjectiles: [],
+        spawnedProjectile: {},
+        enemyHitPlayer: {},
+        gameplayConfig: {},
+        classData: {},
+        enemyTypes: [],
+        itemsDb: []
       });
     }
 
