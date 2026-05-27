@@ -230,7 +230,7 @@ export default class Projectile {
       if (this.trailTimer > 1.0) {
         this.trailTimer = 0;
         if (!this.trailPositions) this.trailPositions = [];
-        this.trailPositions.push({ x: this.x, y: this.y, life: 40, maxLife: 40 }); // Made trail 2x longer
+        this.trailPositions.push({ x: this.x, y: this.y, life: 80, maxLife: 80 });
         gameInstance.spawnParticles(this.x, this.y, this.color || '#9b4dff', 1, 1.5);
       }
       if (this.trailPositions) {
