@@ -293,22 +293,9 @@ export default class Game {
     });
   }
 
-  checkHost() {
-    if (!this.net || !this.net.room || !this.net.room.users || !this.net.me || !this.net.me.info) {
-      if (this.isHost) {
-        this.isHost = false;
-        this.ui.addLog('👥 You are a Client', 'reward');
-      }
-      return;
-    }
-
-    // A player in the menu cannot be the host
-    if (this.state !== 'PLAYING') {
-      if (this.isHost) {
-        this.isHost = false;
-        this.ui.addLog('👥 You are a Client', 'reward');
-      }
-      return;
+  getDeterministicHost() {
+    if (!this.net || !this.net.room || !this.net.room.users) {
+      return null;
     }
 
     const users = Object.keys(this.net.room.users);
@@ -342,17 +329,33 @@ export default class Game {
     });
 
     if (activeUsers.length === 0) {
+      return null;
+    }
+
+    // Return the first active user based on natural server insertion order (longest time in room)
+    return activeUsers[0];
+  }
+
+  checkHost() {
+    if (!this.net || !this.net.room || !this.net.room.users || !this.net.me || !this.net.me.info) {
       if (this.isHost) {
         this.isHost = false;
+        this.ui.addLog('👥 You are a Client', 'reward');
       }
       return;
     }
 
-    // Deterministic selection: alphabetical sort
-    const hostCandidates = activeUsers.sort((a, b) => a.localeCompare(b));
-    const bestHost = hostCandidates[0];
+    // A player in the menu cannot be the host
+    if (this.state !== 'PLAYING') {
+      if (this.isHost) {
+        this.isHost = false;
+        this.ui.addLog('👥 You are a Client', 'reward');
+      }
+      return;
+    }
 
-    const isHost = bestHost === (this.net.me && this.net.me.info ? this.net.me.info.user : null);
+    const bestHost = this.getDeterministicHost();
+    const isHost = bestHost === this.net.me.info.user;
 
     if (this.isHost !== isHost) {
       this.isHost = isHost;
@@ -990,100 +993,97 @@ export default class Game {
     this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
     this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
 
-    // Attempt to inherit current room state and gameplay configuration if a host exists
+    // Inherit current room state and gameplay configuration from the deterministically computed host
     let hostFound = false;
-    if (this.net && this.net.room && this.net.room.users) {
-      for (const u in this.net.room.users) {
-        if (this.net.me && this.net.me.info && u === this.net.me.info.user) continue;
-        const uInfo = this.net.room.users[u].info;
-        if (uInfo && uInfo.disconnected !== false && uInfo.disconnected !== undefined) continue;
+    const bestHost = this.getDeterministicHost();
+    const amIHost = bestHost === (this.net && this.net.me && this.net.me.info ? this.net.me.info.user : null);
 
-        const userData = this.net.room.users[u].data;
-        if (userData && userData.isHost && userData.inGame && userData.state === 'PLAYING') {
-          hostFound = true;
-          this.isHost = false;
-          if (userData.gameplayConfig) {
-            ConfigModule.updateConfig(userData.gameplayConfig);
-            if (userData.gameplayConfigName) {
-              ConfigModule.setActivePresetName(userData.gameplayConfigName);
-            }
-            if (userData.classData) {
-              ConfigModule.updateClassData(userData.classData);
-              for (const k in userData.classData) {
-                if (userData.classData[k].icon && typeof userData.classData[k].icon === 'string') preloadFlippedImagesForAsset(userData.classData[k].icon);
-              }
-            }
-            if (userData.enemyTypes) {
-              ConfigModule.updateEnemyTypes(userData.enemyTypes);
-              for (const e of userData.enemyTypes) {
-                if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
-              }
-            }
-            if (userData.itemsDb) {
-              ConfigModule.updateItemsDb(userData.itemsDb);
-              for (const item of userData.itemsDb) {
-                if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
-              }
-            }
-            if (this.ui) {
-              if (this.ui.buildClassesTab) this.ui.buildClassesTab();
-              if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
-              if (this.ui.buildItemsTab) this.ui.buildItemsTab();
-              if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
-            }
-            this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
+    if (bestHost && !amIHost && this.net && this.net.room && this.net.room.users[bestHost]) {
+      const u = bestHost;
+      const userData = this.net.room.users[u].data;
+      if (userData && userData.inGame && userData.state === 'PLAYING') {
+        hostFound = true;
+        this.isHost = false;
+        if (userData.gameplayConfig) {
+          ConfigModule.updateConfig(userData.gameplayConfig);
+          if (userData.gameplayConfigName) {
+            ConfigModule.setActivePresetName(userData.gameplayConfigName);
           }
-          if (userData.hostData) {
-            this.wave = userData.hostData.wave || GAME_INITIAL_WAVE;
-            this.waveTotalEnemies = userData.hostData.waveTotal || GAME_INITIAL_WAVE_ENEMIES;
-            this.waveEnemiesKilled = userData.hostData.waveKilled || 0;
-            this.waveEnemiesToSpawn = userData.hostData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
-            this.bossActive = userData.hostData.bossActive || false;
-            this.selectedEnv = userData.hostData.env || ENV_LIST[0];
-            this.sessionSeed = userData.hostData.sessionSeed || 0;
-            this.prng = new PRNG(userData.hostData.seed !== undefined ? userData.hostData.seed : (this.sessionSeed + this.wave * 12345));
-            this.dropPrng = new PRNG(userData.hostData.dropSeed !== undefined ? userData.hostData.dropSeed : (this.sessionSeed + this.wave * 54321));
-
-            // Sync ground items and monsters instantly on game entry
-            if (userData.hostData.enemies) {
-              this.enemies = [];
-              userData.hostData.enemies.forEach(eData => {
-                let isBoss = eData.name === 'BOSS';
-                let spawnIndex = 0;
-                if (eData.id && eData.id.startsWith('E_')) {
-                  const parts = eData.id.split('_');
-                  if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
-                }
-                const e = new Enemy(this, isBoss, false, spawnIndex);
-                e.id = eData.id;
-                if (eData.id && eData.id.startsWith('M_')) {
-                  e.name = 'MISSILE';
-                  e.icon = '🚀';
-                  e.size = 20;
-                  e.color = '#e74c3c';
-                }
-                e.x = eData.x || e.x;
-                e.y = eData.y || e.y;
-                e.serverX = eData.x || e.x;
-                e.serverY = eData.y || e.y;
-                e.hp = eData.hp;
-                e.maxHp = eData.maxHp;
-                e.alive = eData.alive;
-                e.name = eData.name;
-                e.size = eData.size;
-                if (eData.bossState !== undefined) e.bossState = eData.bossState;
-                if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
-                if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
-                if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
-                if (eData.deathTime) e.deathTime = eData.deathTime;
-                this.enemies.push(e);
-              });
-            }
-            if (userData.hostData.items) {
-              this.items = userData.hostData.items.map(item => ({ ...item }));
+          if (userData.classData) {
+            ConfigModule.updateClassData(userData.classData);
+            for (const k in userData.classData) {
+              if (userData.classData[k].icon && typeof userData.classData[k].icon === 'string') preloadFlippedImagesForAsset(userData.classData[k].icon);
             }
           }
-          break;
+          if (userData.enemyTypes) {
+            ConfigModule.updateEnemyTypes(userData.enemyTypes);
+            for (const e of userData.enemyTypes) {
+              if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
+            }
+          }
+          if (userData.itemsDb) {
+            ConfigModule.updateItemsDb(userData.itemsDb);
+            for (const item of userData.itemsDb) {
+              if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
+            }
+          }
+          if (this.ui) {
+            if (this.ui.buildClassesTab) this.ui.buildClassesTab();
+            if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
+            if (this.ui.buildItemsTab) this.ui.buildItemsTab();
+            if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
+          }
+          this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
+        }
+        if (userData.hostData) {
+          this.wave = userData.hostData.wave || GAME_INITIAL_WAVE;
+          this.waveTotalEnemies = userData.hostData.waveTotal || GAME_INITIAL_WAVE_ENEMIES;
+          this.waveEnemiesKilled = userData.hostData.waveKilled || 0;
+          this.waveEnemiesToSpawn = userData.hostData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
+          this.bossActive = userData.hostData.bossActive || false;
+          this.selectedEnv = userData.hostData.env || ENV_LIST[0];
+          this.sessionSeed = userData.hostData.sessionSeed || 0;
+          this.prng = new PRNG(userData.hostData.seed !== undefined ? userData.hostData.seed : (this.sessionSeed + this.wave * 12345));
+          this.dropPrng = new PRNG(userData.hostData.dropSeed !== undefined ? userData.hostData.dropSeed : (this.sessionSeed + this.wave * 54321));
+
+          // Sync ground items and monsters instantly on game entry
+          if (userData.hostData.enemies) {
+            this.enemies = [];
+            userData.hostData.enemies.forEach(eData => {
+              let isBoss = eData.name === 'BOSS';
+              let spawnIndex = 0;
+              if (eData.id && eData.id.startsWith('E_')) {
+                const parts = eData.id.split('_');
+                if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+              }
+              const e = new Enemy(this, isBoss, false, spawnIndex);
+              e.id = eData.id;
+              if (eData.id && eData.id.startsWith('M_')) {
+                e.name = 'MISSILE';
+                e.icon = '🚀';
+                e.size = 20;
+                e.color = '#e74c3c';
+              }
+              e.x = eData.x || e.x;
+              e.y = eData.y || e.y;
+              e.serverX = eData.x || e.x;
+              e.serverY = eData.y || e.y;
+              e.hp = eData.hp;
+              e.maxHp = eData.maxHp;
+              e.alive = eData.alive;
+              e.name = eData.name;
+              e.size = eData.size;
+              if (eData.bossState !== undefined) e.bossState = eData.bossState;
+              if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
+              if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
+              if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
+              if (eData.deathTime) e.deathTime = eData.deathTime;
+              this.enemies.push(e);
+            });
+          }
+          if (userData.hostData.items) {
+            this.items = userData.hostData.items.map(item => ({ ...item }));
+          }
         }
       }
     }
