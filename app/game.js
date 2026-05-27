@@ -3405,6 +3405,33 @@ export default class Game {
         this.ui.updateTargetPanel(currentTarget, isHover);
       }
 
+      // Update Game Time Display
+      const timeContainer = document.getElementById('game-time-container');
+      const timeDisplay = document.getElementById('game-time-display');
+      if (timeContainer && timeDisplay && this.gameStartTime > 0) {
+        const elapsed = Date.now() - this.gameStartTime;
+        const totalSec = Math.floor(elapsed / 1000);
+        const s = totalSec % 60;
+        const m = Math.floor(totalSec / 60) % 60;
+        const h = Math.floor(totalSec / 3600) % 24;
+        const d = Math.floor(totalSec / 86400) % 365;
+        const y = Math.floor(totalSec / 31536000);
+        
+        let timeStr = '';
+        if (y > 0) timeStr += `${y}a `;
+        if (d > 0 || y > 0) timeStr += `${d}z `;
+        if (h > 0 || d > 0 || y > 0) timeStr += `${h}h `;
+        if (m > 0 || h > 0 || d > 0 || y > 0) timeStr += `${m}m `;
+        timeStr += `${s}s`;
+        
+        if (timeDisplay.textContent !== timeStr) {
+          timeDisplay.textContent = timeStr;
+        }
+        timeContainer.style.display = 'flex';
+      } else if (timeContainer) {
+        timeContainer.style.display = 'none';
+      }
+
       this.ctx.restore();
     }
     this.renderWebGL();
