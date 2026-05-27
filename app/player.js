@@ -156,6 +156,13 @@ export default class Player {
 
   updateFromNetwork() {
     if (this.input_data) {
+      if (this.input_data.inGame !== undefined) {
+        if (!this.inGame && this.input_data.inGame) {
+          // Transitioning from menu to game: reset snap flag so they teleport to new spawn
+          this.hasReceivedFirstPosition = false;
+        }
+        this.inGame = this.input_data.inGame;
+      }
       if (this.input_data.nick !== undefined) this.nick = this.input_data.nick;
       if (this.input_data.x !== undefined) this.targetX = this.input_data.x;
       if (this.input_data.y !== undefined) this.targetY = this.input_data.y;
@@ -175,13 +182,6 @@ export default class Player {
         const cd = CLASS_DATA[this.classType];
         this.color = cd.color;
         this.accent = cd.accent;
-      }
-      if (this.input_data.inGame !== undefined) {
-        if (!this.inGame && this.input_data.inGame) {
-          // Transitioning from menu to game: reset snap flag so they teleport to new spawn
-          this.hasReceivedFirstPosition = false;
-        }
-        this.inGame = this.input_data.inGame;
       }
       if (this.input_data.state !== undefined) this.state = this.input_data.state;
       if (this.input_data.alive !== undefined) this.alive = this.input_data.alive;
