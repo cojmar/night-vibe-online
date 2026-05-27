@@ -48,7 +48,15 @@ export default class Player {
     this.inventory = []; // Unlimited grid items
     this.equipment = {}; // Key-value for equipped gear (key = slot name)
     if (isLocal) {
-      this.inventory = [];
+      try {
+        const savedInv = localStorage.getItem('nightvibe-inventory');
+        if (savedInv) this.inventory = JSON.parse(savedInv);
+        const savedEq = localStorage.getItem('nightvibe-equipment');
+        if (savedEq) this.equipment = JSON.parse(savedEq);
+      } catch (e) {
+        this.inventory = [];
+        this.equipment = {};
+      }
     }
 
     // Smooth movement for remote players - stores target position

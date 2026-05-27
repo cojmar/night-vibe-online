@@ -1395,8 +1395,8 @@ export default class Game {
   saveLocalProgression() {
     if (!this.player) return;
     localStorage.setItem('nightvibe-resets', this.player.resets || 0);
-    localStorage.removeItem('nightvibe-inventory');
-    localStorage.removeItem('nightvibe-equipment');
+    localStorage.setItem('nightvibe-inventory', JSON.stringify(this.player.inventory || []));
+    localStorage.setItem('nightvibe-equipment', JSON.stringify(this.player.equipment || {}));
   }
 
   quitToMenu() {
