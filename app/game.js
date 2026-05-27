@@ -428,6 +428,10 @@ export default class Game {
       if (!this.prng) this.prng = new PRNG(hostData.seed);
       else this.prng.seed = hostData.seed;
     }
+    if (hostData.dropSeed !== undefined) {
+      if (!this.dropPrng) this.dropPrng = new PRNG(hostData.dropSeed);
+      else this.dropPrng.seed = hostData.dropSeed;
+    }
 
     if (this.wave !== hostData.wave && hostData.wave) {
       if (this.player && !this.player.alive) {
@@ -1027,6 +1031,7 @@ export default class Game {
     this.ui.recentLogs = [];
     this.sessionSeed = Math.floor(Math.random() * 2000000000);
     this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
+    this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
 
     // Attempt to inherit current room state and gameplay configuration if a host exists
     let hostFound = false;
@@ -1080,6 +1085,7 @@ export default class Game {
             this.selectedEnv = userData.hostData.env || ENV_LIST[0];
             this.sessionSeed = userData.hostData.sessionSeed || 0;
             this.prng = new PRNG(userData.hostData.seed !== undefined ? userData.hostData.seed : (this.sessionSeed + this.wave * 12345));
+            this.dropPrng = new PRNG(userData.hostData.dropSeed !== undefined ? userData.hostData.dropSeed : (this.sessionSeed + this.wave * 54321));
 
             // Sync ground items and monsters instantly on game entry
             if (userData.hostData.enemies) {
@@ -1809,7 +1815,7 @@ export default class Game {
     }
     if (this.isHost) {
       data.hostData = {
-        wave: this.wave, kills: this.kills, seed: this.prng.seed, sessionSeed: this.sessionSeed, env: this.selectedEnv, time: this.globalTime,
+        wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv, time: this.globalTime,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
           id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
@@ -2493,16 +2499,16 @@ export default class Game {
           const groundY = getGroundY(this.selectedEnv);
 
           if (e.name !== 'MISSILE' && e.name !== 'BOMB') {
-            if (Math.random() < ConfigModule.POTION_RED_DROP_CHANCE) {
+            if (this.dropPrng.nextFloat() < ConfigModule.POTION_RED_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + Math.random() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
             }
 
-            if (Math.random() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
+            if (this.dropPrng.nextFloat() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + Math.random() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: Math.random().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
             }
           }
 
@@ -2510,9 +2516,9 @@ export default class Game {
             // boss projectiles don't drop gear
           } else if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
             // do nothing
-          } else if (Math.random() < ConfigModule.GEAR_DROP_RATE) {
+          } else if (this.dropPrng.nextFloat() < ConfigModule.GEAR_DROP_RATE) {
             let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
-            let randRarity = Math.random();
+            let randRarity = this.dropPrng.nextFloat();
             const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
             const rareThreshold = ConfigModule.GEAR_RARITY_RARE / totalWeight;
             const magicThreshold = rareThreshold + (ConfigModule.GEAR_RARITY_MAGIC / totalWeight);
@@ -2524,7 +2530,7 @@ export default class Game {
             const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
             const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
             const variance = ConfigModule.GEAR_STAT_VARIANCE;
-            const finalStat = Math.floor(baseStat * (1 - variance + Math.random() * variance * 2));
+            const finalStat = Math.floor(baseStat * (1 - variance + this.dropPrng.nextFloat() * variance * 2));
 
             let stats = {}; let icon = '💎';
             let category = 'Ring'; let itemName = 'Unknown Item';
@@ -2533,7 +2539,7 @@ export default class Game {
             if (useCustom) {
               const matchingItems = ConfigModule.ITEMS_DB.filter(item => (item.rarity || 'normal') === rarity);
               const templateList = matchingItems.length > 0 ? matchingItems : ConfigModule.ITEMS_DB;
-              const template = templateList[Math.floor(Math.random() * templateList.length)];
+              const template = templateList[Math.floor(this.dropPrng.nextFloat() * templateList.length)];
               category = template.gearType;
               itemName = template.name;
               icon = template.icon;
@@ -2554,7 +2560,7 @@ export default class Game {
               }
             } else {
               const categories = ['Weapon', 'Armor', 'Ring'];
-              category = categories[Math.floor(Math.random() * categories.length)];
+              category = categories[Math.floor(this.dropPrng.nextFloat() * categories.length)];
               if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
               else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
               else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
@@ -2563,7 +2569,7 @@ export default class Game {
               let affixesAdded = 1; let sanity = 0;
               while (affixesAdded < numAffixes && sanity < 10) {
                 sanity++;
-                let randAffix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
+                let randAffix = possibleAffixes[Math.floor(this.dropPrng.nextFloat() * possibleAffixes.length)];
                 if (!stats[randAffix]) {
                   if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
                   if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
@@ -2572,13 +2578,13 @@ export default class Game {
                 }
               }
               const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
-              itemName = `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${category}`;
+              itemName = `${prefixes[Math.floor(this.dropPrng.nextFloat() * prefixes.length)]} ${category}`;
             }
 
 
-            const dropY = groundY + 20 + Math.random() * Math.min(250, this.gameH - groundY - 40);
+            const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
             this.items.push({
-              id: Math.random().toString(36).substr(2, 9),
+              id: this.dropPrng.nextFloat().toString(36).substr(2, 9),
               type: 'gear', gearType: category, rarity: rarity, color: color,
               name: itemName, stats: stats, icon: icon,
               x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
@@ -3208,6 +3214,8 @@ export default class Game {
             if (this.player && !this.player.alive) this.respawnPlayer();
             this.wave++;
             this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
+            this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
+            this.waveEnemiesKilled = 0;
             this.generateScenery();
 
             if (this.state === 'MENU') {
