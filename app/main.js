@@ -164,10 +164,21 @@ window.app = new class {
                     lastLobbyHtml = html;
                 }
 
+                function updateMenuStats(resets, statpoints) {
+                    const resetsVal = document.getElementById('menu-resets-val');
+                    if (resetsVal) resetsVal.textContent = resets || 0;
+                    const statpointsVal = document.getElementById('menu-statpoints-val');
+                    if (statpointsVal) statpointsVal.textContent = statpoints || 0;
+                }
+
+                const savedResets = parseInt(localStorage.getItem('nightvibe-resets'), 10) || 0;
+                const savedStatpoints = parseInt(localStorage.getItem('nightvibe-statpoints'), 10) || 0;
+                updateMenuStats(savedResets, savedStatpoints);
+
                 if (myUid && this.net.room.users[myUid] && this.net.room.users[myUid].data) {
                     const myResets = this.net.room.users[myUid].data.resets || 0;
-                    const menuResets = document.getElementById('menu-resets-display');
-                    if (menuResets) menuResets.textContent = `🔄 Resets: ${myResets}`;
+                    const myStatpoints = this.net.room.users[myUid].data.bonusStatPoints || this.net.room.users[myUid].data.statPoints || savedStatpoints;
+                    updateMenuStats(myResets, myStatpoints);
                 }
             }
         }, 1000);

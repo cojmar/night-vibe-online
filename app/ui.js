@@ -3233,6 +3233,9 @@ export default class UI {
         const resetsVal = document.getElementById('stat-resets-val');
         if (resetsVal) resetsVal.textContent = player.resets || 0;
 
+        const statpointsVal = document.getElementById('stat-statpoints-val');
+        if (statpointsVal) statpointsVal.textContent = player.bonusStatPoints || 0;
+
         const reqLevel = ConfigModule.REBIRTH_BASE_LEVEL + (player.resets || 0) * ConfigModule.REBIRTH_LEVEL_STEP;
 
         const capWarning = document.getElementById('stat-level-cap-warning');
