@@ -1351,11 +1351,24 @@ export default class Game {
 
     this.ui.addLog('🎮 Returned to character selection!', 'player');
 
-    // Broadcast leaving the game
+    // Broadcast leaving the game and thoroughly clean up our network state so old data isn't deep-merged next time we join
     if (this.net && this.net.me) {
       this._resetSessionData();
       this.isHost = false;
-      this.net.send_cmd('set_data', { inGame: false, state: 'MENU', isHost: false });
+      this.net.send_cmd('set_data', { 
+        inGame: false, 
+        state: 'MENU', 
+        isHost: false,
+        hostData: false,
+        hits: false,
+        syncProjectiles: false,
+        spawnedProjectile: false,
+        enemyHitPlayer: false,
+        gameplayConfig: false,
+        classData: false,
+        enemyTypes: false,
+        itemsDb: false
+      });
     }
 
     this.checkHost();
