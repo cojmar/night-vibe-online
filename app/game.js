@@ -1422,6 +1422,16 @@ export default class Game {
   }
 
   quitToMenu() {
+    // Auto-rebirth logic if eligible
+    if (this.player) {
+      const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
+      if (this.player.level >= reqLevel) {
+        this.ui.addLog(`✨ Auto-Rebirth applied! (+${this.player.level * REBIRTH_POINTS_PER_LEVEL} Stats)`, 'reward');
+        this.performRebirth();
+        return; // performRebirth calls quitToMenu again, so we stop here
+      }
+    }
+
     if (this.ui && this.ui.saveLastGameConfig) {
       this.ui.saveLastGameConfig();
     }
