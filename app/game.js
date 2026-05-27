@@ -1047,6 +1047,7 @@ export default class Game {
     
     // Set our game start time using a real chronological timestamp to prevent host stealing
     this.gameStartTime = Date.now();
+    this.hostGameStartTime = 0;
 
     // Inherit current room state and gameplay configuration from the deterministically computed host
     let hostFound = false;
@@ -1354,9 +1355,7 @@ export default class Game {
     target.sessionStatPoints = savedStatPoints;
     target.levelUpStatPoints = 0;
 
-    // Inventory and Equipment are strictly session-based and are lost on return to menu
-    target.inventory = [];
-    target.equipment = {};
+    // Inventory and Equipment are loaded in Player constructor
 
     if (!myData) return;
 
@@ -1445,6 +1444,7 @@ export default class Game {
       this._resetSessionData();
       this.isHost = false;
       this.gameStartTime = 0;
+      this.hostGameStartTime = 0;
       this.lastBroadcastStr = {}; // Clear delta cache so next join sends a full packet
       this.net.send_cmd('set_data', { 
         inGame: false, 
@@ -1884,7 +1884,7 @@ export default class Game {
     }
     if (this.isHost) {
       data.hostData = {
-        gameStartTime: this.gameStartTime,
+        gameStartTime: this.hostGameStartTime || this.gameStartTime,
         wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
@@ -2323,7 +2323,12 @@ export default class Game {
     if (this.state === 'PLAYING') {
       const dt = this.lastTime ? Math.min((time - this.lastTime) / 16.67, 3) : 1;
       this.lastTime = time;
-      this.globalTime += dt * 0.016;
+      const effectiveStartTime = this.hostGameStartTime || this.gameStartTime;
+      if (effectiveStartTime > 0) {
+        this.globalTime = (Date.now() - effectiveStartTime) / 1000;
+      } else {
+        this.globalTime += dt * 0.016;
+      }
 
       this.frameCount = (this.frameCount || 0) + 1;
       const now = Date.now();
@@ -3412,7 +3417,6 @@ export default class Game {
       // Update Game Time Display
       const timeContainer = document.getElementById('game-time-container');
       const timeDisplay = document.getElementById('game-time-display');
-      const effectiveStartTime = this.hostGameStartTime || this.gameStartTime;
       if (timeContainer && timeDisplay && effectiveStartTime > 0) {
         const elapsed = Date.now() - effectiveStartTime;
         const totalSec = Math.floor(elapsed / 1000);

@@ -176,8 +176,8 @@ window.app = new class {
                 updateMenuStats(savedResets, savedStatpoints);
 
                 if (myUid && this.net.room.users[myUid] && this.net.room.users[myUid].data) {
-                    const myResets = this.net.room.users[myUid].data.resets || 0;
-                    const myStatpoints = this.net.room.users[myUid].data.bonusStatPoints || this.net.room.users[myUid].data.statPoints || savedStatpoints;
+                    const myResets = this.net.room.users[myUid].data.resets !== undefined ? this.net.room.users[myUid].data.resets : savedResets;
+                    const myStatpoints = this.net.room.users[myUid].data.bonusStatPoints !== undefined ? this.net.room.users[myUid].data.bonusStatPoints : (this.net.room.users[myUid].data.statPoints !== undefined ? this.net.room.users[myUid].data.statPoints : savedStatpoints);
                     updateMenuStats(myResets, myStatpoints);
                 }
             }
