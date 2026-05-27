@@ -72,8 +72,12 @@ export default class {
 				break
 			case 'room.user_data':
 				if (data.user && this.room && this.room.users[data.user]) {
+					if (!this.room.users[data.user].data) this.room.users[data.user].data = {};
 					this.do_merge(this.room.users[data.user].data, data.data);
-					if (data.user === this.room.me && this.me) this.do_merge(this.me.data, data.data);
+					if (data.user === this.room.me && this.me) {
+						if (!this.me.data) this.me.data = {};
+						this.do_merge(this.me.data, data.data);
+					}
 				}
 				break
 			case 'room.data':

@@ -160,7 +160,7 @@ export default class Game {
         const oldIsHost = this.otherPlayers[data.user].isHost;
         const oldHitFlash = this.otherPlayers[data.user].hitFlash || 0;
 
-        this.otherPlayers[data.user].set(data.data);
+        this.otherPlayers[data.user].set(fullData);
 
         if (data.data.hitFlash !== undefined && data.data.hitFlash > oldHitFlash) {
           this.spawnDamageParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y);
