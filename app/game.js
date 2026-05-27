@@ -124,7 +124,7 @@ export default class Game {
       }
 
       if (this.net.me && data.user !== this.net.me.info.user) {
-        const fullData = this.net.room.users[data.user] ? this.net.room.users[data.user].data : data.data;
+        const fullData = (this.net.room.users[data.user] && this.net.room.users[data.user].data) ? this.net.room.users[data.user].data : data.data;
         if (!this.otherPlayers[data.user]) {
           // Default spawn for other players
           this.otherPlayers[data.user] = new Player(data.user, false, fullData.classType || 'warrior', fullData.x || this.gameW / 2, fullData.y || (getGroundY(this.selectedEnv) + this.gameH) / 2);
