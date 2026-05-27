@@ -197,10 +197,11 @@ export default class Projectile {
         this.retargetTimer = 0;
         let nearest = null;
         let nearDist = Infinity;
+        const maxTargetRange = Math.hypot(gameInstance.gameW, gameInstance.gameH) * 20;
         for (let e of gameInstance.enemies) {
           if (!e.alive || this.hitIds.has(e)) continue;
           const d = Math.hypot(e.x - this.x, e.y - this.y);
-          if (d < nearDist) {
+          if (d < nearDist && d <= maxTargetRange) {
             nearDist = d;
             nearest = e;
           }
