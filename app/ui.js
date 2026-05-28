@@ -2990,7 +2990,7 @@ export default class UI {
             `<div class="ctrl-line"><span class="ctrl-label">S1 Scale:</span> ${((s1Scale - 1) * 100).toFixed(0)}% — scales with ATK upgrades</div>` +
             `<div class="ctrl-line"><span class="ctrl-label">S2 AOE:</span> ${((aoeScale - 1) * 100).toFixed(0)}% — scales with SPD stat</div>` +
             `<div class="ctrl-line"><span class="ctrl-label">S2 CD:</span> ${baseS2Cooldown}ms base — reduced by SPD stat</div>` +
-            `<div class="ctrl-line"><span class="ctrl-label">Armor:</span> ${armor} (reduces incoming damage by ${dmgReduction}%) — based on HP</div>` +
+            `<div class="ctrl-line"><span class="ctrl-label">Armor:</span> ${armor} (reduces dmg by ${dmgReduction}%) — based on HP + Body Size</div>` +
             `</div>` +
             `<div style="margin-top:6px; border-top:1px solid #4a4a6a; padding-top:6px;">` +
             `<div class="ctrl-line"><span class="ctrl-label">Combat:</span> Left-click enemies to attack, left-click ground to move</div>` +
@@ -3168,9 +3168,18 @@ export default class UI {
         document.getElementById('stat-cd-val').textContent = (cdMs / 1000).toFixed(1) + 's';
         document.getElementById('stat-cd-red').textContent = red.toFixed(1);
 
-        // Armor
+        // Armor and Total Reduction
         const armor = Math.floor(player.maxHp / 10);
-        const dmgRed = (armor * 0.5).toFixed(1);
+        const armorRed = armor * 0.005;
+
+        const reqLevel = ConfigModule.REBIRTH_BASE_LEVEL + (player.resets || 0) * ConfigModule.REBIRTH_LEVEL_STEP;
+        const rawLvlScale = 0.5 + 0.5 * ((player.level - 1) / Math.max(1, reqLevel - 1));
+        const lvlScale = Math.min(1.0, Math.max(0.5, rawLvlScale));
+        const sizeReduction = lvlScale - 0.5;
+
+        const totalReduction = Math.min(0.9, armorRed + sizeReduction);
+        const dmgRed = (totalReduction * 100).toFixed(1);
+
         document.getElementById('stat-armor-val').textContent = armor;
         document.getElementById('stat-armor-red').textContent = dmgRed;
 
@@ -3203,8 +3212,6 @@ export default class UI {
 
         const statpointsVal = document.getElementById('stat-statpoints-val');
         if (statpointsVal) statpointsVal.textContent = player.bonusStatPoints || 0;
-
-        const reqLevel = ConfigModule.REBIRTH_BASE_LEVEL + (player.resets || 0) * ConfigModule.REBIRTH_LEVEL_STEP;
 
         const capWarning = document.getElementById('stat-level-cap-warning');
         if (capWarning) {

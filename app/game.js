@@ -2039,9 +2039,16 @@ export default class Game {
   dealDamageToPlayer(damage) {
     if (!this.player || !this.player.alive) return;
 
+    const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
+    const rawLvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
+    const lvlScale = Math.min(1.0, Math.max(0.5, rawLvlScale));
+    const sizeReduction = lvlScale - 0.5; // Scales from 0 to 0.50 (50%)
+
     const armor = Math.floor(this.player.maxHp / 10);
-    const reductionRatio = Math.min(0.9, armor * 0.005);
-    const actualDamage = Math.max(1, Math.round(damage * (1 - reductionRatio)));
+    const armorReduction = armor * 0.005;
+    
+    const totalReduction = Math.min(0.9, armorReduction + sizeReduction);
+    const actualDamage = Math.max(1, Math.round(damage * (1 - totalReduction)));
 
     this.player.hp -= actualDamage;
     this.player.hitFlash = 15;
