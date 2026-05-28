@@ -184,7 +184,9 @@ export default class Enemy {
 
           // Collision radius is now exactly this.size * 0.125 + player radius
           if (Math.hypot(p.x - projX, p.y - projY) < this.size * 0.125 + (p.size || 15)) {
-            if (this.game.isHost) {
+            if (p.isLocal) {
+              this.game.dealDamageToPlayer(damageThisFrame);
+            } else if (this.game.isHost) {
               p.hp -= damageThisFrame;
               if (p.hp <= 0) { p.hp = 0; p.alive = false; }
             }
