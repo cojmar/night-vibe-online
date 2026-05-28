@@ -1968,12 +1968,12 @@ export default class Game {
       state: this.state,
       nick: this.player.nick,
       alive: this.player.alive,
-      x: parseFloat(this.player.x.toFixed(1)),
-      y: parseFloat(this.player.y.toFixed(1)),
-      hp: Math.floor(this.player.hp),
-      maxHp: Math.floor(this.player._maxHp),
-      atk: Math.floor(this.player._atk),
-      spd: Math.floor(this.player._spd),
+      x: this.player.x,
+      y: this.player.y,
+      hp: this.player.hp,
+      maxHp: this.player._maxHp,
+      atk: this.player._atk,
+      spd: this.player._spd,
       level: this.player.level,
       resets: this.player.resets,
       kills: this.player.kills,
@@ -1982,7 +1982,7 @@ export default class Game {
       aimAngle: computedAimAngle,
       action: this.player.action,
       classType: this.player.classType,
-      hitFlash: Math.max(0, parseFloat(this.player.hitFlash.toFixed(1))),
+      hitFlash: this.player.hitFlash,
       lastInputTime: this.player.lastInputTime || 0,
       lastSkill: this.player.lastSkill || 1,
       isChargingS2: this.player.isChargingS2,
@@ -1991,6 +1991,7 @@ export default class Game {
       targetedItemId: this.player.targetedItemId,
       // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
     };
+
 
     if (this.pendingHits && this.pendingHits.length > 0) {
       data.hits = this.pendingHits;
@@ -2002,10 +2003,10 @@ export default class Game {
         wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
-          id: e.id, x: parseFloat(e.x.toFixed(1)), y: parseFloat(e.y.toFixed(1)), hp: Math.floor(e.hp), maxHp: Math.floor(e.maxHp), alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
+          id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
         })),
         items: this.items.map(i => ({
-          id: i.id, type: i.type, x: parseFloat(i.x.toFixed(1)), y: parseFloat(i.y.toFixed(1)), name: i.name, color: i.color, rarity: i.rarity,
+          ...i,
           icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
         }))
       };
