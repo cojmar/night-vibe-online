@@ -61,7 +61,7 @@ const FALLBACK_DEFAULTS = {
 
   // 8. Boss Balance
   BOSS_BASE_HP: 350,
-  BOSS_BASE_ATK: 22,
+  BOSS_BASE_ATK: 20,
   BOSS_BASE_SPEED: 0.25,
   BOSS_BASE_SIZE: 52,
   BOSS_BASE_SIZE_MULT: 1.0,
@@ -409,10 +409,10 @@ export const PLAYER_MOVE_SPEEDS = {
 };
 
 export const FALLBACK_CLASS_DATA = {
-  warrior: { name: 'Warrior', icon: '⚔️', hp: 120, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
-  mage: { name: 'Mage', icon: '🔮', hp: 80, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
-  archer: { name: 'Archer', icon: '🏹', hp: 70, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
-  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 140, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Evil Spirits', s2Color: '#4dff00', bodyType: 'magicgladiator' }
+  warrior: { name: 'Warrior', icon: '⚔️', hp: 170, mp: 40, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c', s1Name: 'Bash', s1Color: '#d4af37', s2Name: 'Sword Slash', s2Color: '#ffd700', bodyType: 'warrior' },
+  mage: { name: 'Mage', icon: '🔮', hp: 130, mp: 120, atk: 18, spd: 14, color: '#2980b9', accent: '#3498db', s1Name: 'Magic Bolt', s1Color: '#3498db', s2Name: 'Fireball', s2Color: '#e67e22', bodyType: 'mage' },
+  archer: { name: 'Archer', icon: '🏹', hp: 120, mp: 60, atk: 24, spd: 18, color: '#27ae60', accent: '#2ecc71', s1Name: 'Quick Shot', s1Color: '#f1c40f', s2Name: 'Arrow Barrage', s2Color: '#e74c3c', bodyType: 'archer' },
+  magicgladiator: { name: 'Magic Gladiator', icon: '✨', hp: 190, mp: 80, atk: 26, spd: 6, color: '#8e44ad', accent: '#9b59b6', s1Name: 'Psionic Slash', s1Color: '#e74c3c', s2Name: 'Evil Spirits', s2Color: '#4dff00', bodyType: 'magicgladiator' }
 };
 
 export const CLASS_DATA = JSON.parse(JSON.stringify(FALLBACK_CLASS_DATA));
@@ -430,14 +430,14 @@ try {
 }
 
 export const FALLBACK_ENEMY_TYPES = [
-  { name: 'Slime', icon: '🟢', hp: 60, atk: 5, color: '#2ecc71', speed: 0.4, size: 20 },
-  { name: 'Goblin', icon: '👺', hp: 90, atk: 8, color: '#8b0000', speed: 0.7, size: 22 },
-  { name: 'Skeleton', icon: '💀', hp: 110, atk: 10, color: '#dfe6e9', speed: 0.5, size: 24 },
-  { name: 'Orc', icon: '👹', hp: 160, atk: 14, color: '#c0392b', speed: 0.35, size: 28 },
-  { name: 'Ghost', icon: '👻', hp: 80, atk: 12, color: '#dfe6e9', speed: 0.9, size: 22 },
-  { name: 'Demon', icon: '🔥', hp: 200, atk: 18, color: '#dc3545', speed: 0.55, size: 26 },
-  { name: 'Dragon', icon: '🐉', hp: 300, atk: 22, color: '#e67e22', speed: 0.3, size: 32 },
-  { name: 'Lich', icon: '🧙', hp: 240, atk: 20, color: '#8e44ad', speed: 0.45, size: 26 },
+  { name: 'Slime', icon: '🟢', hp: 60, atk: 4, color: '#2ecc71', speed: 0.4, size: 20 },
+  { name: 'Goblin', icon: '👺', hp: 90, atk: 7, color: '#8b0000', speed: 0.7, size: 22 },
+  { name: 'Skeleton', icon: '💀', hp: 110, atk: 9, color: '#dfe6e9', speed: 0.5, size: 24 },
+  { name: 'Orc', icon: '👹', hp: 160, atk: 13, color: '#c0392b', speed: 0.35, size: 28 },
+  { name: 'Ghost', icon: '👻', hp: 80, atk: 11, color: '#dfe6e9', speed: 0.9, size: 22 },
+  { name: 'Demon', icon: '🔥', hp: 200, atk: 16, color: '#dc3545', speed: 0.55, size: 26 },
+  { name: 'Dragon', icon: '🐉', hp: 300, atk: 20, color: '#e67e22', speed: 0.3, size: 32 },
+  { name: 'Lich', icon: '🧙', hp: 240, atk: 18, color: '#8e44ad', speed: 0.45, size: 26 },
 ];
 
 export const ENEMY_TYPES = JSON.parse(JSON.stringify(FALLBACK_ENEMY_TYPES));

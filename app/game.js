@@ -704,6 +704,7 @@ export default class Game {
       if (this.state !== 'PLAYING' || !this.player) return;
       if (e.button === 0) {
         e.preventDefault();
+        clearInterval(this.leftClickInterval); // FIX: clear previous interval
         const p = this.toGameCoords(e.clientX, e.clientY);
         this.player.mouseX = p.x;
         this.player.mouseY = p.y;
@@ -720,15 +721,14 @@ export default class Game {
         const p = this.toGameCoords(e.clientX, e.clientY);
         this.player.mouseX = p.x;
         this.player.mouseY = p.y;
-        if (!this.s2HoldTimer) {
-          this.s2HoldTimer = setTimeout(() => {
-            if (this.state === 'PLAYING' && this.mouseDown && this.player && this.s2Cooldown <= 0) {
-              this.player.s2HoldStartTime = Date.now();
-              this.startChargingSkill2();
-            }
-            this.s2HoldTimer = null;
-          }, 300);
-        }
+        if (this.s2HoldTimer) clearTimeout(this.s2HoldTimer); // FIX: clear previous timeout
+        this.s2HoldTimer = setTimeout(() => {
+          if (this.state === 'PLAYING' && this.mouseDown && this.player && this.s2Cooldown <= 0) {
+            this.player.s2HoldStartTime = Date.now();
+            this.startChargingSkill2();
+          }
+          this.s2HoldTimer = null;
+        }, 300);
       }
     });
 
@@ -762,8 +762,29 @@ export default class Game {
     });
 
     this.canvas.addEventListener('mouseleave', (e) => {
+      clearInterval(this.leftClickInterval);
+      this.mouseDown = false;
+      if (this.s2HoldTimer) {
+        clearTimeout(this.s2HoldTimer);
+        this.s2HoldTimer = null;
+      }
+      if (this.player && this.player.isChargingS2) {
+        this.releaseSkill2();
+      }
+    });
+
+    // Also attach to window mouseup to catch releases outside canvas
+    window.addEventListener('mouseup', (e) => {
       if (this.state !== 'PLAYING') return;
       clearInterval(this.leftClickInterval);
+      this.mouseDown = false;
+      if (this.s2HoldTimer) {
+        clearTimeout(this.s2HoldTimer);
+        this.s2HoldTimer = null;
+      }
+      if (this.player && this.player.isChargingS2) {
+        this.releaseSkill2();
+      }
     });
 
     document.addEventListener('contextmenu', (e) => {
@@ -823,11 +844,11 @@ export default class Game {
         this.startChargingSkill2();
       }, 400);
 
-      // Only do S1/walk if we didn't just release S2. We will just trigger it anyway for now,
-      // but maybe if we are charging we shouldn't. startChargingSkill2 handles stopping walk.
       this.handleLeftClick(pos.x, pos.y);
+      clearInterval(this.touchLeftClickInterval); // FIX: clear previous interval
       touchLeftClickTimer = setTimeout(() => {
         if (!touchActive) return;
+        clearInterval(this.touchLeftClickInterval); // FIX: double check clear
         const interval = setInterval(() => {
           if (!touchActive || this.player.isChargingS2) {
             clearInterval(interval);
