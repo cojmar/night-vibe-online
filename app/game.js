@@ -1771,6 +1771,7 @@ export default class Game {
     this.player.autoAttackTarget = null;
     this.player.targetedItemId = null;
     this.player.stopWalking(this);
+    if (!this.player || !this.player.alive || this.s2Cooldown > 0) return;
     this.player.isChargingS2 = true;
     this.player.s2ChargeTime = 0;
     this.player.s2ChargeCount = 0;
@@ -1880,42 +1881,53 @@ export default class Game {
       this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
     } else if (skillType === 'Evil Spirits' || this.player.classType === 'magicgladiator') {
       const existingSpirits = this.projectiles.filter(p => p.type === 'spirit').length;
-      const baseCount = 8 + charges * 4;
-      const spdDiff = Math.max(0, this.player.spd - baseSpd);
-      const boost = Math.floor(baseCount * (spdDiff / (1000 - baseSpd)));
-      const spiritCount = Math.min(baseCount + boost, 25 - existingSpirits);
+      
+      const totalSpd = this.player.spd;
+      const spdRatioCount = Math.min(1, Math.max(0, (totalSpd - baseSpd) / Math.max(1, 200 - baseSpd)));
+      
+      const targetCount = 1 + Math.floor(3 * spdRatioCount) + charges * (1 + Math.floor(1.5 * spdRatioCount));
+      const spiritCount = Math.min(targetCount, 25 - existingSpirits);
+      
       const spiritDamage = this.player.atk * 0.8 * dmgMulti;
       const spiritRadius = Math.min(20, 10 + charges * 1.5);
-      const spiritLife = Math.round(90 + charges * 15);
+      
+      const lifeScaleBase = 30 + Math.max(0, totalSpd - baseSpd) * (60 / Math.max(1, 200 - baseSpd));
+      const spiritLife = Math.round(lifeScaleBase + charges * 15);
       const spiritColor = cd.s2Color || '#ffd700';
 
       for (let i = 0; i < spiritCount; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 3 + Math.random() * 3;
-        const sizeMult = 0.8 + Math.random() * 0.5;
+        setTimeout(() => {
+          if (this.state !== 'PLAYING' || !this.player || !this.player.alive) return;
+          
+          const angle = Math.random() * Math.PI * 2;
+          // More random speed and size
+          const speed = 1.5 + Math.random() * 6;
+          const sizeMult = 0.7 + Math.random() * 0.6;
+          const currentWeaponY = this.player.y - 40; // follow player
 
-        this.spawnProjectile({
-          type: 'spirit',
-          x: this.player.x + Math.cos(angle) * 15,
-          y: weaponY + Math.sin(angle) * 15,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          speed: speed,
-          casterSpd: this.player.spd,
-          life: spiritLife,
-          maxLife: spiritLife,
-          color: spiritColor,
-          damage: spiritDamage * sizeMult,
-          critChance: 0.25,
-          radius: spiritRadius * sizeMult,
-          wobble: Math.random() * 100,
-          trailTimer: 0,
-          trailPositions: [],
-          tx: this.player.mouseX,
-          ty: this.player.mouseY,
-          angle: angle,
-          facing: 1
-        });
+          this.spawnProjectile({
+            type: 'spirit',
+            x: this.player.x + Math.cos(angle) * 15,
+            y: currentWeaponY + Math.sin(angle) * 15,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            speed: speed,
+            casterSpd: this.player.spd,
+            life: spiritLife,
+            maxLife: spiritLife,
+            color: spiritColor,
+            damage: spiritDamage * sizeMult,
+            critChance: 0.25,
+            radius: spiritRadius * sizeMult,
+            wobble: Math.random() * 100, // random wobble phase
+            trailTimer: 0,
+            trailPositions: [],
+            tx: this.player.mouseX,
+            ty: this.player.mouseY,
+            angle: angle,
+            facing: 1
+          });
+        }, i * 150); // 150ms stagger interval
       }
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
       this.ui.updateHUD(this.player);

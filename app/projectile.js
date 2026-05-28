@@ -524,6 +524,10 @@ export default class Projectile {
       const spiritSize = this.radius || 12;
       const sAlpha = Math.min(1, this.life / (this.maxLife * 0.3));
 
+      // Calculate rotation angle based on velocity. The sprite is drawn facing "up" (-y),
+      // so we add PI/2 to atan2 so that -y aligns with the velocity vector.
+      const rotAngle = Math.atan2(this.vy || 0, this.vx || 0) + Math.PI / 2;
+
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = sAlpha;
@@ -555,26 +559,29 @@ export default class Projectile {
 
       // Skull body (non-additive, drawn normally on top)
       ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(rotAngle);
       ctx.globalAlpha = sAlpha;
+      
       ctx.fillStyle = '#e0dcff';
       ctx.beginPath();
-      ctx.arc(this.x, this.y, spiritSize, 0, Math.PI * 2);
+      ctx.arc(0, 0, spiritSize, 0, Math.PI * 2);
       ctx.fill();
 
       // Eyes
       ctx.fillStyle = '#111';
-      ctx.fillRect(this.x - 4, this.y - 2, 2, 2);
-      ctx.fillRect(this.x + 2, this.y - 2, 2, 2);
+      ctx.fillRect(-4, -2, 2, 2);
+      ctx.fillRect(2, -2, 2, 2);
 
       // Mouth
-      ctx.fillRect(this.x - 2, this.y + 3, 4, 2);
+      ctx.fillRect(-2, 3, 4, 2);
 
       // Spirit tail
       ctx.fillStyle = this.color || '#9b4dff';
       ctx.beginPath();
-      ctx.moveTo(this.x - 6, this.y + 6);
-      ctx.lineTo(this.x + 6, this.y + 6);
-      ctx.lineTo(this.x, this.y + 26); // Doubled length (from 16 to 26)
+      ctx.moveTo(-6, 6);
+      ctx.lineTo(6, 6);
+      ctx.lineTo(0, 26); // Doubled length (from 16 to 26)
       ctx.fill();
       ctx.restore();
     }
