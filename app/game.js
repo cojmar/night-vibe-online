@@ -100,6 +100,11 @@ export default class Game {
         });
       }
     });
+    this.net.on('room.msg', (data) => {
+      if (data.cmd === 'game.event' && data.data && data.data.type) {
+        this.handleGameEvent(data.data);
+      }
+    });
     this.net.on('room.user_leave', (data) => {
       if (this.otherPlayers[data.user]) {
         delete this.otherPlayers[data.user];
@@ -1469,6 +1474,45 @@ export default class Game {
       }
       if (myData.kills !== undefined) target.kills = myData.kills;
       target.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(target.level, REQ_KILLS_EXPONENT) + Math.sin(target.level) * REQ_KILLS_SIN_AMP);
+    }
+  }
+
+  emitEvent(type, data) {
+    if (!this.net || !this.net.me) return;
+    this.net.send_cmd('room.msg', {
+      cmd: 'game.event',
+      data: {
+        type: type,
+        source: this.net.me.info.user,
+        timestamp: Date.now(),
+        ...data
+      }
+    });
+  }
+
+  handleGameEvent(event) {
+    if (!this.player || this.state !== 'PLAYING') return;
+    if (event.source === this.net.me.info.user) return;
+
+    switch (event.type) {
+      case 'item_pickup': {
+        let remotePlayer = this.otherPlayers[event.source];
+        if (remotePlayer && event.item && event.item.type === 'gear') {
+          remotePlayer.inventory.push(event.item);
+        }
+        // Remove item from world for all clients
+        let idx = this.items.findIndex(i => i.id === event.itemId);
+        if (idx !== -1) {
+          this.items.splice(idx, 1);
+        }
+        break;
+      }
+      case 'item_spawn': {
+        if (!this.items.find(i => i.id === event.id)) {
+          this.items.push(event.item);
+        }
+        break;
+      }
     }
   }
 
@@ -3008,117 +3052,51 @@ export default class Game {
             }
           }
 
-          if (this.isHost) {
-            let activePlayersList = [{ id: this.net.me ? this.net.me.info.user : 'host', obj: this.player }];
-            for (let key in this.otherPlayers) {
-              if (this.otherPlayers[key].inGame && this.otherPlayers[key].hp > 0) {
-                activePlayersList.push({ id: key, obj: this.otherPlayers[key] });
+          // Each client checks for local player item pickup
+          if (this.player && this.player.alive && this.player.hp > 0) {
+            if (Math.hypot(this.player.x - item.x, this.player.y - item.y) < 40) {
+              if (item.type === 'gear' && this.player.targetedItemId !== item.id) {
+                continue;
               }
-            }
-
-            let pickedUp = false;
-            for (let p of activePlayersList) {
-              if (!p.obj || !p.obj.alive || p.obj.hp <= 0) continue;
-              if (Math.hypot(p.obj.x - item.x, p.obj.y - item.y) < 40) {
-                if (item.type === 'gear' && p.obj.targetedItemId !== item.id) {
-                  continue;
+              // Local player picks up the item
+              if (item.type === 'gear') {
+                this.player.inventory.push(item);
+                let statsStr = '';
+                if (item.stats) {
+                  let parts = [];
+                  if (item.stats.atk) parts.push(`+${item.stats.atk} ATK`);
+                  if (item.stats.maxHp) parts.push(`+${item.stats.maxHp} HP`);
+                  if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
+                  if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
                 }
-                pickedUp = true;
-                if (this.isHost) {
-                  if (item.type === 'gear') {
-                    if (p.id === 'host' || p.id === (this.net.me ? this.net.me.info.user : null)) {
-                      p.obj.inventory.push(item);
-                      let statsStr = '';
-                      if (item.stats) {
-                        let parts = [];
-                        if (item.stats.atk) parts.push(`+${item.stats.atk} ATK`);
-                        if (item.stats.maxHp) parts.push(`+${item.stats.maxHp} HP`);
-                        if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
-                        if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
-                      }
-                      this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🎒 Looted: ${item.name}${statsStr}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
-                      this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
-                      if (this.ui) this.ui.renderInventory();
-                      this.saveLocalProgression();
-                      this.broadcastState();
-                    } else {
-                      this.net.send_cmd('set_data', { giveItem: { item: item, target: p.id, id: Math.random() } });
-                    }
-                  } else if (item.type === 'red') {
-                    p.obj.buffHpTimer = POTION_BUFF_DURATION;
-                    this.spawnParticles(p.obj.x, p.obj.y - 20, '#e74c3c', 30, 6);
-                    this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
-                    this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
-                  } else if (item.type === 'blue') {
-                    p.obj.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
-                    this.spawnParticles(p.obj.x, p.obj.y - 20, '#3498db', 30, 6);
-                    this.floatingTexts.push({ x: p.obj.x, y: p.obj.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
-                    this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
-                  }
-                } else {
-                  if (item.type !== 'gear') {
-                    this.net.send_cmd('set_data', { giveBuff: { type: item.type, target: p.id, id: Math.random() } });
-                  }
+                this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${item.name}${statsStr}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
+                this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
+                if (this.ui) this.ui.renderInventory();
+                this.saveLocalProgression();
+                if (this.player.isLocal) {
+                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
                 }
-                break;
+              } else if (item.type === 'red') {
+                this.player.buffHpTimer = POTION_BUFF_DURATION;
+                this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
+                this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
+                if (this.player.isLocal) {
+                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                }
+              } else if (item.type === 'blue') {
+                this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
+                this.spawnParticles(this.player.x, this.player.y - 20, '#3498db', 30, 6);
+                this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
+                this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
+                if (this.player.isLocal) {
+                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                }
               }
-            }
-            if (pickedUp) {
-              if (this.player && this.player.targetedItemId === item.id) {
+              if (this.player.targetedItemId === item.id) {
                 this.player.targetedItemId = null;
               }
               this.items.splice(i, 1); i--; continue;
-            }
-          } else {
-            // Process buffs assigned to us by the host
-            let hostUserId = null;
-            if (this.net && this.net.room && this.net.room.users) {
-              for (let u in this.net.room.users) {
-                if (this.net.room.users[u].data && this.net.room.users[u].data.isHost) {
-                  hostUserId = u;
-                  break;
-                }
-              }
-            }
-            if (hostUserId && this.net.room.users[hostUserId].data) {
-              const hData = this.net.room.users[hostUserId].data;
-              if (hData && hData.giveBuff) {
-                const buff = hData.giveBuff;
-                if (buff.target === (this.net.me ? this.net.me.info.user : null) && buff.id !== this.lastProcessedBuffId) {
-                  this.lastProcessedBuffId = buff.id;
-                  if (buff.type === 'red') {
-                    this.player.buffHpTimer = POTION_BUFF_DURATION;
-                    this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
-                    this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
-                    this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
-                  } else {
-                    this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
-                    this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
-                    this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
-                  }
-                  this.spawnParticles(this.player.x, this.player.y - 20, buff.type === 'red' ? '#e74c3c' : '#3498db', 20, 5);
-                }
-              }
-              if (hData && hData.giveItem) {
-                const gi = hData.giveItem;
-                if (gi.target === (this.net.me ? this.net.me.info.user : null) && gi.id !== this.lastProcessedItemId) {
-                  this.lastProcessedItemId = gi.id;
-                  this.player.inventory.push(gi.item);
-                  let statsStr = '';
-                  if (gi.item.stats) {
-                    let parts = [];
-                    if (gi.item.stats.atk) parts.push(`+${gi.item.stats.atk} ATK`);
-                    if (gi.item.stats.maxHp) parts.push(`+${gi.item.stats.maxHp} HP`);
-                    if (gi.item.stats.spd) parts.push(`+${Number(gi.item.stats.spd).toFixed(1)} SPD`);
-                    if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
-                  }
-                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${gi.item.name}${statsStr}!`, color: gi.item.color, life: 60, maxLife: 60, isCrit: false });
-                  this.ui.addLog(`🎒 You picked up a ${gi.item.name}${statsStr}!`, 'reward');
-                  if (this.ui) this.ui.renderInventory();
-                  this.saveLocalProgression();
-                  this.broadcastState();
-                }
-              }
             }
           }
 

@@ -2651,14 +2651,11 @@ export default class UI {
                 item.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : ConfigModule.GAME_H / 2 + (Math.random() * 60 - 30) + 20;
                 item.life = 60000;
                 if (this.game && this.game.player) {
-                    if (this.game.isHost) {
-                        this.game.items.push(item);
-                    } else {
-                        const netItem = { ...item, icon: (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) ? '📦' : item.icon };
-                        this.game.net.send_cmd('set_data', { spawnItem: netItem });
+                    this.game.items.push(item);
+                    if (this.game.player && this.game.player.isLocal) {
+                        this.game.emitEvent('item_spawn', { id: item.id, item: item });
                     }
                     this.game.saveLocalProgression();
-                    this.game.broadcastState();
                     this.updateHUD(p);
                 }
 
