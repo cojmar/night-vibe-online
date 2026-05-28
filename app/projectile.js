@@ -198,7 +198,7 @@ export default class Projectile {
     else if (this.type === 'spirit') {
       // Retargeting with SPD scaling - uses caster's synced SPD
       const effectiveSpd = this.casterSpd ?? this.speed ?? 0;
-      const retargetFrames = Math.max(0, Math.round(120 * (1 - Math.pow(effectiveSpd / 1000, 0.5))));
+      const retargetFrames = Math.max(0, Math.round(30 * (1 - Math.pow(effectiveSpd / 1000, 0.5))));
       this.retargetTimer = (this.retargetTimer || 0) + dt;
       if (this.retargetTimer >= retargetFrames) {
         this.retargetTimer = 0;
