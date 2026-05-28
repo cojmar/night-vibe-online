@@ -212,6 +212,7 @@ export default class Game {
         // Handle remote hits
         if (this.state === 'PLAYING' && data.data.hits) {
           data.data.hits.forEach(hit => {
+            if (hit.source === this.net.me.info.user) return; // Prevent double damage
             let e = this.enemies.find(ex => ex.id === hit.id);
             if (e && e.alive) {
               e.hp -= hit.damage;
@@ -243,6 +244,17 @@ export default class Game {
         if (data.data.enemyHitPlayer) {
           if (data.data.enemyHitPlayer.id === this.net.me.info.user) {
             this.dealDamageToPlayer(data.data.enemyHitPlayer.dmg);
+          }
+        }
+
+        if (!this.isHost && data.data.spawnEnemy) {
+          let eData = data.data.spawnEnemy;
+          if (!this.enemies.find(e => e.id === eData.id)) {
+            let e = new Enemy(this, eData.isBoss, false, eData.spawnIndex);
+            e.id = eData.id; e.x = eData.x; e.y = eData.y;
+            e.hp = eData.hp; e.maxHp = eData.maxHp; e.name = eData.name;
+            e.size = eData.size; e.speed = eData.speed; e.color = eData.color; e.icon = eData.icon;
+            this.enemies.push(e);
           }
         }
 
@@ -512,10 +524,11 @@ export default class Game {
       this.initBgParticles();
     }
 
-    // Sync enemies position/hp to host
-    // First, purge any enemies we have locally that the host no longer has (ghosts)
-    const hostEnemyIds = hostData.enemies.map(e => e.id);
-    this.enemies = this.enemies.filter(e => hostEnemyIds.includes(e.id));
+    if (hostData.enemies) {
+      // Sync enemies position/hp to host
+      // First, purge any enemies we have locally that the host no longer has (ghosts)
+      const hostEnemyIds = hostData.enemies.map(e => e.id);
+      this.enemies = this.enemies.filter(e => hostEnemyIds.includes(e.id));
 
     hostData.enemies.forEach(eData => {
       let e = this.enemies.find(ex => ex.id === eData.id);
@@ -564,6 +577,7 @@ export default class Game {
     });
     // Remove enemies not in host, but keep dead ones until their death animation finishes
     this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
+    }
 
     if (hostData.items) {
       this.items = hostData.items.map(item => ({ ...item }));
@@ -2055,15 +2069,18 @@ export default class Game {
     }
 
     if (this.isHost) {
+      this.hostBroadcastCount = (this.hostBroadcastCount || 0) + 1;
+      const includeEnemies = (this.hostBroadcastCount % 10 === 0); // once every 1 second
       data.hostData = {
         gameStartTime: this.hostGameStartTime || this.gameStartTime,
-        wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
-        waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
-        enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000)).map(e => ({
-          id: e.id, x: parseFloat(e.x.toFixed(1)), y: parseFloat(e.y.toFixed(1)), hp: Math.floor(e.hp), maxHp: Math.floor(e.maxHp), alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
-        }))
-        // Items are purposely omitted here to prevent stuttering. They are only synced via custom get_host_data event or spawnItem discrete events.
+        wave: this.wave, kills: this.kills, sessionSeed: this.sessionSeed, env: this.selectedEnv,
+        waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive
       };
+      if (includeEnemies) {
+        data.hostData.enemies = this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000)).map(e => ({
+          id: e.id, x: parseFloat(e.x.toFixed(1)), y: parseFloat(e.y.toFixed(1)), hp: Math.floor(e.hp), maxHp: Math.floor(e.maxHp), alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
+        }));
+      }
     }
 
     if (!this.lastBroadcastStr) this.lastBroadcastStr = {};
@@ -2143,15 +2160,15 @@ export default class Game {
       this.ui.updateHUD(this.player);
     }
 
-    if (this.isHost) {
-      let e = this.enemies.find(ex => ex.id === enemy.id);
-      if (e && e.alive) {
-        e.hp -= damage;
-        e.hitFlash = 8;
-        this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (isCrit ? '💥 ' : '') + damage, color: isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: isCrit });
-        if (e.hp <= 0) {
-          e.alive = false; e.deathTime = Date.now(); e.hp = 0;
-          this.spawnEnemyDeathExplosion(e);
+    let e = this.enemies.find(ex => ex.id === enemy.id);
+    if (e && e.alive) {
+      e.hp -= damage;
+      e.hitFlash = 8;
+      this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (isCrit ? '💥 ' : '') + damage, color: isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: isCrit });
+      if (e.hp <= 0) {
+        e.alive = false; e.deathTime = Date.now(); e.hp = 0;
+        this.spawnEnemyDeathExplosion(e);
+        if (this.isHost) {
           this.net.send_cmd('set_data', { enemyKilled: this.net.me.info.user + '_' + Math.random() });
           this.waveEnemiesKilled++;
           if (this.bossActive && e.name === 'BOSS') {
@@ -3555,7 +3572,7 @@ export default class Game {
         }
       }
 
-      if (this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
+      if (this.isHost && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
         this.enemySpawnTimer += 16.67 * dt;
         if (this.enemySpawnTimer >= this.enemySpawnInterval) {
           this.enemySpawnTimer = 0;
@@ -3563,6 +3580,14 @@ export default class Game {
           const newEnemy = new Enemy(this, this.bossActive, false, spawnIndex);
           if (!this.enemies.find(e => e.id === newEnemy.id)) {
             this.enemies.push(newEnemy);
+            this.net.send_cmd('set_data', { 
+               spawnEnemy: { 
+                 id: newEnemy.id, isBoss: this.bossActive, spawnIndex: spawnIndex, 
+                 x: newEnemy.x, y: newEnemy.y, hp: newEnemy.hp, maxHp: newEnemy.maxHp, 
+                 name: newEnemy.name, size: newEnemy.size, speed: newEnemy.speed, 
+                 color: newEnemy.color, icon: newEnemy.icon
+               } 
+            });
           }
           this.waveEnemiesToSpawn--;
         }
