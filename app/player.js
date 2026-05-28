@@ -257,7 +257,6 @@ export default class Player {
       this.chatTimer -= dt * 16.67;
       if (this.chatTimer <= 0) {
         this.chatMsg = null;
-        if (this.isLocal) gameInstance.broadcastState();
       }
     }
 

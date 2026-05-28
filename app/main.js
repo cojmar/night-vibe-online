@@ -81,7 +81,6 @@ window.app = new class {
                 this.game.player.chatMsg = msg;
                 this.game.player.chatTimer = CHAT_MESSAGE_DURATION;
                 this.game.ui.addLog(`💬 [${this.game.player.nick || 'Me'}]: ${msg}`, 'player');
-                this.game.broadcastState();
                 if (this.game.player.isLocal) {
                     this.game.emitEvent('player_chat', {
                         source: this.net.me.info.user,

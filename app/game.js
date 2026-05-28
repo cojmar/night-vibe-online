@@ -114,12 +114,10 @@ export default class Game {
       if (data.data && data.data.enemyKilled && this.player && typeof data.data.enemyKilled === 'string') {
         if (data.data.enemyKilled !== this.lastProcessedKill && data.data.enemyKilled.split('_')[0] === this.net.me.info.user) {
           this.lastProcessedKill = data.data.enemyKilled;
-          if (this.player.addKill()) {
-            this.s2Cooldown = 0;
+         if (this.player.addKill()) {
             this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
             this.ui.updateHUD(this.player);
             this.triggerLevelUpAnimation(this.player);
-            this.broadcastState();
             this.saveLocalProgression();
             this.emitEvent('player_level_up', {
               source: this.net.me.info.user,
@@ -964,9 +962,7 @@ export default class Game {
         const oldAimAngle = this.player.aimAngle;
         this.player.aimAngle = computedAimAngle;
 
-        if (this.player.facing !== oldFacing || this.player.aimAngle !== oldAimAngle) {
-          this.broadcastState();
-        }
+        // facing/aimAngle changes handled by attack/move events
       }
     });
 
@@ -1913,7 +1909,6 @@ export default class Game {
       const typeStr = clickedItem.type === 'red' ? '❤️ Potion' : '⚡ Potion';
       document.getElementById('walk-indicator').innerHTML = `🧪 Collecting ${typeStr}...`;
       document.getElementById('walk-indicator').classList.add('visible');
-      this.broadcastState();
       if (this.player && this.player.isLocal) {
         this.emitEvent('player_move', {
           x: this.player.moveTargetX,
@@ -1968,7 +1963,6 @@ export default class Game {
     }
 
     this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30, color: 'yellow' };
-    this.broadcastState();
     if (this.player && this.player.isLocal) {
       if (!clickedEnemy && onGround) {
         this.emitEvent('player_move', {
@@ -2051,7 +2045,6 @@ export default class Game {
         gameInstance.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, Math.random() > 0.5 ? '#ffd700' : '#fff', 1, 2 + Math.random() * 3, 2);
       }
     }
-    this.broadcastState();
     if (this.player && this.player.isLocal) {
       this.emitEvent('player_attack', { mouseX: tx, mouseY: ty, aimAngle: aimAngle, classType: this.player.classType });
     }
@@ -2070,7 +2063,6 @@ export default class Game {
     this.player.action = 'attack';
     this.player.animTimer = 9999;
     this.player.lastSkill = 2;
-    this.broadcastState();
   }
 
   releaseSkill2() {
@@ -2238,7 +2230,6 @@ export default class Game {
       
       this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 6.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: singleDamage, critChance: 0.2, maxDistance: waveDistance, radius: singleRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: aimAngle, charges: charges });
     }
-    this.broadcastState();
     if (this.player && this.player.isLocal) {
       let projectiles = this.projectiles.filter(p => p.ownerId === this.net.me.info.user && p.life > 0 && p.life < (p.maxLife || 60)).slice(-1).map(p => ({
         type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
@@ -2376,14 +2367,11 @@ export default class Game {
     if (this.player.hp <= 0) {
       this.player.hp = 0;
       this.player.alive = false;
-      this.broadcastState();
       if (this.player && this.player.isLocal) {
         this.emitEvent('player_death', { source: this.net.me.info.user });
       }
       // Keep state PLAYING so the network host continues to run the simulation
       this.ui.showDeathScreen(`${this.waveEnemiesKilled}/${this.waveTotalEnemies}`, this.wave);
-    } else {
-      this.broadcastState();
     }
   }
 
@@ -3233,7 +3221,6 @@ let enemyIndex = 0;
             if (this.player.classType !== 'warrior') {
               this.spawnParticles(this.player.x, this.player.y - 40, '#ffd700', 15, 4);
             }
-            this.broadcastState();
           }
 
           // Magic Gladiator charge: spawn floating purple spirit particles
@@ -3258,13 +3245,7 @@ let enemyIndex = 0;
           }
         }
 
-        if (this.player.action === 'attack' && this.player.animTimer <= 0 && !this.player.isChargingS2) {
-          this.player.action = 'idle';
-          this.broadcastState();
-        } else if (this.player.action === 'walk' && !this.player.isMoving) {
-          this.player.action = 'idle';
-          this.broadcastState();
-        }
+        // idle transitions handled by events
       }
 
       for (const key in this.otherPlayers) {
@@ -3413,7 +3394,6 @@ let enemyIndex = 0;
                       this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
                       if (this.ui) this.ui.renderInventory();
                       this.saveLocalProgression();
-                      this.broadcastState();
                     } else {
                       this.net.send_cmd('set_data', { giveItem: { item: item, target: p.id, id: Math.random() } });
                     }
@@ -3489,7 +3469,6 @@ let enemyIndex = 0;
                   this.ui.addLog(`🎒 You picked up a ${gi.item.name}${statsStr}!`, 'reward');
                   if (this.ui) this.ui.renderInventory();
                   this.saveLocalProgression();
-                  this.broadcastState();
                 }
               }
             }
