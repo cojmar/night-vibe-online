@@ -368,14 +368,63 @@ export default class Enemy {
 
     if (this.name === 'BOSS') {
       if (this.bossState === 'CHANNELING_LASER') {
-        ctx.strokeStyle = `rgba(255, 0, 0, ${0.2 + (1 - this.bossChannelTimer / BOSS_LASER_CHANNEL_TIME)})`;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([15, 15]);
+        const progress = 1 - (this.bossChannelTimer / BOSS_LASER_CHANNEL_TIME);
+        const startX = this.x;
+        const startY = drawY - this.size * 0.75; // Start at the crown 👑
+        const targetX = this.targetLaserPos.x;
+        const targetY = this.targetLaserPos.y;
+
+        // 1. Targeting Beam
+        ctx.save();
+        const beamAlpha = 0.1 + progress * 0.5;
+        const beamPulse = Math.abs(Math.sin(now / 50));
+        ctx.strokeStyle = `rgba(255, 50, 50, ${beamAlpha + beamPulse * 0.2})`;
+        ctx.lineWidth = 1 + progress * 3;
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 5 + progress * 10;
         ctx.beginPath();
-        ctx.moveTo(this.x, drawY - this.size * 0.75); // Start at the crown 👑
-        ctx.lineTo(this.targetLaserPos.x, this.targetLaserPos.y);
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(targetX, targetY);
         ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.restore();
+
+        // 2. Targeting Reticle
+        ctx.save();
+        ctx.translate(targetX, targetY);
+        ctx.rotate(now / 200 + progress * Math.PI * 4);
+        const reticleSize = 30 - progress * 15;
+        ctx.strokeStyle = `rgba(255, 0, 0, ${0.5 + progress * 0.5})`;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(0, 0, reticleSize, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(-reticleSize - 5, 0);
+        ctx.lineTo(reticleSize + 5, 0);
+        ctx.moveTo(0, -reticleSize - 5);
+        ctx.lineTo(0, reticleSize + 5);
+        ctx.stroke();
+        ctx.restore();
+
+        // 3. Energy Orb (Crown)
+        ctx.save();
+        const orbSize = 5 + progress * 25 + Math.random() * 5;
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.8})`;
+        ctx.shadowColor = '#e74c3c';
+        ctx.shadowBlur = 15 + progress * 25;
+        ctx.beginPath();
+        ctx.arc(startX, startY, orbSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#ffcccc';
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.arc(startX, startY, orbSize * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       } else if (this.bossState === 'FIRING_LASER') {
         const lx = this.x;
         const ly = drawY - this.size * 0.75; // Start at the crown 👑
@@ -426,6 +475,9 @@ export default class Enemy {
     if (this.name === 'BOSS') {
       const originalFont = ctx.font;
       let crownSize = Math.floor(this.size * 0.7);
+      
+      ctx.save(); // Save before applying shadows
+      
       if (this.bossState === 'CHANNELING_LASER') {
         const glowPhase = Math.abs(Math.sin(now / 100));
         ctx.shadowColor = '#e74c3c';
@@ -436,7 +488,7 @@ export default class Enemy {
         ctx.shadowBlur = 25;
         crownSize = Math.floor(this.size * 0.85);
       }
-      ctx.save();
+      
       ctx.translate(this.x, drawY - this.size * 0.75);
       if (flip) {
         ctx.scale(-1, 1);
@@ -445,8 +497,9 @@ export default class Enemy {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('👑', 0, 0);
-      ctx.shadowBlur = 0;
-      ctx.restore();
+      
+      ctx.restore(); // Restores shadowBlur and shadowColor to defaults
+      
       ctx.font = originalFont;
     }
     ctx.textBaseline = 'alphabetic';
