@@ -2947,21 +2947,25 @@ export default class UI {
         let s1Name = cd.s1Name || 'Basic Attack';
         let s2Name = cd.s2Name || 'Special Attack';
 
+        const s1Dmg = (cd.atk * (this.selectedClass === 'archer' || this.selectedClass === 'magicgladiator' ? 1.1 : (this.selectedClass === 'mage' ? 0.9 : 1.0))).toFixed(1);
+        const mgSpdRatio = Math.min(1, Math.max(0, (cd.spd - 6) / Math.max(1, 200 - 6)));
+        const mgSpiritsBase = 1 + Math.floor(3 * mgSpdRatio);
+
         if (this.selectedClass === 'warrior') {
-            s1Desc = 'Wide arc strike. 100% ATK + knockback.';
-            s2Desc = 'Shockwave projectile. 50% ATK base. Damage and AOE scale massively with charges and SPD.';
+            s1Desc = `Wide arc strike. ${s1Dmg} ATK + knockback.`;
+            s2Desc = `Shockwave projectile. ${(cd.atk * 0.5).toFixed(1)} ATK base. Damage and AOE scale massively with charges and SPD.`;
         } else if (this.selectedClass === 'mage') {
-            s1Desc = 'Fast bolt. 90% ATK single-target.';
-            s2Desc = 'Exploding AoE fireball. 100% ATK base. Area and damage scale with charges.';
+            s1Desc = `Fast bolt. ${s1Dmg} ATK single-target.`;
+            s2Desc = `Exploding AoE fireball. ${(cd.atk * 1.0).toFixed(1)} ATK base. Area and damage scale with charges.`;
         } else if (this.selectedClass === 'archer') {
-            s1Desc = 'Fast arrow. 110% ATK, 10% crit.';
-            s2Desc = 'Arrow spread. 200% ATK each, 15% crit. Base 4 arrows, count scales with SPD.';
+            s1Desc = `Fast arrow. ${s1Dmg} ATK, 10% crit.`;
+            s2Desc = `Arrow spread. ${(cd.atk * 2.0).toFixed(1)} ATK each, 15% crit. Base 4 arrows, count scales with SPD.`;
         } else if (this.selectedClass === 'magicgladiator') {
-            s1Desc = 'Double wide arc. 110% ATK, 12% crit.';
-            s2Desc = 'Summons 8 spirits. ~80% ATK each, 25% crit. Heals you for 50% ATK. Count and heal scale with charges.';
+            s1Desc = `Double wide arc. ${s1Dmg} ATK, 12% crit.`;
+            s2Desc = `Staggered barrage of ${mgSpiritsBase} to ${mgSpiritsBase + 4} spirits. ${(cd.atk * 0.8).toFixed(1)} ATK each, 25% crit. Heals you for ${(cd.atk * 0.5).toFixed(1)} HP on cast. Count and duration scale with SPD.`;
         } else {
-            s1Desc = 'Standard attack.';
-            s2Desc = 'Special ability.';
+            s1Desc = `Standard attack. ${cd.atk} ATK.`;
+            s2Desc = `Special ability.`;
         }
 
         const sk = {

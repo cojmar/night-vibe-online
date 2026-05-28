@@ -54,7 +54,7 @@ Choose your fighter wisely. Each class offers a completely different combat expe
 
 | Stat | Value |
 |------|-------|
-| HP | 120 |
+| HP | 170 |
 | Speed | 8 |
 | Attack | 22 |
 
@@ -73,7 +73,7 @@ Choose your fighter wisely. Each class offers a completely different combat expe
 
 | Stat | Value |
 |------|-------|
-| HP | 80 |
+| HP | 130 |
 | Speed | 14 |
 | Attack | 18 |
 
@@ -92,7 +92,7 @@ Choose your fighter wisely. Each class offers a completely different combat expe
 
 | Stat | Value |
 |------|-------|
-| HP | 70 |
+| HP | 120 |
 | Speed | 18 |
 | Attack | 24 |
 
@@ -111,14 +111,14 @@ Choose your fighter wisely. Each class offers a completely different combat expe
 
 | Stat | Value |
 |------|-------|
-| HP | 140 |
+| HP | 190 |
 | Speed | 6 |
 | Attack | 26 |
 
 | Skill | Type | Description |
 |-------|------|-------------|
 | **Psionic Slash** (S1) | Melee | A double wide arc slash dealing 110% ATK damage with a 12% crit chance. |
-| **Evil Spirits** (S2) | Spirit Summon | Summons a swarm of spirits (base 8) that chase enemies. Each deals ~80% ATK damage with a 25% crit chance. **Heals you for 50% of your ATK.** Spirit count and healing scale with charges. |
+| **Evil Spirits** (S2) | Spirit Summon | Fires a staggered barrage of spirits that chase enemies. Each deals ~80% ATK damage with a 25% crit chance. **Heals you for 50% of your ATK on cast.** Spirit count and duration scale significantly with your SPD stat. |
 
 **Playstyle:** Dive into the fray. Your S2 sustains you in combat — the more damage you deal, the harder you stay alive.
 
@@ -151,10 +151,12 @@ Attacks have a random variance of +/-10%. Critical hits deal exactly 2x damage a
 Your armor reduces incoming damage:
 ```
 armor = floor(maxHP / 10)
-damageReduction = min(90%, armor * 0.5%)
+armorReduction = armor * 0.5%
+sizeReduction = 0% to 50% (scales with character visual size / level progress to cap)
+damageReduction = min(90%, armorReduction + sizeReduction)
 actualDamage = max(1, incoming * (1 - damageReduction))
 ```
-Building HP not only increases your pool — it passively reduces all incoming damage.
+Building HP increases your pool and passively reduces damage. Additionally, your character gains up to 50% extra damage reduction as they grow in size towards their level cap.
 
 ### Buffs
 Dropped orbs provide temporary effects:
@@ -171,14 +173,14 @@ Enemies spawn in waves of increasing difficulty. Kill all enemies to advance. Ev
 
 | Enemy | HP | ATK | Speed | Unlocks |
 |-------|----|-----|-------|---------|
-| &#127754; Slime | 30 | 5 | 0.4 | Wave 1 |
-| &#128136; Goblin | 45 | 8 | 0.7 | Wave 1 |
-| &#10146; Skeleton | 55 | 10 | 0.5 | Wave 2 |
-| &#128127; Orc | 80 | 14 | 0.35 | Wave 3 |
-| &#9813; Ghost | 40 | 12 | 0.9 | Wave 4 |
-| &#128293; Demon | 100 | 18 | 0.55 | Wave 5 |
-| &#128080; Dragon | 150 | 22 | 0.3 | Wave 6 |
-| &#128129; Lich | 120 | 20 | 0.45 | Wave 7 |
+| &#127754; Slime | 30 | 4 | 0.4 | Wave 1 |
+| &#128136; Goblin | 45 | 7 | 0.7 | Wave 1 |
+| &#10146; Skeleton | 55 | 9 | 0.5 | Wave 2 |
+| &#128127; Orc | 80 | 13 | 0.35 | Wave 3 |
+| &#9813; Ghost | 40 | 11 | 0.9 | Wave 4 |
+| &#128293; Demon | 100 | 16 | 0.55 | Wave 5 |
+| &#128080; Dragon | 150 | 20 | 0.3 | Wave 6 |
+| &#128129; Lich | 120 | 18 | 0.45 | Wave 7 |
 
 ### Boss
 - Crowned elite enemy with **250x scaled HP** and homing missile projectiles
