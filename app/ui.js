@@ -3108,11 +3108,9 @@ export default class UI {
             nameEl.style.color = target.color || '#f1c40f';
             hpBgEl.style.display = 'none';
             const statStrs = [];
-            if (target.stats) {
-                if (target.stats.atk) statStrs.push(`ATK +${target.stats.atk.toFixed(1)}`);
-                if (target.stats.maxHp) statStrs.push(`HP +${target.stats.maxHp.toFixed(1)}`);
-                if (target.stats.spd) statStrs.push(`SPD +${target.stats.spd.toFixed(1)}`);
-            }
+            if (target.stats.atk) statStrs.push(`ATK +${target.stats.atk.toFixed(1)}`);
+            if (target.stats.maxHp) statStrs.push(`HP +${target.stats.maxHp.toFixed(1)}`);
+            if (target.stats.spd) statStrs.push(`SPD +${target.stats.spd.toFixed(1)}`);
             detailsEl.textContent = statStrs.join(' | ') || 'No stats';
         } else {
             // Potion or other
