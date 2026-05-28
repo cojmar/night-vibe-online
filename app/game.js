@@ -2005,7 +2005,7 @@ export default class Game {
           id: e.id, x: parseFloat(e.x.toFixed(1)), y: parseFloat(e.y.toFixed(1)), hp: Math.floor(e.hp), maxHp: Math.floor(e.maxHp), alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
         })),
         items: this.items.map(i => ({
-          id: i.id, type: i.type, x: parseFloat(i.x.toFixed(1)), y: parseFloat(i.y.toFixed(1)), name: i.name, color: i.color, rarity: i.rarity,
+          id: i.id, type: i.type, x: parseFloat(i.x.toFixed(1)), y: parseFloat(i.y.toFixed(1)), name: i.name, color: i.color, rarity: i.rarity, stats: i.stats,
           icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
         }))
       };
@@ -2734,7 +2734,7 @@ export default class Game {
       for (let e of this.enemies) {
         e.update(dt, activePlayers);
 
-        if (this.isHost && !e.alive && !e.deadProcessed) {
+        if (!e.alive && !e.deadProcessed) {
           e.deadProcessed = true;
           const groundY = getGroundY(this.selectedEnv);
 
@@ -2829,14 +2829,6 @@ export default class Game {
               name: itemName, stats: stats, icon: icon,
               x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
             });
-          }
-        }
-
-        if (!this.isHost) {
-          // Soft sync towards host position if they drift too far
-          if (e.alive && e.serverX !== undefined) {
-            e.x += (e.serverX - e.x) * 0.1 * dt;
-            e.y += (e.serverY - e.y) * 0.1 * dt;
           }
         }
       }
