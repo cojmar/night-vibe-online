@@ -121,6 +121,10 @@ export default class Game {
             this.triggerLevelUpAnimation(this.player);
             this.broadcastState();
             this.saveLocalProgression();
+            this.emitEvent('player_level_up', {
+              source: this.net.me.info.user,
+              level: this.player.level
+            });
           }
           if (this.state === 'PLAYING') {
             this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
@@ -316,6 +320,201 @@ export default class Game {
         }
       }
     });
+
+    //== Game Event Handler - Decentralized simulation events
+    this.net.on('room.msg', (data) => {
+      if (data.cmd === 'game.event' && data.data && data.data.type) {
+        this.handleGameEvent(data.data);
+      }
+    });
+  }
+
+  handleGameEvent(event) {
+    if (!this.player || this.state !== 'PLAYING') return;
+    if (event.source === this.net.me.info.user) return; // Skip own events
+
+    switch (event.type) {
+      case 'player_spawn':
+        if (!this.otherPlayers[event.source]) {
+          this.otherPlayers[event.source] = new Player(event.source, false, event.classType || 'warrior', event.x || this.gameW / 2, event.y || (getGroundY(this.selectedEnv) + this.gameH) / 2);
+        }
+        break;
+      case 'player_attack': {
+        let attacker = this.otherPlayers[event.source];
+        if (!attacker || attacker.state === 'MENU' || !attacker.inGame) return;
+        attacker.action = 'attack';
+        attacker.animTimer = 15;
+        attacker.mouseX = event.mouseX || attacker.x;
+        attacker.mouseY = event.mouseY || attacker.y - 40;
+        break;
+      }
+      case 'player_skill': {
+        let caster = this.otherPlayers[event.source];
+        if (!caster || caster.state === 'MENU' || !caster.inGame) return;
+        caster.action = 'skill';
+        caster.animTimer = 15;
+        caster.isChargingS2 = event.isChargingS2 || false;
+        caster.s2ChargeCount = event.s2ChargeCount || 0;
+        break;
+      }
+      case 'projectile_spawn': {
+        if (!this.projectiles.find(p => p.id === event.projectileId)) {
+          let ownerId = event.ownerId || event.source;
+          let owner = this.otherPlayers[ownerId];
+          if (!owner) return;
+          let p = new Projectile({
+            type: event.type || 'fireball',
+            x: event.x || owner.x,
+            y: event.y || (owner.y - 40),
+            vx: event.vx || 0,
+            vy: event.vy || 0,
+            tx: event.tx || 0,
+            ty: event.ty || 0,
+            angle: event.angle || 0,
+            life: event.maxLife || 60,
+            maxLife: event.maxLife || 60,
+            radius: event.radius || 10,
+            color: event.color || '#e74c3c',
+            originX: event.x || owner.x,
+            originY: event.y || owner.y,
+            traveled: 0,
+            damage: event.damage || 10,
+            ownerId: ownerId,
+            id: event.projectileId || 'p_' + Math.random(),
+            bodyScale: event.bodyScale || 1,
+            charges: event.charges || 0,
+            critChance: event.critChance || 0,
+            explodeRadius: event.explodeRadius || 0,
+            explodeDamage: event.explodeDamage || 0,
+            casterSpd: event.casterSpd || 5,
+            retargetTimer: event.retargetTimer || 0,
+            wobble: event.wobble || 0,
+            trailTimer: event.trailTimer || 0,
+            trailPositions: event.trailPositions || []
+          });
+          this.projectiles.push(p);
+        }
+        break;
+      }
+      case 'enemy_spawn': {
+        if (!this.enemies.find(e => e.id === event.id)) {
+          let isBoss = event.name === 'BOSS';
+          let e = new Enemy(this, isBoss, false, event.spawnIndex || 0);
+          e.id = event.id;
+          e.x = event.x || e.x;
+          e.y = event.y || e.y;
+          e.hp = event.hp || e.hp;
+          e.maxHp = event.maxHp || e.maxHp;
+          e.name = event.name || e.name;
+          e.size = event.size || e.size;
+          e.speed = event.speed || e.speed;
+          e.color = event.color || e.color;
+          e.icon = event.icon || e.icon;
+          this.enemies.push(e);
+        }
+        break;
+      }
+      case 'enemy_hit': {
+        let e = this.enemies.find(ex => ex.id === event.id);
+        if (e && e.alive) {
+          let dmg = event.damage || 10;
+          e.hp -= dmg;
+          e.hitFlash = 8;
+          this.floatingTexts.push({
+            x: e.x + (Math.random() - 0.5) * 20,
+            y: e.y - 30,
+            text: (event.isCrit ? '💥 ' : '') + dmg,
+            color: event.isCrit ? '#ffd700' : '#fff',
+            life: 40, maxLife: 40, isCrit: event.isCrit || false
+          });
+          if (e.hp <= 0) {
+            e.alive = false;
+            e.deathTime = Date.now();
+            e.hp = 0;
+            this.spawnEnemyDeathExplosion(e);
+          }
+        }
+        break;
+      }
+      case 'enemy_killed': {
+        // Sync kill count
+        if (event.kills !== undefined) {
+          this.kills = event.kills;
+        }
+        if (this.state === 'PLAYING') {
+          this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
+        }
+        break;
+      }
+      case 'wave_complete': {
+        if (this.isHost) {
+          this.wave = event.nextWave || (this.wave + 1);
+          this.kills = event.kills || this.kills;
+          this.waveTransitionTimer = 120;
+        }
+        break;
+      }
+      case 'player_damage': {
+        if (event.targetId === this.net.me.info.user && this.player && this.player.alive) {
+          this.dealDamageToPlayer(event.damage || 10);
+        }
+        break;
+      }
+      case 'item_spawn': {
+        if (!this.items.find(i => i.id === event.id)) {
+          this.items.push(event.item);
+        }
+        break;
+      }
+      case 'player_death': {
+        let remotePlayer = this.otherPlayers[event.source];
+        if (remotePlayer) {
+          remotePlayer.alive = false;
+          remotePlayer.hp = 0;
+        }
+        break;
+      }
+      case 'player_respawn': {
+        let remotePlayer = this.otherPlayers[event.source];
+        if (remotePlayer) {
+          remotePlayer.alive = true;
+          remotePlayer.hp = remotePlayer.maxHp;
+        }
+        break;
+      }
+      case 'player_move': {
+        let mover = this.otherPlayers[event.source];
+        if (!mover || mover.state === 'MENU' || !mover.inGame) return;
+        if (event.x !== undefined) mover.targetX = event.x;
+        if (event.y !== undefined) mover.targetY = event.y;
+        mover.hasTarget = true;
+        mover.hasReceivedFirstPosition = true;
+        if (event.facing !== undefined) mover.facing = event.facing;
+        break;
+      }
+      case 'player_level_up': {
+        let lvlUpPlayer = this.otherPlayers[event.source];
+        if (lvlUpPlayer && event.level) {
+          const oldLevel = lvlUpPlayer.level;
+          lvlUpPlayer.level = event.level;
+          if (event.level > oldLevel) {
+            this.triggerLevelUpAnimation(lvlUpPlayer);
+          }
+        }
+        break;
+      }
+      case 'player_chat': {
+        let chatPlayer = this.otherPlayers[event.source];
+        if (chatPlayer && event.msg) {
+          chatPlayer.chatMsg = event.msg;
+          chatPlayer.chatTimer = 40; // ~40 frames at 60fps
+          if (window.gameInstance && window.gameInstance.ui) {
+            window.gameInstance.ui.addLog(`💬 [${chatPlayer.nick || event.source.substring(0, 8)}]: ${event.msg}`, 'player');
+          }
+        }
+        break;
+      }
+    }
   }
 
   getDeterministicHost() {
@@ -1676,6 +1875,9 @@ export default class Game {
     this.ui.updateHUD(this.player);
     this.ui.addLog('✨ Respawned!', 'reward');
     this.broadcastState();
+    if (this.player && this.player.isLocal) {
+      this.emitEvent('player_respawn', { source: this.net.me.info.user });
+    }
   }
 
   handleLeftClick(cx, cy) {
@@ -1712,6 +1914,13 @@ export default class Game {
       document.getElementById('walk-indicator').innerHTML = `🧪 Collecting ${typeStr}...`;
       document.getElementById('walk-indicator').classList.add('visible');
       this.broadcastState();
+      if (this.player && this.player.isLocal) {
+        this.emitEvent('player_move', {
+          x: this.player.moveTargetX,
+          y: this.player.moveTargetY,
+          facing: this.player.facing
+        });
+      }
       return;
     }
 
@@ -1760,6 +1969,15 @@ export default class Game {
 
     this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30, color: 'yellow' };
     this.broadcastState();
+    if (this.player && this.player.isLocal) {
+      if (!clickedEnemy && onGround) {
+        this.emitEvent('player_move', {
+          x: this.player.moveTargetX,
+          y: this.player.moveTargetY,
+          facing: this.player.facing
+        });
+      }
+    }
   }
 
   doSkill1(tx, ty) {
@@ -1834,6 +2052,9 @@ export default class Game {
       }
     }
     this.broadcastState();
+    if (this.player && this.player.isLocal) {
+      this.emitEvent('player_attack', { mouseX: tx, mouseY: ty, aimAngle: aimAngle, classType: this.player.classType });
+    }
   }
 
   startChargingSkill2() {
@@ -2018,16 +2239,41 @@ export default class Game {
       this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 6.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: singleDamage, critChance: 0.2, maxDistance: waveDistance, radius: singleRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: aimAngle, charges: charges });
     }
     this.broadcastState();
+    if (this.player && this.player.isLocal) {
+      let projectiles = this.projectiles.filter(p => p.ownerId === this.net.me.info.user && p.life > 0 && p.life < (p.maxLife || 60)).slice(-1).map(p => ({
+        type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
+        angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
+        originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
+        ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
+        critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
+        casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
+        trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
+      }));
+      this.emitEvent('player_skill', {
+        mouseX: tx, mouseY: ty, aimAngle: aimAngle,
+        isChargingS2: false, s2ChargeCount: charges,
+        projectiles: projectiles
+      });
+    }
+  }
+
+  //== Event System for Decentralized Simulation
+  emitEvent(type, data) {
+    if (!this.net || !this.net.me) return;
+    this.net.send_cmd('room.msg', {
+      cmd: 'game.event',
+      data: {
+        type: type,
+        source: this.net.me.info.user,
+        timestamp: Date.now(),
+        ...data
+      }
+    });
   }
 
   broadcastState() {
     if (!this.player) return;
 
-    const activeConfig = {};
-    for (const key in CONFIG_METADATA) {
-      activeConfig[key] = ConfigModule[key];
-    }
-    
     const reqLevel = 4 + (this.player.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
     const weaponY = this.player.y - 40 * lvlScale;
@@ -2060,7 +2306,6 @@ export default class Game {
       s2ChargeCount: this.player.s2ChargeCount,
       chatMsg: this.player.chatMsg,
       targetedItemId: this.player.targetedItemId,
-      // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
     };
 
     if (this.pendingHits && this.pendingHits.length > 0) {
@@ -2070,7 +2315,7 @@ export default class Game {
 
     if (this.isHost) {
       this.hostBroadcastCount = (this.hostBroadcastCount || 0) + 1;
-      const includeEnemies = (this.hostBroadcastCount % 10 === 0); // once every 1 second
+      const includeEnemies = (this.hostBroadcastCount % 10 === 0);
       data.hostData = {
         gameStartTime: this.hostGameStartTime || this.gameStartTime,
         wave: this.wave, kills: this.kills, sessionSeed: this.sessionSeed, env: this.selectedEnv,
@@ -2101,10 +2346,6 @@ export default class Game {
     if (hasChanges && this.net && this.net.me) {
       this.net.send_cmd('set_data', delta);
       delete this.lastBroadcastStr['hits'];
-      delete this.lastBroadcastStr['enemyHitPlayer'];
-      delete this.lastBroadcastStr['spawnedProjectile'];
-      delete this.lastBroadcastStr['enemyKilled'];
-      delete this.lastBroadcastStr['spawnItem'];
     }
   }
 
@@ -2136,6 +2377,9 @@ export default class Game {
       this.player.hp = 0;
       this.player.alive = false;
       this.broadcastState();
+      if (this.player && this.player.isLocal) {
+        this.emitEvent('player_death', { source: this.net.me.info.user });
+      }
       // Keep state PLAYING so the network host continues to run the simulation
       this.ui.showDeathScreen(`${this.waveEnemiesKilled}/${this.waveTotalEnemies}`, this.wave);
     } else {
@@ -2149,6 +2393,14 @@ export default class Game {
     const damage = Math.round(baseDamage * (isCrit ? 2.0 : 1.0) * (0.9 + Math.random() * 0.2));
 
     this.pendingHits.push({ id: enemy.id, damage: damage, isCrit: isCrit, source: this.net.me.info.user });
+
+    if (this.player && this.player.isLocal) {
+      this.emitEvent('enemy_hit', {
+        id: enemy.id,
+        damage: damage,
+        isCrit: isCrit
+      });
+    }
 
     // Local Vampirism healing (heals 75% of damage dealt)
     if (this.player && this.player.buffHpTimer > 0 && this.player.hp > 0) {
@@ -2181,6 +2433,13 @@ export default class Game {
             this.waveTransitionTimer = 120;
           }
         }
+        if (this.player && this.player.isLocal) {
+          this.emitEvent('enemy_killed', {
+            id: e.id,
+            kills: this.kills,
+            wave: this.wave
+          });
+        }
       }
     }
   }
@@ -2209,6 +2468,33 @@ export default class Game {
       let cleanProps = { ...props };
       if (cleanProps.trailPositions) cleanProps.trailPositions = [];
       this.net.send_cmd('set_data', { spawnedProjectile: cleanProps });
+      if (this.player && this.player.isLocal) {
+        this.emitEvent('projectile_spawn', {
+          projectileId: props.id,
+          type: props.type,
+          x: props.x || this.player.x,
+          y: props.y || (this.player.y - 40),
+          vx: props.vx || 0,
+          vy: props.vy || 0,
+          tx: props.tx || 0,
+          ty: props.ty || 0,
+          angle: props.angle || 0,
+          maxLife: props.maxLife || 60,
+          radius: props.radius || 10,
+          color: props.color || '#e74c3c',
+          damage: props.damage || 10,
+          ownerId: props.ownerId,
+          bodyScale: props.bodyScale || 1,
+          charges: props.charges || 0,
+          critChance: props.critChance || 0,
+          explodeRadius: props.explodeRadius || 0,
+          explodeDamage: props.explodeDamage || 0,
+          casterSpd: props.casterSpd || 5,
+          retargetTimer: props.retargetTimer || 0,
+          wobble: props.wobble || 0,
+          trailTimer: props.trailTimer || 0
+        });
+      }
     }
   }
 
@@ -2811,7 +3097,7 @@ export default class Game {
           e.deadProcessed = true;
           const groundY = getGroundY(this.selectedEnv);
 
-          let enemyIndex = 0;
+let enemyIndex = 0;
           if (e.id && e.id.startsWith('E_')) {
             enemyIndex = parseInt(e.id.split('_')[2]) || 0;
           } else if (e.name === 'BOSS') {
@@ -2823,13 +3109,23 @@ export default class Game {
             if (localDropPrng.nextFloat() < ConfigModule.POTION_RED_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
               const dropY = groundY + 20 + localDropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: localDropPrng.nextFloat().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+              const newItemId = localDropPrng.nextFloat().toString(36).substr(2, 9);
+              const newItem = { id: newItemId, type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY };
+              this.items.push(newItem);
+              if (this.player && this.player.isLocal) {
+                this.emitEvent('item_spawn', { id: newItemId, item: newItem });
+              }
             }
 
             if (localDropPrng.nextFloat() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
               const dropY = groundY + 20 + localDropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: localDropPrng.nextFloat().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+              const newItemId = localDropPrng.nextFloat().toString(36).substr(2, 9);
+              const newItem = { id: newItemId, type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY };
+              this.items.push(newItem);
+              if (this.player && this.player.isLocal) {
+                this.emitEvent('item_spawn', { id: newItemId, item: newItem });
+              }
             }
           }
 
@@ -2904,12 +3200,17 @@ export default class Game {
 
 
             const dropY = groundY + 20 + localDropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-            this.items.push({
-              id: localDropPrng.nextFloat().toString(36).substr(2, 9),
+            const gearItemId = localDropPrng.nextFloat().toString(36).substr(2, 9);
+            const gearItem = {
+              id: gearItemId,
               type: 'gear', gearType: category, rarity: rarity, color: color,
               name: itemName, stats: stats, icon: icon,
               x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
-            });
+            };
+            this.items.push(gearItem);
+            if (this.player && this.player.isLocal) {
+              this.emitEvent('item_spawn', { id: gearItemId, item: gearItem });
+            }
           }
         }
       }
@@ -3536,6 +3837,7 @@ export default class Game {
         if (this.waveTransitionTimer > 0) {
           this.waveTransitionTimer -= dt;
           if (this.waveTransitionTimer <= 0) {
+            const prevWave = this.wave;
             if (this.player && !this.player.alive) this.respawnPlayer();
             this.wave++;
             this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
@@ -3568,6 +3870,13 @@ export default class Game {
             }
             this.waveEnemiesKilled = 0;
             this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
+
+            if (this.player && this.player.isLocal) {
+              this.emitEvent('wave_complete', {
+                nextWave: this.wave,
+                kills: this.kills
+              });
+            }
           }
         }
       }
@@ -3588,6 +3897,21 @@ export default class Game {
                  color: newEnemy.color, icon: newEnemy.icon
                } 
             });
+            if (this.player && this.player.isLocal) {
+              this.emitEvent('enemy_spawn', {
+                id: newEnemy.id,
+                x: newEnemy.x,
+                y: newEnemy.y,
+                hp: newEnemy.hp,
+                maxHp: newEnemy.maxHp,
+                name: newEnemy.name,
+                size: newEnemy.size,
+                speed: newEnemy.speed,
+                color: newEnemy.color,
+                icon: newEnemy.icon,
+                spawnIndex: spawnIndex
+              });
+            }
           }
           this.waveEnemiesToSpawn--;
         }
