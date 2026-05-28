@@ -106,6 +106,9 @@ export default class Game {
       }
       this.checkHost();
     });
+
+    this.net.on('get_host_data', (data) => this.handleGetHostData(data));
+    this.net.on('sync_host_data', (data) => this.handleSyncHostData(data));
     this.net.on('room.user_data', (data) => {
       // Process enemyKilled for ourselves even if it comes from our own user data broadcast
       if (data.data && data.data.enemyKilled && this.player && typeof data.data.enemyKilled === 'string') {
@@ -251,7 +254,7 @@ export default class Game {
           this.items.push(data.data.spawnItem);
         }
 
-        // Handle Host Sync
+        // Handle Host Sync (omits items to stop stuttering, handles waves & enemies)
         if (this.state === 'PLAYING' && data.data.hostData && !this.isHost) {
           const currentBestHost = this.getDeterministicHost();
           if (data.user === currentBestHost) {
@@ -405,7 +408,61 @@ export default class Game {
         });
       } else {
         this.net.send_cmd('set_data', { isHost: false });
+        // Request sync from the deterministically chosen host when joining
+        if (this.state === 'PLAYING' && !this.syncedWithHost) {
+          if (!this.syncRetryTimer) {
+            this.net.send_cmd('get_host_data', { target: bestHost, user: this.net.me.info.user });
+            this.syncRetryTimer = setTimeout(() => { this.syncRetryTimer = null; }, 3000);
+          }
+        }
       }
+    }
+  }
+
+  handleGetHostData(data) {
+    // Respond if we are the host and the request is directed to us
+    if (this.isHost && data && data.target === this.net.me.info.user) {
+      const hostDataPayload = {
+        gameStartTime: this.hostGameStartTime || this.gameStartTime,
+        time: this.globalTime,
+        wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
+        waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
+        enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000)).map(e => ({
+          id: e.id, x: parseFloat(e.x.toFixed(1)), y: parseFloat(e.y.toFixed(1)), hp: Math.floor(e.hp), maxHp: Math.floor(e.maxHp), alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
+        })),
+        items: this.items.map(i => ({
+          id: i.id, type: i.type, x: parseFloat(i.x.toFixed(1)), y: parseFloat(i.y.toFixed(1)), name: i.name, color: i.color, rarity: i.rarity, stats: i.stats, life: i.life, vy: i.vy, falling: i.falling, targetY: i.targetY,
+          icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
+        }))
+      };
+
+      this.net.send_cmd('sync_host_data', {
+        target: data.user, // The user who requested it
+        hostData: hostDataPayload,
+        syncProjectiles: this.projectiles.map(p => ({
+          type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
+          angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
+          originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
+          ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
+          critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
+          casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
+          trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
+        }))
+      });
+    }
+  }
+
+  handleSyncHostData(data) {
+    if (!this.isHost && data && data.hostData && data.target === this.net.me.info.user) {
+      this.syncHostData(data.hostData);
+      if (data.syncProjectiles) {
+        this.projectiles = data.syncProjectiles.map(pData => {
+          let p = new Projectile(pData);
+          Object.assign(p, pData);
+          return p;
+        });
+      }
+      this.syncedWithHost = true;
     }
   }
 
@@ -1996,20 +2053,19 @@ export default class Game {
       data.hits = this.pendingHits;
       this.pendingHits = [];
     }
+
     if (this.isHost) {
       data.hostData = {
         gameStartTime: this.hostGameStartTime || this.gameStartTime,
         wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
-        enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
+        enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000)).map(e => ({
           id: e.id, x: parseFloat(e.x.toFixed(1)), y: parseFloat(e.y.toFixed(1)), hp: Math.floor(e.hp), maxHp: Math.floor(e.maxHp), alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
-        })),
-        items: this.items.map(i => ({
-          id: i.id, type: i.type, x: parseFloat(i.x.toFixed(1)), y: parseFloat(i.y.toFixed(1)), name: i.name, color: i.color, rarity: i.rarity, stats: i.stats,
-          icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
         }))
+        // Items are purposely omitted here to prevent stuttering. They are only synced via custom get_host_data event or spawnItem discrete events.
       };
     }
+
     if (!this.lastBroadcastStr) this.lastBroadcastStr = {};
     const delta = {};
     let hasChanges = false;
@@ -2738,17 +2794,25 @@ export default class Game {
           e.deadProcessed = true;
           const groundY = getGroundY(this.selectedEnv);
 
+          let enemyIndex = 0;
+          if (e.id && e.id.startsWith('E_')) {
+            enemyIndex = parseInt(e.id.split('_')[2]) || 0;
+          } else if (e.name === 'BOSS') {
+            enemyIndex = 9999;
+          }
+          let localDropPrng = new PRNG(this.sessionSeed + this.wave * 54321 + enemyIndex);
+
           if (e.name !== 'MISSILE' && e.name !== 'BOMB') {
-            if (this.dropPrng.nextFloat() < ConfigModule.POTION_RED_DROP_CHANCE) {
+            if (localDropPrng.nextFloat() < ConfigModule.POTION_RED_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+              const dropY = groundY + 20 + localDropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+              this.items.push({ id: localDropPrng.nextFloat().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
             }
 
-            if (this.dropPrng.nextFloat() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
+            if (localDropPrng.nextFloat() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+              const dropY = groundY + 20 + localDropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+              this.items.push({ id: localDropPrng.nextFloat().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
             }
           }
 
@@ -2756,9 +2820,9 @@ export default class Game {
             // boss projectiles don't drop gear
           } else if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
             // do nothing
-          } else if (this.dropPrng.nextFloat() < ConfigModule.GEAR_DROP_RATE) {
+          } else if (localDropPrng.nextFloat() < ConfigModule.GEAR_DROP_RATE) {
             let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
-            let randRarity = this.dropPrng.nextFloat();
+            let randRarity = localDropPrng.nextFloat();
             const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
             const rareThreshold = ConfigModule.GEAR_RARITY_RARE / totalWeight;
             const magicThreshold = rareThreshold + (ConfigModule.GEAR_RARITY_MAGIC / totalWeight);
@@ -2770,7 +2834,7 @@ export default class Game {
             const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
             const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
             const variance = ConfigModule.GEAR_STAT_VARIANCE;
-            const finalStat = Math.floor(baseStat * (1 - variance + this.dropPrng.nextFloat() * variance * 2));
+            const finalStat = Math.floor(baseStat * (1 - variance + localDropPrng.nextFloat() * variance * 2));
 
             let stats = {}; let icon = '💎';
             let category = 'Ring'; let itemName = 'Unknown Item';
@@ -2779,7 +2843,7 @@ export default class Game {
             if (useCustom) {
               const matchingItems = ConfigModule.ITEMS_DB.filter(item => (item.rarity || 'normal') === rarity);
               const templateList = matchingItems.length > 0 ? matchingItems : ConfigModule.ITEMS_DB;
-              const template = templateList[Math.floor(this.dropPrng.nextFloat() * templateList.length)];
+              const template = templateList[Math.floor(localDropPrng.nextFloat() * templateList.length)];
               category = template.gearType;
               itemName = template.name;
               icon = template.icon;
@@ -2800,7 +2864,7 @@ export default class Game {
               }
             } else {
               const categories = ['Weapon', 'Armor', 'Ring'];
-              category = categories[Math.floor(this.dropPrng.nextFloat() * categories.length)];
+              category = categories[Math.floor(localDropPrng.nextFloat() * categories.length)];
               if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
               else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
               else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
@@ -2809,7 +2873,7 @@ export default class Game {
               let affixesAdded = 1; let sanity = 0;
               while (affixesAdded < numAffixes && sanity < 10) {
                 sanity++;
-                let randAffix = possibleAffixes[Math.floor(this.dropPrng.nextFloat() * possibleAffixes.length)];
+                let randAffix = possibleAffixes[Math.floor(localDropPrng.nextFloat() * possibleAffixes.length)];
                 if (!stats[randAffix]) {
                   if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
                   if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
@@ -2818,13 +2882,13 @@ export default class Game {
                 }
               }
               const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
-              itemName = `${prefixes[Math.floor(this.dropPrng.nextFloat() * prefixes.length)]} ${category}`;
+              itemName = `${prefixes[Math.floor(localDropPrng.nextFloat() * prefixes.length)]} ${category}`;
             }
 
 
-            const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+            const dropY = groundY + 20 + localDropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
             this.items.push({
-              id: this.dropPrng.nextFloat().toString(36).substr(2, 9),
+              id: localDropPrng.nextFloat().toString(36).substr(2, 9),
               type: 'gear', gearType: category, rarity: rarity, color: color,
               name: itemName, stats: stats, icon: icon,
               x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
@@ -3146,17 +3210,18 @@ export default class Game {
               const floatOffset = Math.sin(this.globalTime / 200) * 5;
               const pulse = Math.abs(Math.sin(this.globalTime / 150));
               ctx.translate(item.x, item.y - 10 + floatOffset);
-              ctx.globalAlpha = Math.min(1, item.life / 1000);
+              const safeLife = (item.life !== undefined) ? item.life : 30000;
+              ctx.globalAlpha = Math.min(1, safeLife / 1000);
 
               if (item.type === 'gear') {
                 // Gear Aura - oval base shadow for perspective
                 ctx.beginPath();
                 ctx.ellipse(0, 8, (14 + pulse * 6) * 1.3, (14 + pulse * 6) * 0.5, 0, 0, Math.PI * 2);
                 ctx.fillStyle = item.color || '#ecf0f1';
-                ctx.globalAlpha = (0.0125 + pulse * 0.01875) * Math.min(1, item.life / 1000);
+                ctx.globalAlpha = (0.0125 + pulse * 0.01875) * Math.min(1, safeLife / 1000);
                 ctx.fill();
 
-                ctx.globalAlpha = Math.min(1, item.life / 1000);
+                ctx.globalAlpha = Math.min(1, safeLife / 1000);
                 ctx.shadowColor = item.color || '#ecf0f1';
                 ctx.shadowBlur = 10 + pulse * 10;
 
