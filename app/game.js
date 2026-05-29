@@ -2813,9 +2813,12 @@ export default class Game {
 
 
             const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
-            const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
+            const statMult = ConfigModule.GEAR_STAT_MULTIPLIER;
             const variance = ConfigModule.GEAR_STAT_VARIANCE;
-            const finalStat = Math.floor(baseStat * (1 - variance + this.dropPrng.nextFloat() * variance * 2));
+            const lvlAddition = lvl * statMult;
+            const varianceRange = lvlAddition * variance * 2;
+            const varianceOffset = lvlAddition * (1 - variance) + this.dropPrng.nextFloat() * varianceRange - lvlAddition * (1 - variance);
+            const additionWithVariance = Math.max(0, Math.floor(lvlAddition + varianceOffset));
 
             let stats = {}; let icon = '💎';
             let category = 'Ring'; let itemName = 'Unknown Item';
@@ -2830,24 +2833,22 @@ export default class Game {
               icon = template.icon;
               rarity = template.rarity || rarity;
               color = template.color || color;
-              // Scale custom base stats by finalStat/10 (so an atk:10 item scales up linearly)
-              let scale = finalStat / 10;
               if (template.stats) {
-                if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
-                if (template.stats.hp) stats.hp = Math.max(1, Math.floor(template.stats.hp * scale));
-                if (template.stats.spd) stats.spd = Math.max(1, Math.ceil(template.stats.spd * scale));
+                if (template.stats.atk) stats.atk = template.stats.atk + additionWithVariance;
+                if (template.stats.hp) stats.hp = template.stats.hp + additionWithVariance;
+                if (template.stats.spd) stats.spd = template.stats.spd + Math.ceil(additionWithVariance * 0.1);
               }
-              // Safeguard to ensure every item has at least one stat populated
               if (Object.keys(stats).length === 0) {
-                if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); }
-                else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); } else { stats.spd = Math.max(1, Math.ceil(finalStat * 0.1)); }
+                if (category === 'Weapon') { stats.atk = Math.max(1, additionWithVariance); icon = '🗡️'; }
+                else if (category === 'Armor') { stats.hp = Math.max(5, additionWithVariance * 10); icon = '🛡️'; }
+                else { stats.spd = Math.max(1, Math.ceil(additionWithVariance * 0.1)); icon = '💍'; }
               }
             } else {
               const categories = ['Weapon', 'Armor', 'Ring'];
               category = categories[Math.floor(this.dropPrng.nextFloat() * categories.length)];
-              if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
-              else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); icon = '🛡️'; }
-              else { stats.spd = Math.max(1, Math.ceil(finalStat * 0.1)); icon = '💍'; }
+              if (category === 'Weapon') { stats.atk = Math.max(1, additionWithVariance); icon = '🗡️'; }
+              else if (category === 'Armor') { stats.hp = Math.max(5, additionWithVariance * 10); icon = '🛡️'; }
+              else { stats.spd = Math.max(1, Math.ceil(additionWithVariance * 0.1)); icon = '💍'; }
 
               const possibleAffixes = ['atk', 'hp', 'spd'];
               let affixesAdded = 1; let sanity = 0;
@@ -2855,9 +2856,9 @@ export default class Game {
                 sanity++;
                 let randAffix = possibleAffixes[Math.floor(this.dropPrng.nextFloat() * possibleAffixes.length)];
                 if (!stats[randAffix]) {
-                  if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
-                  if (randAffix === 'hp') stats.hp = Math.max(2, Math.floor(finalStat * 5));
-                  if (randAffix === 'spd') stats.spd = Math.max(1, Math.ceil(finalStat * 0.05));
+                  if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(additionWithVariance * 0.5));
+                  if (randAffix === 'hp') stats.hp = Math.max(2, Math.floor(additionWithVariance * 5));
+                  if (randAffix === 'spd') stats.spd = Math.max(1, Math.ceil(additionWithVariance * 0.05));
                   affixesAdded++;
                 }
               }
