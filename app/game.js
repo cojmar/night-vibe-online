@@ -105,6 +105,9 @@ export default class Game {
         this.handleGameEvent(data.data);
       }
     });
+    this.net.on('gear_pickup', (event) => {
+      this.handleGearPickup(event);
+    });
     this.net.on('room.user_leave', (data) => {
       if (this.otherPlayers[data.user]) {
         delete this.otherPlayers[data.user];
@@ -1495,24 +1498,23 @@ export default class Game {
     if (event.source === this.net.me.info.user) return;
 
     switch (event.type) {
-      case 'item_pickup': {
-        let remotePlayer = this.otherPlayers[event.source];
-        if (remotePlayer && event.item && event.item.type === 'gear') {
-          remotePlayer.inventory.push(event.item);
-        }
-        // Remove item from world for all clients
-        let idx = this.items.findIndex(i => i.id === event.itemId);
-        if (idx !== -1) {
-          this.items.splice(idx, 1);
-        }
-        break;
-      }
       case 'item_spawn': {
         if (!this.items.find(i => i.id === event.id)) {
           this.items.push(event.item);
         }
         break;
       }
+    }
+  }
+
+  handleGearPickup(event) {
+    if (!this.player || this.state !== 'PLAYING') return;
+    if (event.user === this.net.me.info.user) return;
+
+    let gearId = event.data;
+    let idx = this.items.findIndex(i => i.id === gearId);
+    if (idx !== -1) {
+      this.items.splice(idx, 1);
     }
   }
 
@@ -3073,7 +3075,7 @@ export default class Game {
                 if (this.ui) this.ui.renderInventory();
                 this.saveLocalProgression();
                 if (this.player.isLocal) {
-                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                  this.net.send_cmd("gear_pickup", item.id);
                 }
               } else if (item.type === 'red') {
                 this.player.buffHpTimer = POTION_BUFF_DURATION;
