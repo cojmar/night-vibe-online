@@ -108,6 +108,9 @@ export default class Game {
     this.net.on('gear_pickup', (event) => {
       this.handleGearPickup(event);
     });
+    this.net.on('gear_drop', (event) => {
+      this.handleGearDrop(event);
+    });
     this.net.on('room.user_leave', (data) => {
       if (this.otherPlayers[data.user]) {
         delete this.otherPlayers[data.user];
@@ -1515,6 +1518,16 @@ export default class Game {
     let idx = this.items.findIndex(i => i.id === gearId);
     if (idx !== -1) {
       this.items.splice(idx, 1);
+    }
+  }
+
+  handleGearDrop(event) {
+    if (!this.player || this.state !== 'PLAYING') return;
+    if (event.user === this.net.me.info.user) return;
+
+    let { itemId, item } = event.data;
+    if (!this.items.find(i => i.id === itemId)) {
+      this.items.push(item);
     }
   }
 

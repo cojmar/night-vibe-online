@@ -2665,7 +2665,7 @@ export default class UI {
                     item.life = 60000;
                     this.game.items.push(item);
                     if (this.game.player && this.game.player.isLocal) {
-                        this.game.emitEvent('item_spawn', { id: item.id, item: item });
+                        this.game.net.send_cmd('gear_drop', { itemId: item.id, item: item, x: item.x, y: item.y });
                     }
                     this.game.saveLocalProgression();
                     this.updateHUD(p);
