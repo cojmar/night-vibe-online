@@ -277,14 +277,6 @@ if (data.data.gameOver) {
           this.quitToMenu();
         }
 
-        // Handle Host Sync — deterministic params only (no enemies/items — they're generated locally)
-        if (this.state === 'PLAYING' && data.data.hostData && !this.isHost) {
-          const currentBestHost = this.getDeterministicHost();
-          if (data.user === currentBestHost) {
-            this.syncHostData(data.data.hostData);
-          }
-        }
-
         // Sync Gameplay balance config from the Host 
         if (data.data.gameplayConfig && !this.isHost) {
           const op = this.otherPlayers[data.user];
@@ -3474,24 +3466,22 @@ if (data.data.gameOver) {
         }
       }
 
+     // Deterministic enemy spawn based on game time — no network sync needed
       if (this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
-        this.enemySpawnTimer += 16.67 * dt;
-        if (this.enemySpawnTimer >= this.enemySpawnInterval) {
-          this.enemySpawnTimer = 0;
-          const spawnIndex = this.waveTotalEnemies - this.waveEnemiesToSpawn;
-          const newEnemy = new Enemy(this, this.bossActive, false, spawnIndex);
-          if (!this.enemies.find(e => e.id === newEnemy.id)) {
-            this.enemies.push(newEnemy);
+        const gameTime = Date.now() - (this.hostGameStartTime || this.gameStartTime);
+        const expectedSpawned = this.waveTotalEnemies - this.waveEnemiesToSpawn;
+        const expectedSpawnInterval = this.enemySpawnInterval;
+        const expectedSpawnCount = Math.floor(gameTime / expectedSpawnInterval);
+        
+        if (expectedSpawnCount > expectedSpawned) {
+          for (let i = expectedSpawned; i < expectedSpawnCount && this.waveEnemiesToSpawn > 0; i++) {
+            const newEnemy = new Enemy(this, this.bossActive, false, i);
+            if (!this.enemies.find(e => e.id === newEnemy.id)) {
+              this.enemies.push(newEnemy);
+            }
+            this.waveEnemiesToSpawn--;
           }
-          this.waveEnemiesToSpawn--;
         }
-      }
-
-      this.syncTimer = (this.syncTimer || 0) + 16.67 * dt;
-      if (this.syncTimer >= 100) {
-        this.syncTimer = 0;
-        this.checkHost();
-        this.broadcastState();
       }
 
       // Global Day/Night Lighting Overlays
