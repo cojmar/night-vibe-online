@@ -273,11 +273,11 @@ export default class Game {
           }
         }
 
-       if (data.data.gameOver) {
+if (data.data.gameOver) {
           this.quitToMenu();
         }
 
-        // Handle Host Sync — only sync from the deterministic host
+        // Handle Host Sync — deterministic params only (no enemies/items — they're generated locally)
         if (this.state === 'PLAYING' && data.data.hostData && !this.isHost) {
           const currentBestHost = this.getDeterministicHost();
           if (data.user === currentBestHost) {
@@ -481,63 +481,6 @@ export default class Game {
       this.initBgParticles();
     }
 
-    // Sync enemies position/hp to host
-    // First, purge any enemies we have locally that the host no longer has (ghosts)
-    const hostEnemyIds = hostData.enemies.map(e => e.id);
-    this.enemies = this.enemies.filter(e => hostEnemyIds.includes(e.id));
-
-    hostData.enemies.forEach(eData => {
-      let e = this.enemies.find(ex => ex.id === eData.id);
-      if (!e) {
-        let isBoss = eData.name === 'BOSS';
-        let spawnIndex = 0;
-        if (eData.id && eData.id.startsWith('E_')) {
-          const parts = eData.id.split('_');
-          if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
-        }
-
-        // Generate full visual properties using deterministic PRNG
-        e = new Enemy(this, isBoss, false, spawnIndex);
-        e.id = eData.id;
-
-        // If it's a missile, fix properties
-        if (eData.id && eData.id.startsWith('M_')) {
-          e.name = 'MISSILE';
-          e.icon = '🚀';
-          e.size = 20;
-          e.color = '#e74c3c';
-        }
-
-        e.x = eData.x || e.x;
-        e.y = eData.y || e.y;
-        this.enemies.push(e);
-      }
-      if (eData.x !== undefined) e.serverX = eData.x;
-      if (eData.y !== undefined) e.serverY = eData.y;
-      if (eData.hp !== undefined) e.hp = eData.hp;
-      if (eData.maxHp !== undefined) e.maxHp = eData.maxHp;
-      if (eData.alive !== undefined) {
-        if (e.alive && !eData.alive) {
-          this.spawnEnemyDeathExplosion(e);
-        }
-        e.alive = eData.alive;
-      }
-      if (eData.name !== undefined) e.name = eData.name;
-      if (eData.size !== undefined) e.size = eData.size;
-      if (eData.bossState !== undefined) e.bossState = eData.bossState;
-      if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
-      if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
-      if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
-      // Icons and colors are locally deterministic or default, no need to sync from network
-      if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
-    });
-   // Remove enemies not in host, but keep dead ones until their death animation finishes
-    this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
-
-    // Sync ground items
-    if (hostData.items) {
-      this.items = hostData.items.map(item => ({ ...item }));
-    }
   }
 
   init() {
@@ -2099,19 +2042,12 @@ export default class Game {
       data.hits = this.pendingHits;
       this.pendingHits = [];
     }
-  if (this.isHost) {
+// hostData only has config info — enemies/items synced via events only
+    if (this.isHost) {
       data.hostData = {
         gameStartTime: this.hostGameStartTime || this.gameStartTime,
         wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
-        enemies: this.enemies.filter(e => e.alive || (Date.now() - (e.deathTime || 0) < DEAD_BODY_LIFETIME)).map(e => ({
-          id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime || 0,
-          level: e.level, bossState: e.bossState, bossChannelTimer: e.bossChannelTimer, targetLaserPos: e.targetLaserPos, bossLaserTimer: e.bossLaserTimer
-        })),
-        items: this.items.map(i => ({
-          ...i,
-          icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
-        }))
       };
     }
     if (!this.lastBroadcastStr) this.lastBroadcastStr = {};
