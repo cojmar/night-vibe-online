@@ -161,7 +161,21 @@ export const CONFIG_METADATA = {
   REBIRTH_POINTS_PER_LEVEL: { label: "Rebirth Points per Level", type: "number", min: 1, max: 20, step: 1, category: "Player Progression" },
   LIMIT_LEVEL_TO_REBIRTH_REQ: { label: "Cap Level to Rebirth Reqs", type: "boolean", category: "Player Progression" },
 
-  // 4. Potions & Elixirs (Advanced Buffs)
+  // 4. Inventory & Gear
+  EQUIPMENT_SLOTS: { label: "Equipment Slots (comma separated)", type: "string", category: "Inventory & Gear" },
+  ENFORCE_GEAR_SLOTS: { label: "Enforce Gear Slot Types", type: "boolean", category: "Inventory & Gear" },
+
+  // 5. Gear Drops & Stats
+  GEAR_DROP_RATE: { label: "Gear Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+  GEAR_RARITY_NORMAL: { label: "Normal Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+  GEAR_RARITY_MAGIC: { label: "Magic Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+  GEAR_RARITY_RARE: { label: "Rare Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+  GEAR_STAT_MULTIPLIER: { label: "Gear Base Stat Multiplier", type: "number", min: 0.5, max: 5.0, step: 0.1, category: "Gear Drops & Stats" },
+  GEAR_STAT_VARIANCE: { label: "Gear Stat Variance (+/- %)", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
+  GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" },
+  CLEAR_ITEMS_ON_START: { label: "Clear Items on Game Start", type: "boolean", category: "Gear Drops & Stats" },
+
+  // 6. Potions & Elixirs (Advanced Buffs)
   POTION_BUFF_DURATION: { label: "Vampirism Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
   POTION_LIFESTEAL_PERCENT: { label: "Vampirism Heal Percentage", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
   POTION_BLUE_BUFF_DURATION: { label: "Mana Buff Duration (ms)", type: "number", min: 1000, max: 60000, step: 1000, category: "Potions & Elixirs" },
@@ -169,7 +183,7 @@ export const CONFIG_METADATA = {
   POTION_RED_DROP_CHANCE: { label: "Red Buff Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
   POTION_BLUE_DROP_CHANCE: { label: "Blue Buff Potion Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Potions & Elixirs" },
 
-  // 5. Viewport & Display (Environmental / Display settings)
+  // 7. Viewport & Display (Environmental / Display settings)
   GAME_W: { label: "Game Width", type: "number", min: 800, max: 2560, step: 80, category: "Viewport & Display" },
   GAME_H: { label: "Game Height", type: "number", min: 600, max: 1600, step: 64, category: "Viewport & Display" },
   DEPTH_GROUND_TOP: { label: "Ground Top Depth Ratio", type: "number", min: 0.1, max: 0.9, step: 0.05, category: "Viewport & Display" },
@@ -178,7 +192,7 @@ export const CONFIG_METADATA = {
   DEAD_BODY_LIFETIME: { label: "Dead Body Lifetime (ms)", type: "number", min: 500, max: 10000, step: 500, category: "Viewport & Display" },
   DAY_CYCLE_DURATION: { label: "Day/Night Cycle Duration", type: "number", min: 30, max: 3000, step: 30, category: "Viewport & Display" },
 
-  // 6. Enemy Dynamics & Timing
+  // 8. Enemy Dynamics & Timing
   ENEMY_SPAWN_INTERVAL: { label: "Enemy Spawn Delay (ms)", type: "number", min: 100, max: 5000, step: 100, category: "Enemy Dynamics" },
   ENEMY_SCALE_WAVE_MULT: { label: "Enemy HP/ATK Wave Multiplier", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Enemy Dynamics" },
   ENEMY_SCALE_LVL_MULT: { label: "Enemy HP/ATK Level Multiplier", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Enemy Dynamics" },
@@ -189,7 +203,7 @@ export const CONFIG_METADATA = {
   ENEMY_BASE_SIZE_MULT: { label: "Enemy Base Size Multiplier", type: "number", min: 0.5, max: 3.0, step: 0.1, category: "Enemy Dynamics" },
   ENEMY_SIZE_WAVE_MULT: { label: "Enemy Size Wave Scaling", type: "number", min: 0.0, max: 0.5, step: 0.01, category: "Enemy Dynamics" },
 
-  // 7. Boss Battles
+  // 9. Boss Battles
   BOSS_BASE_HP: { label: "Boss Base HP", type: "number", min: 50, max: 2000, step: 50, category: "Boss Battles" },
   BOSS_BASE_ATK: { label: "Boss Base ATK", type: "number", min: 5, max: 100, step: 5, category: "Boss Battles" },
   BOSS_BASE_SPEED: { label: "Boss Base Speed Factor", type: "number", min: 0.05, max: 2.0, step: 0.05, category: "Boss Battles" },
@@ -208,29 +222,15 @@ export const CONFIG_METADATA = {
   BOSS_PROJECTILE_HOMING: { label: "Boss Projectiles Homing", type: "boolean", category: "Boss Battles" },
   BOSS_PROJECTILE_LIFETIME: { label: "Boss Projectile Lifetime (ms, 0=infinite)", type: "number", min: 0, max: 30000, step: 500, category: "Boss Battles" },
 
-  // 8. Projectiles & Hitboxes
+  // 10. Projectiles & Hitboxes
   PROJ_HIT_RADIUS_ARROW: { label: "Arrow Hitbox Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
   PROJ_HIT_RADIUS_BOLT: { label: "Bolt Hitbox Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
   PROJ_HIT_RADIUS_DEFAULT: { label: "Default Projectile Radius (px)", type: "number", min: 2, max: 50, step: 2, category: "Projectiles & Hitboxes" },
 
-  // 9. Social & Chat
+  // 11. Social & Chat
   CHAT_MESSAGE_DURATION: { label: "Chat Bubble Duration (ms)", type: "number", min: 500, max: 20000, step: 500, category: "Social & Chat" },
   CHAT_FADE_OUT_DURATION: { label: "Chat Bubble Fade-out time (ms)", type: "number", min: 100, max: 5000, step: 100, category: "Social & Chat" },
-  NETWORK_ROOM_NAME: { label: "Multiplayer Room Name", type: "string", category: "Social & Chat" },
-
-  // 10. Inventory & Gear
-  EQUIPMENT_SLOTS: { label: "Equipment Slots (comma separated)", type: "string", category: "Inventory & Gear" },
-  ENFORCE_GEAR_SLOTS: { label: "Enforce Gear Slot Types", type: "boolean", category: "Inventory & Gear" },
-
-  // 11. Gear Drops & Stats
-  GEAR_DROP_RATE: { label: "Gear Drop Chance", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
-  GEAR_RARITY_NORMAL: { label: "Normal Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
-  GEAR_RARITY_MAGIC: { label: "Magic Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
-  GEAR_RARITY_RARE: { label: "Rare Rarity Weight", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
-  GEAR_STAT_MULTIPLIER: { label: "Gear Base Stat Multiplier", type: "number", min: 0.5, max: 5.0, step: 0.1, category: "Gear Drops & Stats" },
-  GEAR_STAT_VARIANCE: { label: "Gear Stat Variance (+/- %)", type: "number", min: 0.0, max: 1.0, step: 0.05, category: "Gear Drops & Stats" },
-  GEAR_DROP_ONLY_BOSS: { label: "Gear Drops Only From Bosses", type: "boolean", category: "Gear Drops & Stats" },
-  CLEAR_ITEMS_ON_START: { label: "Clear Items on Game Start", type: "boolean", category: "Gear Drops & Stats" }
+  NETWORK_ROOM_NAME: { label: "Multiplayer Room Name", type: "string", category: "Social & Chat" }
 };
 
 // ==========================================
