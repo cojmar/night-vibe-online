@@ -2815,10 +2815,8 @@ export default class Game {
             const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
             const statMult = ConfigModule.GEAR_STAT_MULTIPLIER;
             const variance = ConfigModule.GEAR_STAT_VARIANCE;
-            const lvlAddition = lvl * statMult;
-            const varianceRange = lvlAddition * variance * 2;
-            const varianceOffset = lvlAddition * (1 - variance) + this.dropPrng.nextFloat() * varianceRange - lvlAddition * (1 - variance);
-            const additionWithVariance = Math.max(0, Math.floor(lvlAddition + varianceOffset));
+            const additionBase = lvl * statMult;
+            const additionWithVariance = Math.floor(additionBase * (1 - variance + this.dropPrng.nextFloat() * variance * 2));
 
             let stats = {}; let icon = '💎';
             let category = 'Ring'; let itemName = 'Unknown Item';
