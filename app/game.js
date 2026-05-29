@@ -100,143 +100,10 @@ export default class Game {
         });
       }
     });
-  this.net.on('get_game_state', (data) => {
-      // Server wraps: { room, user }
-      // Only the host responds with full game state via set_game_state
-      if (this.isHost && this.state === 'PLAYING') {
-        let players = {};
-        if (this.net && this.net.room && this.net.room.users) {
-          for (let uid in this.net.room.users) {
-            let ud = this.net.room.users[uid];
-            if (ud && ud.data) {
-              players[uid] = {
-                x: ud.data.x, y: ud.data.y, hp: ud.data.hp, maxHp: ud.data.maxHp,
-                level: ud.data.level, kills: ud.data.kills, inGame: ud.data.inGame,
-                state: ud.data.state, classType: ud.data.classType
-              };
-            }
-          }
-        }
-        this.net.send_cmd('set_game_state', {
-          enemies: this.enemies.filter(e => e.alive || (Date.now() - (e.deathTime || 0) < DEAD_BODY_LIFETIME)).map(e => ({
-            id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime || 0,
-            level: e.level, bossState: e.bossState, bossChannelTimer: e.bossChannelTimer, targetLaserPos: e.targetLaserPos, bossLaserTimer: e.bossLaserTimer
-          })),
-          projectiles: this.projectiles.map(p => ({
-            type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
-            angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
-            originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
-            ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
-            critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
-            casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
-            trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
-          })),
-          items: this.items.map(i => ({
-            ...i,
-            icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
-          })),
-          wave: this.wave,
-          waveEnemiesKilled: this.waveEnemiesKilled,
-          waveTotalEnemies: this.waveTotalEnemies,
-          waveEnemiesToSpawn: this.waveEnemiesToSpawn,
-          bossActive: this.bossActive,
-          sessionSeed: this.sessionSeed,
-          playerCount: Object.keys(players).length,
-          players: players,
-          hostGameStartTime: this.hostGameStartTime || this.gameStartTime
-        });
+    this.net.on('room.msg', (data) => {
+      if (data.cmd === 'game.event' && data.data && data.data.type) {
+        this.handleGameEvent(data.data);
       }
-    });
-    this.net.on('set_game_state', (data) => {
-      // Server wraps: { room, user, data: { enemies, projectiles, items, ... } }
-      const event = data.data || data;
-
-      // Full replacement — clear local state, apply host state exactly
-      if (event.enemies) {
-        let hostEnemyIds = new Set(event.enemies.map(e => e.id));
-        this.enemies = this.enemies.filter(e => !hostEnemyIds.has(e.id));
-        event.enemies.forEach(eData => {
-          let e = this.enemies.find(ex => ex.id === eData.id);
-          if (!e) {
-            let isBoss = eData.name === 'BOSS';
-            let spawnIndex = 0;
-            if (eData.id && eData.id.startsWith('E_')) {
-              const parts = eData.id.split('_');
-              if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
-            }
-            const newE = new Enemy(this, isBoss, false, spawnIndex);
-            newE.id = eData.id;
-            if (eData.id && eData.id.startsWith('M_')) {
-              newE.name = 'MISSILE';
-              newE.icon = '🚀';
-              newE.size = 20;
-              newE.color = '#e74c3c';
-            }
-            newE.x = eData.x;
-            newE.y = eData.y;
-            newE.serverX = eData.x;
-            newE.serverY = eData.y;
-            newE.hp = eData.hp;
-            newE.maxHp = eData.maxHp;
-            newE.alive = eData.alive;
-            newE.name = eData.name;
-            newE.size = eData.size;
-            newE.level = eData.level;
-            newE.bossState = eData.bossState;
-            newE.bossChannelTimer = eData.bossChannelTimer;
-            newE.targetLaserPos = eData.targetLaserPos;
-            newE.bossLaserTimer = eData.bossLaserTimer;
-            newE.deathTime = eData.deathTime;
-            this.enemies.push(newE);
-          } else {
-            e.x = eData.x; e.y = eData.y;
-            e.serverX = eData.x; e.serverY = eData.y;
-            e.hp = eData.hp; e.maxHp = eData.maxHp;
-            e.alive = eData.alive; e.name = eData.name;
-            e.size = eData.size; e.level = eData.level;
-            e.bossState = eData.bossState;
-            e.bossChannelTimer = eData.bossChannelTimer;
-            e.targetLaserPos = eData.targetLaserPos;
-            e.bossLaserTimer = eData.bossLaserTimer;
-            e.deathTime = eData.deathTime;
-          }
-        });
-      }
-
-      if (event.projectiles) {
-        let hostProjIds = new Set(event.projectiles.map(p => p.id));
-        this.projectiles = this.projectiles.filter(p => !hostProjIds.has(p.id) && p.ownerId !== this.net.me.info.user);
-        for (let sp of event.projectiles) {
-          if (!this.projectiles.find(p => p.id === sp.id)) {
-            this.projectiles.push(new Projectile(sp));
-          }
-        }
-      }
-
-      if (event.items) {
-        let hostItemIds = new Set(event.items.map(i => i.id));
-        this.items = this.items.filter(i => !hostItemIds.has(i.id));
-        for (let item of event.items) {
-          if (!this.items.find(i => i.id === item.id)) {
-            this.items.push(item);
-          }
-        }
-      }
-
-      if (event.wave !== undefined) this.wave = event.wave;
-      if (event.waveEnemiesKilled !== undefined) this.waveEnemiesKilled = event.waveEnemiesKilled;
-      if (event.waveTotalEnemies !== undefined) {
-        if (event.waveTotalEnemies !== this.waveTotalEnemies && event.waveEnemiesKilled >= this.waveTotalEnemies) {
-          this.waveEnemiesToSpawn = event.waveTotalEnemies;
-        }
-        this.waveTotalEnemies = event.waveTotalEnemies;
-      }
-      if (event.waveEnemiesToSpawn !== undefined) this.waveEnemiesToSpawn = event.waveEnemiesToSpawn;
-      if (event.bossActive !== undefined) this.bossActive = event.bossActive;
-      if (event.sessionSeed !== undefined) this.sessionSeed = event.sessionSeed;
-      if (event.hostGameStartTime !== undefined) this.hostGameStartTime = event.hostGameStartTime;
-
-      this.ui.addLog('📥 Received game state from Host.', 'system');
     });
     this.net.on('room.user_leave', (data) => {
       if (this.otherPlayers[data.user]) {
@@ -381,8 +248,20 @@ export default class Game {
           }
         }
 
-if (data.data.gameOver) {
+        if (data.data.gameOver) {
           this.quitToMenu();
+        }
+
+        if (this.isHost && data.data.spawnItem) {
+          this.items.push(data.data.spawnItem);
+        }
+
+        // Handle Host Sync
+        if (this.state === 'PLAYING' && data.data.hostData && !this.isHost) {
+          const currentBestHost = this.getDeterministicHost();
+          if (data.user === currentBestHost) {
+            this.syncHostData(data.data.hostData);
+          }
         }
 
         // Sync Gameplay balance config from the Host 
@@ -532,6 +411,110 @@ if (data.data.gameOver) {
       } else {
         this.net.send_cmd('set_data', { isHost: false });
       }
+    }
+  }
+
+  syncHostData(hostData) {
+    if (hostData.gameStartTime !== undefined) {
+      this.hostGameStartTime = hostData.gameStartTime;
+    }
+    if (hostData.time !== undefined) {
+      this.globalTime = hostData.time;
+    }
+
+    if (hostData.sessionSeed !== undefined) {
+      this.sessionSeed = hostData.sessionSeed;
+    }
+    if (hostData.seed !== undefined) {
+      if (!this.prng) this.prng = new PRNG(hostData.seed);
+      else this.prng.seed = hostData.seed;
+    }
+    if (hostData.dropSeed !== undefined) {
+      if (!this.dropPrng) this.dropPrng = new PRNG(hostData.dropSeed);
+      else this.dropPrng.seed = hostData.dropSeed;
+    }
+
+    if (this.wave !== hostData.wave && hostData.wave) {
+      if (this.player && !this.player.alive) {
+        this.respawnPlayer();
+      }
+      this.wave = hostData.wave;
+    }
+
+    // Always sync these, so a new host doesn't lose spawn state
+    if (hostData.waveTotal !== undefined) this.waveTotalEnemies = hostData.waveTotal;
+    if (hostData.waveSpawn !== undefined) this.waveEnemiesToSpawn = hostData.waveSpawn;
+
+    this.kills = hostData.kills;
+    this.waveEnemiesKilled = hostData.waveKilled || 0;
+    this.bossActive = hostData.bossActive || false;
+
+    if (this.state === 'PLAYING') {
+      this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
+    }
+
+    if (this.selectedEnv !== hostData.env) {
+      this.selectedEnv = hostData.env || 'forest';
+      this.generateScenery();
+      if (this.state === 'PLAYING') this.ui.updateEnvironment(this.selectedEnv);
+      this.initBgParticles();
+    }
+
+    // Sync enemies position/hp to host
+    // First, purge any enemies we have locally that the host no longer has (ghosts)
+    const hostEnemyIds = hostData.enemies.map(e => e.id);
+    this.enemies = this.enemies.filter(e => hostEnemyIds.includes(e.id));
+
+    hostData.enemies.forEach(eData => {
+      let e = this.enemies.find(ex => ex.id === eData.id);
+      if (!e) {
+        let isBoss = eData.name === 'BOSS';
+        let spawnIndex = 0;
+        if (eData.id && eData.id.startsWith('E_')) {
+          const parts = eData.id.split('_');
+          if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+        }
+
+        // Generate full visual properties using deterministic PRNG
+        e = new Enemy(this, isBoss, false, spawnIndex);
+        e.id = eData.id;
+
+        // If it's a missile, fix properties
+        if (eData.id && eData.id.startsWith('M_')) {
+          e.name = 'MISSILE';
+          e.icon = '🚀';
+          e.size = 20;
+          e.color = '#e74c3c';
+        }
+
+        e.x = eData.x || e.x;
+        e.y = eData.y || e.y;
+        this.enemies.push(e);
+      }
+      if (eData.x !== undefined) e.serverX = eData.x;
+      if (eData.y !== undefined) e.serverY = eData.y;
+      if (eData.hp !== undefined) e.hp = eData.hp;
+      if (eData.maxHp !== undefined) e.maxHp = eData.maxHp;
+      if (eData.alive !== undefined) {
+        if (e.alive && !eData.alive) {
+          this.spawnEnemyDeathExplosion(e);
+        }
+        e.alive = eData.alive;
+      }
+      if (eData.name !== undefined) e.name = eData.name;
+      if (eData.size !== undefined) e.size = eData.size;
+      if (eData.bossState !== undefined) e.bossState = eData.bossState;
+      if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
+      if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
+      if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
+      // Icons and colors are locally deterministic or default, no need to sync from network
+      if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
+    });
+    // Remove enemies not in host, but keep dead ones until their death animation finishes
+    this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
+
+    if (hostData.items) {
+      this.items = hostData.items.map(item => ({ ...item }));
     }
   }
 
@@ -1192,13 +1175,73 @@ if (data.data.gameOver) {
             if (this.ui.buildItemsTab) this.ui.buildItemsTab();
             if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
           }
-         this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
+          this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
         }
-        // Request full game state (enemies + items) from host via direct event
-         if (this.net && this.net.me) {
-           this.net.send_cmd('get_game_state');
-           this.ui.addLog('📡 Requesting game state from Host...', 'system');
-         }
+        if (userData.hostData) {
+          this.wave = userData.hostData.wave || GAME_INITIAL_WAVE;
+          this.waveTotalEnemies = userData.hostData.waveTotal || GAME_INITIAL_WAVE_ENEMIES;
+          this.waveEnemiesKilled = userData.hostData.waveKilled || 0;
+          this.waveEnemiesToSpawn = userData.hostData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
+          this.bossActive = userData.hostData.bossActive || false;
+          this.selectedEnv = userData.hostData.env || ENV_LIST[0];
+          this.sessionSeed = userData.hostData.sessionSeed || 0;
+          this.prng = new PRNG(userData.hostData.seed !== undefined ? userData.hostData.seed : (this.sessionSeed + this.wave * 12345));
+          this.dropPrng = new PRNG(userData.hostData.dropSeed !== undefined ? userData.hostData.dropSeed : (this.sessionSeed + this.wave * 54321));
+
+          // Sync ground items and monsters instantly on game entry
+          if (userData.hostData.enemies) {
+            userData.hostData.enemies.forEach(eData => {
+              let e = this.enemies.find(ex => ex.id === eData.id);
+              if (e) {
+                // Update existing
+                // Only snap position if it diverged significantly, to allow local smooth movement
+                const dist = Math.hypot(e.x - eData.x, e.y - eData.y);
+                if (dist > 50) {
+                  e.x = eData.x;
+                  e.y = eData.y;
+                }
+                e.serverX = eData.x;
+                e.serverY = eData.y;
+                if (e.hp > eData.hp && eData.hp <= 0) e.deathTime = eData.deathTime || Date.now();
+                e.hp = eData.hp;
+                e.alive = eData.alive;
+                if (eData.bossState !== undefined) e.bossState = eData.bossState;
+                if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
+                if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
+                if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
+              } else {
+                // Spawn new
+                let isBoss = eData.name === 'BOSS';
+                let spawnIndex = 0;
+                if (eData.id && eData.id.startsWith('E_')) {
+                  const parts = eData.id.split('_');
+                  if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+                }
+                const newE = new Enemy(this, isBoss, false, spawnIndex);
+                newE.id = eData.id;
+                if (eData.id && eData.id.startsWith('M_')) {
+                  newE.name = 'MISSILE';
+                  newE.icon = '🚀';
+                  newE.size = 20;
+                  newE.color = '#e74c3c';
+                }
+                newE.x = eData.x || newE.x;
+                newE.y = eData.y || newE.y;
+                newE.serverX = eData.x || newE.x;
+                newE.serverY = eData.y || newE.y;
+                newE.hp = eData.hp;
+                newE.maxHp = eData.maxHp;
+                newE.alive = eData.alive;
+                newE.name = eData.name;
+                newE.size = eData.size;
+                this.enemies.push(newE);
+              }
+            });
+          }
+          if (userData.hostData.items) {
+            this.items = userData.hostData.items.map(item => ({ ...item }));
+          }
+        }
       }
     }
 
@@ -1434,16 +1477,6 @@ if (data.data.gameOver) {
     }
   }
 
-  _hashString(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash);
-  }
-
   emitEvent(type, data) {
     if (!this.net || !this.net.me) return;
     this.net.send_cmd('room.msg', {
@@ -1457,33 +1490,20 @@ if (data.data.gameOver) {
     });
   }
 
-   handleGameEvent(event) {
+  handleGameEvent(event) {
     if (!this.player || this.state !== 'PLAYING') return;
+    if (event.source === this.net.me.info.user) return;
 
     switch (event.type) {
       case 'item_pickup': {
-        // Always remove item from the ground for everyone
+        let remotePlayer = this.otherPlayers[event.source];
+        if (remotePlayer && event.item && event.item.type === 'gear') {
+          remotePlayer.inventory.push(event.item);
+        }
+        // Remove item from world for all clients
         let idx = this.items.findIndex(i => i.id === event.itemId);
         if (idx !== -1) {
           this.items.splice(idx, 1);
-        }
-        // If I picked it up, add to my inventory (item already added locally before emit)
-        // If someone else picked it up, add to their inventory
-        if (event.item && event.item.type === 'gear') {
-          let targetInv = null;
-          if (event.source === this.net.me.info.user) {
-            // My own pickup — item was already pushed to inventory locally before emit
-            // Just make sure it's there (dedup)
-            targetInv = this.player.inventory;
-          } else {
-            let remotePlayer = this.otherPlayers[event.source];
-            if (remotePlayer) targetInv = remotePlayer.inventory;
-          }
-          if (targetInv) {
-            if (!targetInv.find(i => i.id === event.item.id)) {
-              targetInv.push(event.item);
-            }
-          }
         }
         break;
       }
@@ -1493,7 +1513,6 @@ if (data.data.gameOver) {
         }
         break;
       }
- 
     }
   }
 
@@ -1562,12 +1581,13 @@ if (data.data.gameOver) {
       this.gameStartTime = 0;
       this.hostGameStartTime = 0;
       this.lastBroadcastStr = {}; // Clear delta cache so next join sends a full packet
-      this.net.send_cmd('set_data', {
-        inGame: false,
-        state: 'MENU',
+      this.net.send_cmd('set_data', { 
+        inGame: false, 
+        state: 'MENU', 
         isHost: false,
         gameStartTime: 0,
         gameOver: false,
+        hostData: { wave: 1, kills: 0, enemies: [], items: [], bossActive: false },
         hits: [],
         syncProjectiles: [],
         spawnedProjectile: {},
@@ -1598,7 +1618,6 @@ if (data.data.gameOver) {
     this.particles = [];
     this.items = [];
     this.floatingTexts = [];
-    this._gameStateReceived = false;
 
     if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
       const myData = this.net.room.users[this.net.me.info.user].data;
@@ -2022,7 +2041,21 @@ if (data.data.gameOver) {
       data.hits = this.pendingHits;
       this.pendingHits = [];
     }
-   if (!this.lastBroadcastStr) this.lastBroadcastStr = {};
+    if (this.isHost) {
+      data.hostData = {
+        gameStartTime: this.hostGameStartTime || this.gameStartTime,
+        wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
+        waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
+        enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
+          id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
+        })),
+        items: this.items.map(i => ({
+          ...i,
+          icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
+        }))
+      };
+    }
+    if (!this.lastBroadcastStr) this.lastBroadcastStr = {};
     const delta = {};
     let hasChanges = false;
 
@@ -2746,29 +2779,21 @@ if (data.data.gameOver) {
       for (let e of this.enemies) {
         e.update(dt, activePlayers);
 
-        if (!e.alive && !e.deadProcessed) {
+        if (this.isHost && !e.alive && !e.deadProcessed) {
           e.deadProcessed = true;
           const groundY = getGroundY(this.selectedEnv);
 
-          // Deterministic drop generation seeded by enemy ID — all clients generate same drops
-          const dropSeed = this._hashString(e.id + '_' + (this.sessionSeed || 0));
-          const dprng = new PRNG(dropSeed);
-
           if (e.name !== 'MISSILE' && e.name !== 'BOMB') {
-            if (dprng.nextFloat() < ConfigModule.POTION_RED_DROP_CHANCE) {
+            if (this.dropPrng.nextFloat() < ConfigModule.POTION_RED_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + dprng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              const newItem = { id: 'D_' + e.id + '_red_' + dprng.next().toString(36).substr(2, 6), type: 'red', x: e.x + (dprng.nextFloat() * 30 - 15), y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY };
-              this.items.push(newItem);
-              this.emitEvent('item_spawn', { id: newItem.id, item: newItem });
+              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
             }
 
-            if (dprng.nextFloat() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
+            if (this.dropPrng.nextFloat() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + dprng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              const newItem = { id: 'D_' + e.id + '_blue_' + dprng.next().toString(36).substr(2, 6), type: 'blue', x: e.x + (dprng.nextFloat() * 30 - 15), y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY };
-              this.items.push(newItem);
-              this.emitEvent('item_spawn', { id: newItem.id, item: newItem });
+              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
             }
           }
 
@@ -2776,9 +2801,9 @@ if (data.data.gameOver) {
             // boss projectiles don't drop gear
           } else if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
             // do nothing
-          } else if (dprng.nextFloat() < ConfigModule.GEAR_DROP_RATE) {
+          } else if (this.dropPrng.nextFloat() < ConfigModule.GEAR_DROP_RATE) {
             let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
-            let randRarity = dprng.nextFloat();
+            let randRarity = this.dropPrng.nextFloat();
             const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
             const rareThreshold = ConfigModule.GEAR_RARITY_RARE / totalWeight;
             const magicThreshold = rareThreshold + (ConfigModule.GEAR_RARITY_MAGIC / totalWeight);
@@ -2788,10 +2813,9 @@ if (data.data.gameOver) {
 
 
             const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
-            const statMult = ConfigModule.GEAR_STAT_MULTIPLIER;
+            const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
             const variance = ConfigModule.GEAR_STAT_VARIANCE;
-            const additionBase = lvl * statMult;
-            const additionWithVariance = Math.floor(additionBase * (1 - variance + dprng.nextFloat() * variance * 2));
+            const finalStat = Math.floor(baseStat * (1 - variance + this.dropPrng.nextFloat() * variance * 2));
 
             let stats = {}; let icon = '💎';
             let category = 'Ring'; let itemName = 'Unknown Item';
@@ -2800,55 +2824,55 @@ if (data.data.gameOver) {
             if (useCustom) {
               const matchingItems = ConfigModule.ITEMS_DB.filter(item => (item.rarity || 'normal') === rarity);
               const templateList = matchingItems.length > 0 ? matchingItems : ConfigModule.ITEMS_DB;
-              const template = templateList[Math.floor(dprng.nextFloat() * templateList.length)];
+              const template = templateList[Math.floor(this.dropPrng.nextFloat() * templateList.length)];
               category = template.gearType;
               itemName = template.name;
               icon = template.icon;
               rarity = template.rarity || rarity;
               color = template.color || color;
+              // Scale custom base stats by finalStat/10 (so an atk:10 item scales up linearly)
+              let scale = finalStat / 10;
               if (template.stats) {
-                if (template.stats.atk) stats.atk = template.stats.atk + additionWithVariance;
-                if (template.stats.hp) stats.hp = template.stats.hp + additionWithVariance;
-                if (template.stats.spd) stats.spd = template.stats.spd + Math.ceil(additionWithVariance * 0.1);
+                if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
+                if (template.stats.hp) stats.hp = Math.max(1, Math.floor(template.stats.hp * scale));
+                if (template.stats.spd) stats.spd = Math.max(1, Math.ceil(template.stats.spd * scale));
               }
+              // Safeguard to ensure every item has at least one stat populated
               if (Object.keys(stats).length === 0) {
-                if (category === 'Weapon') { stats.atk = Math.max(1, additionWithVariance); icon = '🗡️'; }
-                else if (category === 'Armor') { stats.hp = Math.max(5, additionWithVariance * 10); icon = '🛡️'; }
-                else { stats.spd = Math.max(1, Math.ceil(additionWithVariance * 0.1)); icon = '💍'; }
+                if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); }
+                else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); } else { stats.spd = Math.max(1, Math.ceil(finalStat * 0.1)); }
               }
             } else {
               const categories = ['Weapon', 'Armor', 'Ring'];
-              category = categories[Math.floor(dprng.nextFloat() * categories.length)];
-              if (category === 'Weapon') { stats.atk = Math.max(1, additionWithVariance); icon = '🗡️'; }
-              else if (category === 'Armor') { stats.hp = Math.max(5, additionWithVariance * 10); icon = '🛡️'; }
-              else { stats.spd = Math.max(1, Math.ceil(additionWithVariance * 0.1)); icon = '💍'; }
+              category = categories[Math.floor(this.dropPrng.nextFloat() * categories.length)];
+              if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
+              else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); icon = '🛡️'; }
+              else { stats.spd = Math.max(1, Math.ceil(finalStat * 0.1)); icon = '💍'; }
 
               const possibleAffixes = ['atk', 'hp', 'spd'];
               let affixesAdded = 1; let sanity = 0;
               while (affixesAdded < numAffixes && sanity < 10) {
                 sanity++;
-                let randAffix = possibleAffixes[Math.floor(dprng.nextFloat() * possibleAffixes.length)];
+                let randAffix = possibleAffixes[Math.floor(this.dropPrng.nextFloat() * possibleAffixes.length)];
                 if (!stats[randAffix]) {
-                  if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(additionWithVariance * 0.5));
-                  if (randAffix === 'hp') stats.hp = Math.max(2, Math.floor(additionWithVariance * 5));
-                  if (randAffix === 'spd') stats.spd = Math.max(1, Math.ceil(additionWithVariance * 0.05));
+                  if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
+                  if (randAffix === 'hp') stats.hp = Math.max(2, Math.floor(finalStat * 5));
+                  if (randAffix === 'spd') stats.spd = Math.max(1, Math.ceil(finalStat * 0.05));
                   affixesAdded++;
                 }
               }
               const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
-              itemName = `${prefixes[Math.floor(dprng.nextFloat() * prefixes.length)]} ${category}`;
+              itemName = `${prefixes[Math.floor(this.dropPrng.nextFloat() * prefixes.length)]} ${category}`;
             }
 
 
-            const dropY = groundY + 20 + dprng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-            const newItem = {
-              id: 'D_' + e.id + '_gear_' + dprng.next().toString(36).substr(2, 6),
+            const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+            this.items.push({
+              id: this.dropPrng.nextFloat().toString(36).substr(2, 9),
               type: 'gear', gearType: category, rarity: rarity, color: color,
               name: itemName, stats: stats, icon: icon,
-              x: e.x + (dprng.nextFloat() * 30 - 15), y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
-            };
-            this.items.push(newItem);
-            this.emitEvent('item_spawn', { id: newItem.id, item: newItem });
+              x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
+            });
           }
         }
 
@@ -3033,7 +3057,7 @@ if (data.data.gameOver) {
               if (item.type === 'gear' && this.player.targetedItemId !== item.id) {
                 continue;
               }
-              // Player picks up the item
+              // Local player picks up the item
               if (item.type === 'gear') {
                 this.player.inventory.push(item);
                 let statsStr = '';
@@ -3048,19 +3072,25 @@ if (data.data.gameOver) {
                 this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
                 if (this.ui) this.ui.renderInventory();
                 this.saveLocalProgression();
-                this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                if (this.player.isLocal) {
+                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                }
               } else if (item.type === 'red') {
                 this.player.buffHpTimer = POTION_BUFF_DURATION;
                 this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
                 this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
                 this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
-                this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                if (this.player.isLocal) {
+                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                }
               } else if (item.type === 'blue') {
                 this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
                 this.spawnParticles(this.player.x, this.player.y - 20, '#3498db', 30, 6);
                 this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
                 this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
-                this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                if (this.player.isLocal) {
+                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                }
               }
               if (this.player.targetedItemId === item.id) {
                 this.player.targetedItemId = null;
@@ -3446,22 +3476,24 @@ if (data.data.gameOver) {
         }
       }
 
-     // Deterministic enemy spawn based on game time — no network sync needed
       if (this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
-        const gameTime = Date.now() - (this.hostGameStartTime || this.gameStartTime);
-        const expectedSpawned = this.waveTotalEnemies - this.waveEnemiesToSpawn;
-        const expectedSpawnInterval = this.enemySpawnInterval;
-        const expectedSpawnCount = Math.floor(gameTime / expectedSpawnInterval);
-        
-        if (expectedSpawnCount > expectedSpawned) {
-          for (let i = expectedSpawned; i < expectedSpawnCount && this.waveEnemiesToSpawn > 0; i++) {
-            const newEnemy = new Enemy(this, this.bossActive, false, i);
-            if (!this.enemies.find(e => e.id === newEnemy.id)) {
-              this.enemies.push(newEnemy);
-            }
-            this.waveEnemiesToSpawn--;
+        this.enemySpawnTimer += 16.67 * dt;
+        if (this.enemySpawnTimer >= this.enemySpawnInterval) {
+          this.enemySpawnTimer = 0;
+          const spawnIndex = this.waveTotalEnemies - this.waveEnemiesToSpawn;
+          const newEnemy = new Enemy(this, this.bossActive, false, spawnIndex);
+          if (!this.enemies.find(e => e.id === newEnemy.id)) {
+            this.enemies.push(newEnemy);
           }
+          this.waveEnemiesToSpawn--;
         }
+      }
+
+      this.syncTimer = (this.syncTimer || 0) + 16.67 * dt;
+      if (this.syncTimer >= 100) {
+        this.syncTimer = 0;
+        this.checkHost();
+        this.broadcastState();
       }
 
       // Global Day/Night Lighting Overlays
