@@ -2664,9 +2664,7 @@ export default class UI {
                     item.y = p.y + (Math.random() * 60 - 30) + 20;
                     item.life = 60000;
                     this.game.items.push(item);
-                    if (this.game.player && this.game.player.isLocal) {
-                        this.game.emitEvent('item_spawn', { id: item.id, item: item });
-                    }
+                    this.game.emitEvent('item_spawn', { id: item.id, item: item });
                     this.game.saveLocalProgression();
                     this.updateHUD(p);
                 } else {

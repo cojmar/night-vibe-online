@@ -512,10 +512,6 @@ export default class Game {
     });
     // Remove enemies not in host, but keep dead ones until their death animation finishes
     this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
-
-    if (hostData.items) {
-      this.items = hostData.items.map(item => ({ ...item }));
-    }
   }
 
   init() {
@@ -1477,6 +1473,16 @@ export default class Game {
     }
   }
 
+  _hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  }
+
   emitEvent(type, data) {
     if (!this.net || !this.net.me) return;
     this.net.send_cmd('room.msg', {
@@ -1492,18 +1498,29 @@ export default class Game {
 
   handleGameEvent(event) {
     if (!this.player || this.state !== 'PLAYING') return;
-    if (event.source === this.net.me.info.user) return;
 
     switch (event.type) {
       case 'item_pickup': {
-        let remotePlayer = this.otherPlayers[event.source];
-        if (remotePlayer && event.item && event.item.type === 'gear') {
-          remotePlayer.inventory.push(event.item);
-        }
         // Remove item from world for all clients
         let idx = this.items.findIndex(i => i.id === event.itemId);
         if (idx !== -1) {
           this.items.splice(idx, 1);
+        }
+        // Add gear to the pickup player's inventory
+        if (event.item && event.item.type === 'gear') {
+          let targetInv = null;
+          if (event.source === this.net.me.info.user) {
+            targetInv = this.player.inventory;
+          } else {
+            let remotePlayer = this.otherPlayers[event.source];
+            if (remotePlayer) targetInv = remotePlayer.inventory;
+          }
+          if (targetInv) {
+            // Avoid duplicates (item already added locally during pickup)
+            if (!targetInv.find(i => i.id === event.item.id)) {
+              targetInv.push(event.item);
+            }
+          }
         }
         break;
       }
@@ -2048,10 +2065,6 @@ export default class Game {
         waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
         enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
           id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
-        })),
-        items: this.items.map(i => ({
-          ...i,
-          icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
         }))
       };
     }
@@ -2779,21 +2792,29 @@ export default class Game {
       for (let e of this.enemies) {
         e.update(dt, activePlayers);
 
-        if (this.isHost && !e.alive && !e.deadProcessed) {
+        if (!e.alive && !e.deadProcessed) {
           e.deadProcessed = true;
           const groundY = getGroundY(this.selectedEnv);
 
+          // Deterministic drop generation seeded by enemy ID — all clients generate same drops
+          const dropSeed = this._hashString(e.id + '_' + (this.sessionSeed || 0));
+          const dprng = new PRNG(dropSeed);
+
           if (e.name !== 'MISSILE' && e.name !== 'BOMB') {
-            if (this.dropPrng.nextFloat() < ConfigModule.POTION_RED_DROP_CHANCE) {
+            if (dprng.nextFloat() < ConfigModule.POTION_RED_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+              const dropY = groundY + 20 + dprng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+              const newItem = { id: 'D_' + e.id + '_red_' + dprng.next().toString(36).substr(2, 6), type: 'red', x: e.x + (dprng.nextFloat() * 30 - 15), y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY };
+              this.items.push(newItem);
+              this.emitEvent('item_spawn', { id: newItem.id, item: newItem });
             }
 
-            if (this.dropPrng.nextFloat() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
+            if (dprng.nextFloat() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
               const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
+              const dropY = groundY + 20 + dprng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+              const newItem = { id: 'D_' + e.id + '_blue_' + dprng.next().toString(36).substr(2, 6), type: 'blue', x: e.x + (dprng.nextFloat() * 30 - 15), y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY };
+              this.items.push(newItem);
+              this.emitEvent('item_spawn', { id: newItem.id, item: newItem });
             }
           }
 
@@ -2801,9 +2822,9 @@ export default class Game {
             // boss projectiles don't drop gear
           } else if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
             // do nothing
-          } else if (this.dropPrng.nextFloat() < ConfigModule.GEAR_DROP_RATE) {
+          } else if (dprng.nextFloat() < ConfigModule.GEAR_DROP_RATE) {
             let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
-            let randRarity = this.dropPrng.nextFloat();
+            let randRarity = dprng.nextFloat();
             const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
             const rareThreshold = ConfigModule.GEAR_RARITY_RARE / totalWeight;
             const magicThreshold = rareThreshold + (ConfigModule.GEAR_RARITY_MAGIC / totalWeight);
@@ -2816,7 +2837,7 @@ export default class Game {
             const statMult = ConfigModule.GEAR_STAT_MULTIPLIER;
             const variance = ConfigModule.GEAR_STAT_VARIANCE;
             const additionBase = lvl * statMult;
-            const additionWithVariance = Math.floor(additionBase * (1 - variance + this.dropPrng.nextFloat() * variance * 2));
+            const additionWithVariance = Math.floor(additionBase * (1 - variance + dprng.nextFloat() * variance * 2));
 
             let stats = {}; let icon = '💎';
             let category = 'Ring'; let itemName = 'Unknown Item';
@@ -2825,7 +2846,7 @@ export default class Game {
             if (useCustom) {
               const matchingItems = ConfigModule.ITEMS_DB.filter(item => (item.rarity || 'normal') === rarity);
               const templateList = matchingItems.length > 0 ? matchingItems : ConfigModule.ITEMS_DB;
-              const template = templateList[Math.floor(this.dropPrng.nextFloat() * templateList.length)];
+              const template = templateList[Math.floor(dprng.nextFloat() * templateList.length)];
               category = template.gearType;
               itemName = template.name;
               icon = template.icon;
@@ -2843,7 +2864,7 @@ export default class Game {
               }
             } else {
               const categories = ['Weapon', 'Armor', 'Ring'];
-              category = categories[Math.floor(this.dropPrng.nextFloat() * categories.length)];
+              category = categories[Math.floor(dprng.nextFloat() * categories.length)];
               if (category === 'Weapon') { stats.atk = Math.max(1, additionWithVariance); icon = '🗡️'; }
               else if (category === 'Armor') { stats.hp = Math.max(5, additionWithVariance * 10); icon = '🛡️'; }
               else { stats.spd = Math.max(1, Math.ceil(additionWithVariance * 0.1)); icon = '💍'; }
@@ -2852,7 +2873,7 @@ export default class Game {
               let affixesAdded = 1; let sanity = 0;
               while (affixesAdded < numAffixes && sanity < 10) {
                 sanity++;
-                let randAffix = possibleAffixes[Math.floor(this.dropPrng.nextFloat() * possibleAffixes.length)];
+                let randAffix = possibleAffixes[Math.floor(dprng.nextFloat() * possibleAffixes.length)];
                 if (!stats[randAffix]) {
                   if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(additionWithVariance * 0.5));
                   if (randAffix === 'hp') stats.hp = Math.max(2, Math.floor(additionWithVariance * 5));
@@ -2861,17 +2882,19 @@ export default class Game {
                 }
               }
               const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
-              itemName = `${prefixes[Math.floor(this.dropPrng.nextFloat() * prefixes.length)]} ${category}`;
+              itemName = `${prefixes[Math.floor(dprng.nextFloat() * prefixes.length)]} ${category}`;
             }
 
 
-            const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-            this.items.push({
-              id: this.dropPrng.nextFloat().toString(36).substr(2, 9),
+            const dropY = groundY + 20 + dprng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
+            const newItem = {
+              id: 'D_' + e.id + '_gear_' + dprng.next().toString(36).substr(2, 6),
               type: 'gear', gearType: category, rarity: rarity, color: color,
               name: itemName, stats: stats, icon: icon,
-              x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
-            });
+              x: e.x + (dprng.nextFloat() * 30 - 15), y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
+            };
+            this.items.push(newItem);
+            this.emitEvent('item_spawn', { id: newItem.id, item: newItem });
           }
         }
 
@@ -3056,7 +3079,7 @@ export default class Game {
               if (item.type === 'gear' && this.player.targetedItemId !== item.id) {
                 continue;
               }
-              // Local player picks up the item
+              // Player picks up the item
               if (item.type === 'gear') {
                 this.player.inventory.push(item);
                 let statsStr = '';
@@ -3071,25 +3094,19 @@ export default class Game {
                 this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
                 if (this.ui) this.ui.renderInventory();
                 this.saveLocalProgression();
-                if (this.player.isLocal) {
-                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
-                }
+                this.emitEvent('item_pickup', { itemId: item.id, item: item });
               } else if (item.type === 'red') {
                 this.player.buffHpTimer = POTION_BUFF_DURATION;
                 this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
                 this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
                 this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
-                if (this.player.isLocal) {
-                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
-                }
+                this.emitEvent('item_pickup', { itemId: item.id, item: item });
               } else if (item.type === 'blue') {
                 this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
                 this.spawnParticles(this.player.x, this.player.y - 20, '#3498db', 30, 6);
                 this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
                 this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
-                if (this.player.isLocal) {
-                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
-                }
+                this.emitEvent('item_pickup', { itemId: item.id, item: item });
               }
               if (this.player.targetedItemId === item.id) {
                 this.player.targetedItemId = null;
