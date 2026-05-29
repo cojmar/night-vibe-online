@@ -90,8 +90,8 @@ export default class Player {
     let bonus = 0;
     if (this.equipment) {
       for (let slot in this.equipment) {
-        if (this.equipment[slot] && this.equipment[slot].stats && this.equipment[slot].stats.maxHp) {
-          bonus += this.equipment[slot].stats.maxHp;
+        if (this.equipment[slot] && this.equipment[slot].stats && this.equipment[slot].stats.hp) {
+          bonus += this.equipment[slot].stats.hp;
         }
       }
     }

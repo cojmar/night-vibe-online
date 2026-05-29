@@ -2423,7 +2423,7 @@ export default class UI {
                 { value: 'rare', label: '🟡 Rare' }
             ]);
             addField('ATK Scaling Multiplier', 'stats.atk', 'number', 1);
-            addField('HP Scaling Multiplier', 'stats.maxHp', 'number', 5);
+            addField('HP Scaling Multiplier', 'stats.hp', 'number', 5);
             addField('SPD Scaling Multiplier', 'stats.spd', 'number', 0.5);
 
             itemCard.appendChild(grid);
@@ -3121,7 +3121,7 @@ export default class UI {
             hpBgEl.style.display = 'none';
             const statStrs = [];
             if (target.stats.atk) statStrs.push(`ATK +${target.stats.atk.toFixed(1)}`);
-            if (target.stats.maxHp) statStrs.push(`HP +${target.stats.maxHp.toFixed(1)}`);
+            if (target.stats.hp) statStrs.push(`HP +${target.stats.hp.toFixed(1)}`);
             if (target.stats.spd) statStrs.push(`SPD +${target.stats.spd.toFixed(1)}`);
             detailsEl.textContent = statStrs.join(' | ') || 'No stats';
         } else {

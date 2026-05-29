@@ -2834,30 +2834,29 @@ export default class Game {
               let scale = finalStat / 10;
               if (template.stats) {
                 if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
-                if (template.stats.maxHp) stats.maxHp = Math.max(1, Math.floor(template.stats.maxHp * scale));
+                if (template.stats.hp) stats.hp = Math.max(1, Math.floor(template.stats.hp * scale));
                 if (template.stats.spd) stats.spd = Math.max(0.01, template.stats.spd * scale);
               }
               // Safeguard to ensure every item has at least one stat populated
               if (Object.keys(stats).length === 0) {
                 if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); }
-                else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); }
-                else { stats.spd = Math.max(0.1, finalStat * 0.1); }
+                else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); } else { stats.spd = Math.max(0.1, finalStat * 0.1); }
               }
             } else {
               const categories = ['Weapon', 'Armor', 'Ring'];
               category = categories[Math.floor(this.dropPrng.nextFloat() * categories.length)];
               if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
-              else if (category === 'Armor') { stats.maxHp = Math.max(5, finalStat * 10); icon = '🛡️'; }
+              else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); icon = '🛡️'; }
               else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
 
-              const possibleAffixes = ['atk', 'maxHp', 'spd'];
+              const possibleAffixes = ['atk', 'hp', 'spd'];
               let affixesAdded = 1; let sanity = 0;
               while (affixesAdded < numAffixes && sanity < 10) {
                 sanity++;
                 let randAffix = possibleAffixes[Math.floor(this.dropPrng.nextFloat() * possibleAffixes.length)];
                 if (!stats[randAffix]) {
                   if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
-                  if (randAffix === 'maxHp') stats.maxHp = Math.max(2, Math.floor(finalStat * 5));
+                  if (randAffix === 'hp') stats.hp = Math.max(2, Math.floor(finalStat * 5));
                   if (randAffix === 'spd') stats.spd = Math.max(0.05, finalStat * 0.05);
                   affixesAdded++;
                 }
@@ -3065,7 +3064,7 @@ export default class Game {
                 if (item.stats) {
                   let parts = [];
                   if (item.stats.atk) parts.push(`+${item.stats.atk} ATK`);
-                  if (item.stats.maxHp) parts.push(`+${item.stats.maxHp} HP`);
+                  if (item.stats.hp) parts.push(`+${item.stats.hp} HP`);
                   if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
                   if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
                 }
