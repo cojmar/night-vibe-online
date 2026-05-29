@@ -2509,9 +2509,11 @@ export default class UI {
 
     renderInventory() {
         let p = null;
+        let isMenuMode = false;
         if (this.game && this.game.player) {
             p = this.game.player;
         } else {
+            isMenuMode = true;
             let dummyInv = [];
             let dummyEq = {};
             try {
@@ -2522,6 +2524,13 @@ export default class UI {
             } catch(e) {}
             p = { inventory: dummyInv, equipment: dummyEq };
         }
+
+        const saveMenuState = () => {
+            if (isMenuMode) {
+                localStorage.setItem('nightvibe-inventory', JSON.stringify(p.inventory || []));
+                localStorage.setItem('nightvibe-equipment', JSON.stringify(p.equipment || {}));
+            }
+        };
 
         const detailsPanel = document.getElementById('inventory-details-panel');
         if (detailsPanel) detailsPanel.style.display = 'flex';
@@ -2637,6 +2646,8 @@ export default class UI {
                     this.game.saveLocalProgression();
                     this.game.broadcastState();
                     this.updateHUD(p);
+                } else {
+                    saveMenuState();
                 }
                 this.renderInventory();
             };
@@ -2647,16 +2658,19 @@ export default class UI {
                 } else {
                     p.inventory.splice(slotNameOrIndex, 1);
                 }
-                item.x = (this.game && this.game.player) ? p.x + (Math.random() * 60 - 30) : ConfigModule.GAME_W / 2 + (Math.random() * 60 - 30);
-                item.y = (this.game && this.game.player) ? p.y + (Math.random() * 60 - 30) + 20 : ConfigModule.GAME_H / 2 + (Math.random() * 60 - 30) + 20;
-                item.life = 60000;
+
                 if (this.game && this.game.player) {
+                    item.x = p.x + (Math.random() * 60 - 30);
+                    item.y = p.y + (Math.random() * 60 - 30) + 20;
+                    item.life = 60000;
                     this.game.items.push(item);
                     if (this.game.player && this.game.player.isLocal) {
                         this.game.emitEvent('item_spawn', { id: item.id, item: item });
                     }
                     this.game.saveLocalProgression();
                     this.updateHUD(p);
+                } else {
+                    saveMenuState();
                 }
 
                 // Select next item in inventory or equipment after dropping
