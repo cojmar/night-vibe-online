@@ -20,6 +20,16 @@
     "POTION_BLUE_BUFF_DURATION": 18000,
     "POTION_BLUE_CD_MULTIPLIER": 10
   },
+  "monsters": [
+    { "name": "Nightmare Slime", "icon": "🟢", "hp": 75, "atk": 4.6, "color": "#2ecc71", "speed": 0.4, "size": 25 },
+    { "name": "Nightmare Goblin", "icon": "👺", "hp": 112, "atk": 8, "color": "#8b0000", "speed": 0.7, "size": 28 },
+    { "name": "Nightmare Skeleton", "icon": "💀", "hp": 137, "atk": 10, "color": "#dfe6e9", "speed": 0.5, "size": 30 },
+    { "name": "Nightmare Orc", "icon": "👹", "hp": 200, "atk": 15, "color": "#c0392b", "speed": 0.35, "size": 35 },
+    { "name": "Nightmare Ghost", "icon": "👻", "hp": 100, "atk": 13, "color": "#dfe6e9", "speed": 0.9, "size": 28 },
+    { "name": "Nightmare Demon", "icon": "🔥", "hp": 250, "atk": 18, "color": "#dc3545", "speed": 0.55, "size": 33 },
+    { "name": "Nightmare Dragon", "icon": "🐉", "hp": 375, "atk": 23, "color": "#e67e22", "speed": 0.3, "size": 40 },
+    { "name": "Nightmare Lich", "icon": "🧙", "hp": 300, "atk": 21, "color": "#8e44ad", "speed": 0.45, "size": 33 }
+  ],
   "items": [
     {
       "name": "Nightmare Novice Dagger",
