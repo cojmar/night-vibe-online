@@ -3067,48 +3067,50 @@ export default class Game {
           // Each client checks for local player item pickup
           if (this.player && this.player.alive && this.player.hp > 0) {
             if (Math.hypot(this.player.x - item.x, this.player.y - item.y) < 40) {
+              // Don't auto-pickup gear that hasn't been targeted — let it render
               if (item.type === 'gear' && this.player.targetedItemId !== item.id) {
-                continue;
+                // skip auto-pickup, let it render on ground
+              } else {
+                // Local player picks up the item
+                if (item.type === 'gear') {
+                  this.player.inventory.push(item);
+                  let statsStr = '';
+                  if (item.stats) {
+                    let parts = [];
+                    if (item.stats.atk) parts.push(`+${item.stats.atk} ATK`);
+                    if (item.stats.hp) parts.push(`+${item.stats.hp} HP`);
+                    if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
+                    if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
+                  }
+                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${item.name}${statsStr}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
+                  this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
+                  if (this.ui) this.ui.renderInventory();
+                  this.saveLocalProgression();
+                  if (this.player.isLocal) {
+                    this.net.send_cmd("item_pickup", item.id);
+                  }
+                } else if (item.type === 'red') {
+                  this.player.buffHpTimer = POTION_BUFF_DURATION;
+                  this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
+                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
+                  this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
+                  if (this.player.isLocal) {
+                    this.net.send_cmd("item_pickup", item.id);
+                  }
+                } else if (item.type === 'blue') {
+                  this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
+                  this.spawnParticles(this.player.x, this.player.y - 20, '#3498db', 30, 6);
+                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
+                  this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
+                  if (this.player.isLocal) {
+                    this.net.send_cmd("item_pickup", item.id);
+                  }
+                }
+                if (this.player.targetedItemId === item.id) {
+                  this.player.targetedItemId = null;
+                }
+                this.items.splice(i, 1); i--; continue;
               }
-              // Local player picks up the item
-              if (item.type === 'gear') {
-                this.player.inventory.push(item);
-                let statsStr = '';
-                if (item.stats) {
-                  let parts = [];
-                  if (item.stats.atk) parts.push(`+${item.stats.atk} ATK`);
-                  if (item.stats.hp) parts.push(`+${item.stats.hp} HP`);
-                  if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
-                  if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
-                }
-                this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${item.name}${statsStr}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
-                this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
-                if (this.ui) this.ui.renderInventory();
-                this.saveLocalProgression();
-                if (this.player.isLocal) {
-                  this.net.send_cmd("item_pickup", item.id);
-                }
-              } else if (item.type === 'red') {
-                this.player.buffHpTimer = POTION_BUFF_DURATION;
-                this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
-                this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
-                this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
-                if (this.player.isLocal) {
-                  this.net.send_cmd("item_pickup", item.id);
-                }
-              } else if (item.type === 'blue') {
-                this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
-                this.spawnParticles(this.player.x, this.player.y - 20, '#3498db', 30, 6);
-                this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
-                this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
-                if (this.player.isLocal) {
-                  this.net.send_cmd("item_pickup", item.id);
-                }
-              }
-              if (this.player.targetedItemId === item.id) {
-                this.player.targetedItemId = null;
-              }
-              this.items.splice(i, 1); i--; continue;
             }
           }
 
