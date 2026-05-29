@@ -21,7 +21,7 @@
       padding: 0;
       box-sizing: border-box;
       scrollbar-width: thin;
-      scrollbar-color: #f39c12 rgba(10, 10, 26, 0.8);
+      scrollbar-color: rgba(255, 215, 0, 0.35) rgba(10, 10, 26, 0.8);
     }
     
     ::-webkit-scrollbar {
@@ -33,7 +33,7 @@
       border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb {
-      background: #f39c12;
+      background: rgba(255, 215, 0, 0.35);
       border-radius: 4px;
       border: 1px solid rgba(10, 10, 26, 0.8);
     }
@@ -222,7 +222,7 @@
       flex-direction: column;
       min-height: 0;
       scrollbar-width: thin;
-      scrollbar-color: #f39c12 rgba(0, 0, 0, 0.3);
+      scrollbar-color: rgba(255, 215, 0, 0.35) rgba(0, 0, 0, 0.3);
     }
 
     .class-card-scroll::-webkit-scrollbar {
@@ -234,7 +234,7 @@
     }
 
     .class-card-scroll::-webkit-scrollbar-thumb {
-      background: #f39c12;
+      background: rgba(255, 215, 0, 0.35);
       border-radius: 3px;
     }
 
@@ -719,7 +719,7 @@
     }
 
     .stat-up-btn:hover {
-      background: #f39c12;
+      background: rgba(255, 215, 0, 0.35);
       transform: scale(1.1);
     }
 
@@ -1068,7 +1068,7 @@
       font-size: 1.5em;
       font-weight: bold;
       color: #ffd700;
-      text-shadow: 0 0 20px #ffd700, 0 0 40px #f39c12;
+      text-shadow: 0 0 20px #ffd700, 0 0 40px rgba(255, 215, 0, 0.35);
       pointer-events: none;
       animation: envBanner 1.5s ease-out forwards;
       white-space: nowrap;
@@ -1103,8 +1103,8 @@
 
       50% {
         transform: scale(1.15);
-        box-shadow: 0 0 20px #f39c12, 0 0 30px #e67e22;
-        background: #f39c12;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.35), 0 0 30px #e67e22;
+        background: rgba(255, 215, 0, 0.35);
         color: white;
       }
 
@@ -1368,7 +1368,7 @@
       style="background:#1a1a2e; padding:20px 30px; border-radius:10px; border:2px solid #e74c3c; text-align:center; max-width:400px; box-shadow: 0 0 20px rgba(231,76,60,0.5);">
       <h2 style="color:#e74c3c; margin-top:0;">⚠️ WIPE ALL DATA?</h2>
       <p style="font-size:1.1em; line-height:1.4;">Are you SURE you want to WIPE ALL DATA?</p>
-      <p style="font-size:0.9em; line-height:1.4; margin-top:10px; color:#bdc3c7;">This will permanently delete your progression, stats, inventory, and equipment. <strong style="color:#f39c12;">This action cannot be undone.</strong></p>
+      <p style="font-size:0.9em; line-height:1.4; margin-top:10px; color:#bdc3c7;">This will permanently delete your progression, stats, inventory, and equipment. <strong style="color:rgba(255, 215, 0, 0.35);">This action cannot be undone.</strong></p>
       <div style="margin-top:25px; display:flex; justify-content:space-around;">
         <button id="btn-wipe-confirm-no"
           style="background:#34495e; color:#fff; border:none; padding:10px 20px; font-weight:bold; cursor:pointer; border-radius:5px; transition:0.2s;">
@@ -1635,8 +1635,8 @@
   <div class="container" id="container" style="display:none;">
     <div class="menu-panel" id="menu-panel">
       <div
-        style="text-align:center; font-weight:bold; font-size: 2.5em; color: #ffd700; margin-bottom: 20px; text-shadow: 0 0 15px #f39c12; flex: none; display: flex; justify-content: center; align-items: center; gap: 15px;">
-        <img src="./assets/icons/icon-192.png" alt="Night Vibe Icon" style="width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 0 10px #f39c12;">
+        style="text-align:center; font-weight:bold; font-size: 2.5em; color: #ffd700; margin-bottom: 20px; text-shadow: 0 0 15px rgba(255, 215, 0, 0.35); flex: none; display: flex; justify-content: center; align-items: center; gap: 15px;">
+        <img src="./assets/icons/icon-192.png" alt="Night Vibe Icon" style="width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 0 10px rgba(255, 215, 0, 0.35);">
         NIGHT VIBE ONLINE</div>
 
       <div class="menu-grid">
@@ -1662,11 +1662,11 @@
             ⬇ Install App
           </button>
           <div
-            style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid #f39c12; border-radius:6px; margin-bottom:15px;">
+            style="background:rgba(0,0,0,0.5); padding:15px; border:1px solid rgba(255, 215, 0, 0.35); border-radius:6px; margin-bottom:15px;">
             <label for="nick-input" style="font-size:0.9em; color:#bdc3c7; display:block; margin-bottom:5px;">Your
               Nickname:</label>
             <input type="text" id="nick-input" maxlength="16"
-              style="width:100%; padding:10px; background:rgba(0,0,0,0.6); border:none; border-bottom:2px solid #f39c12; color:white; border-radius:4px; font-size:1.1em; outline:none; box-sizing:border-box;" />
+              style="width:100%; padding:10px; background:rgba(0,0,0,0.6); border:none; border-bottom:2px solid rgba(255, 215, 0, 0.35); color:white; border-radius:4px; font-size:1.1em; outline:none; box-sizing:border-box;" />
             <div id="menu-stats-display"
               style="color:#9b59b6; font-weight:bold; margin-top:12px; font-size:1.1em; text-align:center; line-height:1.6; position:relative;">
               <div>🔄 Rebirths: <span id="menu-resets-val">0</span></div>
@@ -1785,11 +1785,11 @@
             <!-- Bottom row: Wave and Environment -->
             <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 3px;">
               <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: bold;">
-                <span style="background: linear-gradient(135deg, rgba(243,156,18,0.3), rgba(230,126,34,0.1)); border: 1px solid #f39c12; padding: 3px 8px; border-radius: 4px; color: #fff; box-shadow: 0 0 8px rgba(243,156,18,0.4); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">📊 Wave <span id="wave-count" style="color: #ffd700; font-size: 1.4em; text-shadow: 0 0 3px #000;">1</span></span>
+                <span style="background: linear-gradient(135deg, rgba(243,156,18,0.3), rgba(230,126,34,0.1)); border: 1px solid rgba(255, 215, 0, 0.35); padding: 3px 8px; border-radius: 4px; color: #fff; box-shadow: 0 0 8px rgba(243,156,18,0.4); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">📊 Wave <span id="wave-count" style="color: #ffd700; font-size: 1.4em; text-shadow: 0 0 3px #000;">1</span></span>
                 <span style="background: rgba(41,128,185,0.2); border: 1px solid #2980b9; padding: 3px 8px; border-radius: 4px; color: #bdc3c7; display: flex; align-items: center; gap: 4px;">🌍 <span id="env-name" style="color: #3498db;">Forest</span></span>
               </div>
-              <div style="width: 100%; background: rgba(0,0,0,0.6); height: 5px; border-radius: 3px; overflow: hidden; border: 1px solid #f39c12; display: none;" id="wave-progress-container">
-                <div id="wave-progress-bar" style="width: 0%; height: 100%; background: #f39c12; transition: width 0.3s ease-out; box-shadow: 0 0 6px #f39c12;"></div>
+              <div style="width: 100%; background: rgba(0,0,0,0.6); height: 5px; border-radius: 3px; overflow: hidden; border: 1px solid rgba(255, 215, 0, 0.35); display: none;" id="wave-progress-container">
+                <div id="wave-progress-bar" style="width: 0%; height: 100%; background: rgba(255, 215, 0, 0.35); transition: width 0.3s ease-out; box-shadow: 0 0 6px rgba(255, 215, 0, 0.35);"></div>
               </div>
             </div>
             
@@ -1862,7 +1862,7 @@
               <span>🔄 Rebirths:</span> <span class="highlight" style="color:#fff;" id="stat-resets-val">0</span>
             </div>
             <div
-              style="border-top: 1px dashed #f39c12; padding-top: 3px; margin-top: 1px; color: #f39c12; font-weight:bold;">
+              style="border-top: 1px dashed rgba(255, 215, 0, 0.35); padding-top: 3px; margin-top: 1px; color: rgba(255, 215, 0, 0.35); font-weight:bold;">
               <span>⭐ Stat Points:</span> <span class="highlight" style="color:#fff;" id="stat-statpoints-val">0</span>
             </div>
             <div id="stat-level-cap-warning"
@@ -1904,7 +1904,7 @@
         <div class="wait-msg" id="wait-msg">
           <span>⏳ Respawning when wave is complete...</span>
           <div style="width: 100%; background: rgba(0,0,0,0.6); height: 6px; border-radius: 3px; overflow: hidden; margin-top: 2px;">
-             <div id="death-wave-progress-bar" style="width: 0%; height: 100%; background: #f39c12; transition: width 0.3s ease-out; box-shadow: 0 0 6px #f39c12;"></div>
+             <div id="death-wave-progress-bar" style="width: 0%; height: 100%; background: rgba(255, 215, 0, 0.35); transition: width 0.3s ease-out; box-shadow: 0 0 6px rgba(255, 215, 0, 0.35);"></div>
           </div>
         </div>
         <button class="btn-start" id="btn-death-quit"
