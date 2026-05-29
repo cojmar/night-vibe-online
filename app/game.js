@@ -100,34 +100,83 @@ export default class Game {
         });
       }
     });
-  this.net.on('room.msg', (data) => {
-      if (data.cmd === 'game.event' && data.data && data.data.type) {
-        // Host responds to get_game_state with set_game_state
-        if (data.data.type === 'get_game_state' && this.isHost && this.state === 'PLAYING') {
-          this.net.send_cmd('room.msg', {
-            cmd: 'game.event',
-            data: {
-              type: 'set_game_state',
-              source: this.net.me.info.user,
-              enemies: this.enemies.filter(e => e.alive || (Date.now() - (e.deathTime || 0) < DEAD_BODY_LIFETIME)).map(e => ({
-                id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime || 0,
-                level: e.level, bossState: e.bossState, bossChannelTimer: e.bossChannelTimer, targetLaserPos: e.targetLaserPos, bossLaserTimer: e.bossLaserTimer
-              })),
-              items: this.items.map(i => ({
-                ...i,
-                icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
-              })),
-              wave: this.wave,
-              waveEnemiesKilled: this.waveEnemiesKilled,
-              waveTotalEnemies: this.waveTotalEnemies,
-              waveEnemiesToSpawn: this.waveEnemiesToSpawn,
-              bossActive: this.bossActive,
-              sessionSeed: this.sessionSeed,
-              hostGameStartTime: this.hostGameStartTime || this.gameStartTime
+  this.net.on('get_game_state', (data) => {
+      // Server wraps: { room, user, data: { ... } }
+      // data.user = userul care a trimis, data.data = ce am trimis noi ca param
+      const inner = data.data || data;
+      // Host responds to get_game_state with set_game_state
+      if (inner && this.isHost && this.state === 'PLAYING') {
+        this.net.send_cmd('set_game_state', {
+          enemies: this.enemies.filter(e => e.alive || (Date.now() - (e.deathTime || 0) < DEAD_BODY_LIFETIME)).map(e => ({
+            id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime || 0,
+            level: e.level, bossState: e.bossState, bossChannelTimer: e.bossChannelTimer, targetLaserPos: e.targetLaserPos, bossLaserTimer: e.bossLaserTimer
+          })),
+          items: this.items.map(i => ({
+            ...i,
+            icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
+          })),
+          wave: this.wave,
+          waveEnemiesKilled: this.waveEnemiesKilled,
+          waveTotalEnemies: this.waveTotalEnemies,
+          waveEnemiesToSpawn: this.waveEnemiesToSpawn,
+          bossActive: this.bossActive,
+          sessionSeed: this.sessionSeed,
+          hostGameStartTime: this.hostGameStartTime || this.gameStartTime
+        });
+      }
+    });
+    this.net.on('set_game_state', (data) => {
+      // Server wraps: { room, user, data: { source, enemies, items, ... } }
+      const event = data.data || data;
+      // Only process once on join — not during regular gameplay
+      if (!this._gameStateReceived) {
+        this._gameStateReceived = true;
+        if (event.enemies) {
+          event.enemies.forEach(eData => {
+            let e = this.enemies.find(ex => ex.id === eData.id);
+            if (!e) {
+              let isBoss = eData.name === 'BOSS';
+              let spawnIndex = 0;
+              if (eData.id && eData.id.startsWith('E_')) {
+                const parts = eData.id.split('_');
+                if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+              }
+              const newE = new Enemy(this, isBoss, false, spawnIndex);
+              newE.id = eData.id;
+              if (eData.id && eData.id.startsWith('M_')) {
+                newE.name = 'MISSILE';
+                newE.icon = '🚀';
+                newE.size = 20;
+                newE.color = '#e74c3c';
+              }
+              newE.x = eData.x || newE.x;
+              newE.y = eData.y || newE.y;
+              newE.serverX = eData.x || newE.x;
+              newE.serverY = eData.y || newE.y;
+              newE.hp = eData.hp;
+              newE.maxHp = eData.maxHp;
+              newE.alive = eData.alive;
+              newE.name = eData.name;
+              newE.size = eData.size;
+              this.enemies.push(newE);
             }
           });
         }
-        this.handleGameEvent(data.data);
+        if (event.items) {
+          for (let item of event.items) {
+            if (!this.items.find(i => i.id === item.id)) {
+              this.items.push(item);
+            }
+          }
+        }
+        if (event.wave !== undefined) this.wave = event.wave;
+        if (event.waveEnemiesKilled !== undefined) this.waveEnemiesKilled = event.waveEnemiesKilled;
+        if (event.waveTotalEnemies !== undefined) this.waveTotalEnemies = event.waveTotalEnemies;
+        if (event.waveEnemiesToSpawn !== undefined) this.waveEnemiesToSpawn = event.waveEnemiesToSpawn;
+        if (event.bossActive !== undefined) this.bossActive = event.bossActive;
+        if (event.sessionSeed !== undefined) this.sessionSeed = event.sessionSeed;
+        if (event.hostGameStartTime !== undefined) this.hostGameStartTime = event.hostGameStartTime;
+        this.ui.addLog('📥 Received game state from Host.', 'system');
       }
     });
     this.net.on('room.user_leave', (data) => {
@@ -425,54 +474,6 @@ if (data.data.gameOver) {
         this.net.send_cmd('set_data', { isHost: false });
       }
     }
-  }
-
-  syncHostData(hostData) {
-    if (hostData.gameStartTime !== undefined) {
-      this.hostGameStartTime = hostData.gameStartTime;
-    }
-    if (hostData.time !== undefined) {
-      this.globalTime = hostData.time;
-    }
-
-    if (hostData.sessionSeed !== undefined) {
-      this.sessionSeed = hostData.sessionSeed;
-    }
-    if (hostData.seed !== undefined) {
-      if (!this.prng) this.prng = new PRNG(hostData.seed);
-      else this.prng.seed = hostData.seed;
-    }
-    if (hostData.dropSeed !== undefined) {
-      if (!this.dropPrng) this.dropPrng = new PRNG(hostData.dropSeed);
-      else this.dropPrng.seed = hostData.dropSeed;
-    }
-
-    if (this.wave !== hostData.wave && hostData.wave) {
-      if (this.player && !this.player.alive) {
-        this.respawnPlayer();
-      }
-      this.wave = hostData.wave;
-    }
-
-    // Always sync these, so a new host doesn't lose spawn state
-    if (hostData.waveTotal !== undefined) this.waveTotalEnemies = hostData.waveTotal;
-    if (hostData.waveSpawn !== undefined) this.waveEnemiesToSpawn = hostData.waveSpawn;
-
-    this.kills = hostData.kills;
-    this.waveEnemiesKilled = hostData.waveKilled || 0;
-    this.bossActive = hostData.bossActive || false;
-
-    if (this.state === 'PLAYING') {
-      this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
-    }
-
-    if (this.selectedEnv !== hostData.env) {
-      this.selectedEnv = hostData.env || 'forest';
-      this.generateScenery();
-      if (this.state === 'PLAYING') this.ui.updateEnvironment(this.selectedEnv);
-      this.initBgParticles();
-    }
-
   }
 
   init() {
@@ -1134,26 +1135,11 @@ if (data.data.gameOver) {
           }
          this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
         }
-        // Read wave info from host room data
-        if (userData.hostData) {
-          this.wave = userData.hostData.wave || GAME_INITIAL_WAVE;
-          this.waveTotalEnemies = userData.hostData.waveTotal || GAME_INITIAL_WAVE_ENEMIES;
-          this.waveEnemiesKilled = userData.hostData.waveKilled || 0;
-          this.waveEnemiesToSpawn = userData.hostData.waveSpawn || GAME_INITIAL_WAVE_ENEMIES;
-          this.bossActive = userData.hostData.bossActive || false;
-          this.selectedEnv = userData.hostData.env || ENV_LIST[0];
-          this.sessionSeed = userData.hostData.sessionSeed || 0;
-          this.prng = new PRNG(userData.hostData.seed !== undefined ? userData.hostData.seed : (this.sessionSeed + this.wave * 12345));
-          this.dropPrng = new PRNG(userData.hostData.dropSeed !== undefined ? userData.hostData.dropSeed : (this.sessionSeed + this.wave * 54321));
-        }
-        // Request full game state (enemies + items) from host via event
-        if (this.net && this.net.me) {
-          this.net.send_cmd('room.msg', {
-            cmd: 'game.event',
-            data: { type: 'get_game_state', source: this.net.me.info.user }
-          });
-          this.ui.addLog('📡 Requesting game state from Host...', 'system');
-        }
+        // Request full game state (enemies + items) from host via direct event
+         if (this.net && this.net.me) {
+           this.net.send_cmd('get_game_state');
+           this.ui.addLog('📡 Requesting game state from Host...', 'system');
+         }
       }
     }
 
@@ -1448,63 +1434,7 @@ if (data.data.gameOver) {
         }
         break;
       }
-      case 'get_game_state': {
-        // Host responds to this — we listen for set_game_state instead
-        break;
-      }
-      case 'set_game_state': {
-        // Only process once on join — not during regular gameplay
-        if (!this._gameStateReceived) {
-          this._gameStateReceived = true;
-          if (event.enemies) {
-            event.enemies.forEach(eData => {
-              let e = this.enemies.find(ex => ex.id === eData.id);
-              if (!e) {
-                let isBoss = eData.name === 'BOSS';
-                let spawnIndex = 0;
-                if (eData.id && eData.id.startsWith('E_')) {
-                  const parts = eData.id.split('_');
-                  if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
-                }
-                const newE = new Enemy(this, isBoss, false, spawnIndex);
-                newE.id = eData.id;
-                if (eData.id && eData.id.startsWith('M_')) {
-                  newE.name = 'MISSILE';
-                  newE.icon = '🚀';
-                  newE.size = 20;
-                  newE.color = '#e74c3c';
-                }
-                newE.x = eData.x || newE.x;
-                newE.y = eData.y || newE.y;
-                newE.serverX = eData.x || newE.x;
-                newE.serverY = eData.y || newE.y;
-                newE.hp = eData.hp;
-                newE.maxHp = eData.maxHp;
-                newE.alive = eData.alive;
-                newE.name = eData.name;
-                newE.size = eData.size;
-                this.enemies.push(newE);
-              }
-            });
-          }
-          if (event.items) {
-            for (let item of event.items) {
-              if (!this.items.find(i => i.id === item.id)) {
-                this.items.push(item);
-              }
-            }
-          }
-          if (event.wave !== undefined) this.wave = event.wave;
-          if (event.waveEnemiesKilled !== undefined) this.waveEnemiesKilled = event.waveEnemiesKilled;
-          if (event.waveTotalEnemies !== undefined) this.waveTotalEnemies = event.waveTotalEnemies;
-          if (event.waveEnemiesToSpawn !== undefined) this.waveEnemiesToSpawn = event.waveEnemiesToSpawn;
-          if (event.bossActive !== undefined) this.bossActive = event.bossActive;
-          if (event.sessionSeed !== undefined) this.sessionSeed = event.sessionSeed;
-          if (event.hostGameStartTime !== undefined) this.hostGameStartTime = event.hostGameStartTime;
-          this.ui.addLog('📥 Received game state from Host.', 'system');
-        }
-        break;
-      }
+ 
     }
   }
 
@@ -1573,13 +1503,12 @@ if (data.data.gameOver) {
       this.gameStartTime = 0;
       this.hostGameStartTime = 0;
       this.lastBroadcastStr = {}; // Clear delta cache so next join sends a full packet
-      this.net.send_cmd('set_data', { 
-        inGame: false, 
-        state: 'MENU', 
+      this.net.send_cmd('set_data', {
+        inGame: false,
+        state: 'MENU',
         isHost: false,
         gameStartTime: 0,
         gameOver: false,
-        hostData: { wave: 1, kills: 0, enemies: [], items: [], bossActive: false },
         hits: [],
         syncProjectiles: [],
         spawnedProjectile: {},
@@ -2034,15 +1963,7 @@ if (data.data.gameOver) {
       data.hits = this.pendingHits;
       this.pendingHits = [];
     }
-// hostData only has config info — enemies/items synced via events only
-    if (this.isHost) {
-      data.hostData = {
-        gameStartTime: this.hostGameStartTime || this.gameStartTime,
-        wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
-        waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
-      };
-    }
-    if (!this.lastBroadcastStr) this.lastBroadcastStr = {};
+   if (!this.lastBroadcastStr) this.lastBroadcastStr = {};
     const delta = {};
     let hasChanges = false;
 
