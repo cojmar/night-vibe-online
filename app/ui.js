@@ -2663,9 +2663,8 @@ export default class UI {
                     item.x = p.x + (Math.random() * 60 - 30);
                     item.y = p.y + (Math.random() * 60 - 30) + 20;
                     item.life = 60000;
-                    this.game.items.push(item);
-                    if (this.game.player && this.game.player.isLocal) {
-                        this.game.net.send_cmd('gear_drop', { itemId: item.id, item: item, x: item.x, y: item.y });
+                    if (this.game.player.isLocal) {
+                        this.game.net.send_cmd('item_drop', { itemId: item.id, item: item, x: item.x, y: item.y });
                     }
                     this.game.saveLocalProgression();
                     this.updateHUD(p);

@@ -105,11 +105,11 @@ export default class Game {
         this.handleGameEvent(data.data);
       }
     });
-    this.net.on('gear_pickup', (event) => {
-      this.handleGearPickup(event);
+    this.net.on('item_pickup', (event) => {
+      this.handleItemPickup(event);
     });
-    this.net.on('gear_drop', (event) => {
-      this.handleGearDrop(event);
+    this.net.on('item_drop', (event) => {
+      this.handleItemDrop(event);
     });
     this.net.on('room.user_leave', (data) => {
       if (this.otherPlayers[data.user]) {
@@ -1510,20 +1510,18 @@ export default class Game {
     }
   }
 
-  handleGearPickup(event) {
+  handleItemPickup(event) {
     if (!this.player || this.state !== 'PLAYING') return;
-    if (event.user === this.net.me.info.user) return;
 
-    let gearId = event.data;
-    let idx = this.items.findIndex(i => i.id === gearId);
+    let itemId = event.data;
+    let idx = this.items.findIndex(i => i.id === itemId);
     if (idx !== -1) {
       this.items.splice(idx, 1);
     }
   }
 
-  handleGearDrop(event) {
+  handleItemDrop(event) {
     if (!this.player || this.state !== 'PLAYING') return;
-    if (event.user === this.net.me.info.user) return;
 
     let { itemId, item } = event.data;
     if (!this.items.find(i => i.id === itemId)) {
@@ -3088,7 +3086,7 @@ export default class Game {
                 if (this.ui) this.ui.renderInventory();
                 this.saveLocalProgression();
                 if (this.player.isLocal) {
-                  this.net.send_cmd("gear_pickup", item.id);
+                  this.net.send_cmd("item_pickup", item.id);
                 }
               } else if (item.type === 'red') {
                 this.player.buffHpTimer = POTION_BUFF_DURATION;
@@ -3096,7 +3094,7 @@ export default class Game {
                 this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
                 this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
                 if (this.player.isLocal) {
-                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                  this.net.send_cmd("item_pickup", item.id);
                 }
               } else if (item.type === 'blue') {
                 this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
@@ -3104,7 +3102,7 @@ export default class Game {
                 this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
                 this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
                 if (this.player.isLocal) {
-                  this.emitEvent('item_pickup', { itemId: item.id, item: item });
+                  this.net.send_cmd("item_pickup", item.id);
                 }
               }
               if (this.player.targetedItemId === item.id) {
