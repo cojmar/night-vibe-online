@@ -2835,19 +2835,19 @@ export default class Game {
               if (template.stats) {
                 if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
                 if (template.stats.hp) stats.hp = Math.max(1, Math.floor(template.stats.hp * scale));
-                if (template.stats.spd) stats.spd = Math.max(0.01, template.stats.spd * scale);
+                if (template.stats.spd) stats.spd = Math.max(1, Math.ceil(template.stats.spd * scale));
               }
               // Safeguard to ensure every item has at least one stat populated
               if (Object.keys(stats).length === 0) {
                 if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); }
-                else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); } else { stats.spd = Math.max(0.1, finalStat * 0.1); }
+                else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); } else { stats.spd = Math.max(1, Math.ceil(finalStat * 0.1)); }
               }
             } else {
               const categories = ['Weapon', 'Armor', 'Ring'];
               category = categories[Math.floor(this.dropPrng.nextFloat() * categories.length)];
               if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
               else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); icon = '🛡️'; }
-              else { stats.spd = Math.max(0.1, finalStat * 0.1); icon = '💍'; }
+              else { stats.spd = Math.max(1, Math.ceil(finalStat * 0.1)); icon = '💍'; }
 
               const possibleAffixes = ['atk', 'hp', 'spd'];
               let affixesAdded = 1; let sanity = 0;
@@ -2857,7 +2857,7 @@ export default class Game {
                 if (!stats[randAffix]) {
                   if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
                   if (randAffix === 'hp') stats.hp = Math.max(2, Math.floor(finalStat * 5));
-                  if (randAffix === 'spd') stats.spd = Math.max(0.05, finalStat * 0.05);
+                  if (randAffix === 'spd') stats.spd = Math.max(1, Math.ceil(finalStat * 0.05));
                   affixesAdded++;
                 }
               }
