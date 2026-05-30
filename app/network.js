@@ -125,6 +125,17 @@ export default class {
 		if (this.connected) this.socket.close(4666);
 		return this;
 	}
+	/**
+	 * Listen for a custom network event
+	 * @param {string} cmd - The name of the event (e.g., "my_custom_event")
+	 * @param {function} call_back - Callback function that receives event_data.
+	 * event_data is an object containing:
+	 * {
+	 *   room: "the channel the event came from",
+	 *   user: "user id of the sender",
+	 *   data: "the data that was sent, e.g., {var1: 1, var2: 2}"
+	 * }
+	 */
 	on(cmd, call_back) {
 		this.last_on_set = Math.floor(Date.now() / 1000);
 		if (!cmd) return this;
@@ -171,6 +182,11 @@ export default class {
 		this.socket.send((this.ws.binaryType && this.ws.binaryType === 'arraybuffer') ? BSON.serialize(data) : JSON.stringify(data));
 		return this;
 	}
+	/**
+	 * Send a custom network event
+	 * @param {string} cmd - The name of the event (e.g., "my_custom_event")
+	 * @param {*} data - The data to send, can be of any type (e.g., {var1: 1, var2: 2})
+	 */
 	send_cmd(cmd, data) {
 		return this.send({
 			cmd: cmd,
