@@ -301,23 +301,17 @@ export default class Enemy {
     ctx.globalAlpha = 1;
     if (this.hitFlash > 0 && this.alive) ctx.globalAlpha *= 0.5 + Math.sin(this.hitFlash * 3) * 0.5;
 
-    // Dynamic shadow based on light source
-    const eDepth = Math.max(0, Math.min(1, (this.y - groundY) / (this.game.gameH - groundY)));
-    const baseEShadowAlpha = 0.15 + eDepth * 0.2;
-    const eShadowW = this.size * 0.7 + eDepth * this.size * 0.3;
-    const eShadowH = this.size * 0.2 + eDepth * this.size * 0.15;
-    
-    const lightDx = this.x - (this.game.lightX !== undefined ? this.game.lightX : (this.game.gameW / 2));
-    const stretch = (lightDx / (this.game.gameW / 2)) * (this.size * 1.5);
-    const intensity = this.game.lightIntensity !== undefined ? (this.game.lightIntensity * 0.8 + 0.2) : 1;
+    if (this.y + this.size * 0.5 >= groundY) {
+      const eDepth = Math.max(0, Math.min(1, (this.y - groundY) / (this.game.gameH - groundY)));
+      const eShadowAlpha = 0.4 + eDepth * 0.6;
+      const eShadowW = this.size * 0.65 + eDepth * this.size * 0.2;
+      const eShadowH = this.size * 0.18 + eDepth * this.size * 0.1;
 
-    const eShadowAlpha = baseEShadowAlpha * intensity;
-    const finalEShadowW = eShadowW + Math.abs(stretch) * 0.5;
-
-    ctx.fillStyle = `rgba(0,0,0,${eShadowAlpha})`;
-    ctx.beginPath();
-    ctx.ellipse(this.x + stretch, this.y + this.size * 0.4, finalEShadowW, eShadowH, 0, 0, Math.PI * 2);
-    ctx.fill();
+      ctx.fillStyle = `rgba(0,0,0,${eShadowAlpha})`;
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y + this.size * 0.5 + 3.5, eShadowW, eShadowH, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Body
     ctx.fillStyle = this.hitFlash > 0 ? '#fff' : '#e74c3c';

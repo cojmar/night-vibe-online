@@ -402,25 +402,17 @@ export default class Player {
     const groundY = getGroundY(gameInstance.selectedEnv);
 
     // Shadow at feet
-    const feetOffsets = { warrior: 20, mage: 22, archer: 22, magicgladiator: 20 };
+    const feetOffsets = { warrior: 16, mage: 18, archer: 18, magicgladiator: 16 };
     const feetOffset = feetOffsets[renderType] || 38;
     const feetY = py + feetOffset;
     const depthRatio = Math.max(0, (feetY - groundY) / (gameInstance.gameH - groundY));
-    const shadowAlpha = (0.2 + depthRatio * 0.3) * baseAlpha;
-    const shadowWidth = 22 + depthRatio * 8 + ((this.isMoving || this.action === 'walk') ? 3 : 0);
-    const shadowHeight = 6 + depthRatio * 4;
+    const shadowAlpha = (0.25 + depthRatio * 0.4) * baseAlpha;
+    const shadowWidth = 18 + depthRatio * 6 + ((this.isMoving || this.action === 'walk') ? 2 : 0);
+    const shadowHeight = 5 + depthRatio * 3;
 
-    // Dynamic shadow based on light source
-    const lightDx = px - (gameInstance.lightX !== undefined ? gameInstance.lightX : (gameInstance.gameW / 2));
-    const stretch = (lightDx / (gameInstance.gameW / 2)) * 40; // Max 40px stretch
-    const intensity = gameInstance.lightIntensity !== undefined ? (gameInstance.lightIntensity * 0.8 + 0.2) : 1;
-    
-    const finalShadowAlpha = shadowAlpha * intensity;
-    const finalShadowWidth = shadowWidth + Math.abs(stretch) * 0.5;
-
-    ctx.fillStyle = `rgba(0,0,0,${finalShadowAlpha})`;
+    ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
     ctx.beginPath();
-    ctx.ellipse(px + stretch, feetY, finalShadowWidth, shadowHeight, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, feetY, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
     ctx.fill();
 
 
