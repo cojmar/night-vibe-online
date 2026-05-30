@@ -1,8 +1,20 @@
 import * as ConfigModule from './config.js';
-import { CONFIG_METADATA, getGroundY, ENV_CONFIG, ENV_LIST, darkenColor, GROUND_TOLERANCE, CLASS_DATA, PRNG, DEAD_BODY_LIFETIME, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, POTION_BUFF_DURATION, POTION_LIFESTEAL_PERCENT, GAME_INITIAL_WAVE, GAME_INITIAL_KILLS, GAME_INITIAL_WAVE_ENEMIES, PLAYER_INITIAL_LEVEL, PLAYER_INITIAL_KILLS, PLAYER_INITIAL_STAT_POINTS, PLAYER_INITIAL_RESETS, REQ_KILLS_BASE_MULT, REQ_KILLS_EXPONENT, REQ_KILLS_SIN_AMP, getCachedImage, preloadFlippedImagesForAsset } from './utils.js';
+import { getGroundY, CONFIG_METADATA, ENV_LIST, CLASS_DATA, PRNG, REBIRTH_BASE_LEVEL, REBIRTH_LEVEL_STEP, REBIRTH_POINTS_PER_LEVEL, ENEMY_SPAWN_INTERVAL, GAME_INITIAL_WAVE, GAME_INITIAL_KILLS, GAME_INITIAL_WAVE_ENEMIES, POTION_BUFF_DURATION, preloadFlippedImagesForAsset } from './utils.js';
 import Player from './player.js';
 import Enemy from './enemy.js';
-import Projectile from './projectile.js';
+import ParticleManager from './particle-manager.js';
+import SceneryManager from './scenery-manager.js';
+import AtmosphereManager from './atmosphere-manager.js';
+import ItemManager from './item-manager.js';
+import InputManager from './input-manager.js';
+import ViewportManager from './viewport-manager.js';
+import ProgressionManager from './progression-manager.js';
+import WaveManager from './wave-manager.js';
+import CombatManager from './combat-manager.js';
+import NetworkSync from './network-sync.js';
+import SettingsManager from './settings-manager.js';
+import HudManager from './hud-manager.js';
+import Renderer from './renderer.js';
 
 export default class Game {
   constructor(app) {
@@ -11,517 +23,87 @@ export default class Game {
     this.app = app;
     this.ui = app.ui;
     this.net = app.net;
-
     this.canvas = document.getElementById('game-canvas');
     this.ctx = this.canvas.getContext('2d');
-
     this.webglCanvas = document.getElementById('webgl-canvas');
     this.gl = this.webglCanvas.getContext('webgl') || this.webglCanvas.getContext('experimental-webgl');
-    this.initWebGL();
 
     this.state = 'MENU';
-    this.wave = 1;
-    this.kills = 0;
-    this.waveTotalEnemies = 10;
-    this.waveEnemiesKilled = 0;
-    this.waveEnemiesToSpawn = 10;
+    [this.wave, this.kills] = [1, 0];
+    [this.waveTotalEnemies, this.waveEnemiesKilled, this.waveEnemiesToSpawn] = [10, 0, 10];
     this.bossActive = false;
     this.waveTransitionTimer = 0;
     this.selectedEnv = 'forest';
-    this.scenery = null;
-
-    this.player = null; // Local player
-    this.otherPlayers = {}; // Remote players
+    this.scenery = this.horizonFoliage = this.groundFoliage = null;
+    this.player = null;
+    this.otherPlayers = {};
     this.enemies = [];
     this.projectiles = [];
     this.particles = [];
     this.floatingTexts = [];
     this.bgParticles = [];
     this.items = [];
-
+    this.atmosEffects = [];
+    this.pendingHits = [];
+    this.lastProcessedKill = null;
     this.s2Cooldown = 0;
     this.s2MaxCooldown = 1000;
-    this.mouseDown = false;
-    this.autoRestartS2 = false;
+    this.mouseDown = this.autoRestartS2 = false;
     this.queuedFireball = null;
     this.lastTime = 0;
     this.enemySpawnTimer = 0;
-    this.enemySpawnInterval = 1000;
-
+    this.enemySpawnInterval = ENEMY_SPAWN_INTERVAL;
     this.viewScale = 1;
     this.zoomScale = 1;
     this.zoomTarget = 1;
     this.viewOX = 0;
     this.viewOY = 0;
     this.pixelRatio = 1;
-    this.layoutRefreshTimer = null;
-    this.layoutSettledTimer = null;
+    this.layoutRefreshTimer = this.layoutSettledTimer = null;
     this.globalTime = 0;
     this.moveMarker = null;
-
+    this.cameraX = this.cameraY = 0;
+    this.cullMinX = this.cullMaxX = this.cullMinY = this.cullMaxY = 0;
+    this.cachedCanvasRect = this.savedZoomTarget = null;
+    this.screenShake = 0;
+    this.nightAlpha = this.dayAlpha = 0;
+    this.lightX = this.lightY = this.lightIntensity = 0;
+    this.fps = 60;
+    this.frameCount = this.lastFpsTime = 0;
     this.isHost = false;
     this.syncTimer = 0;
-    this.pendingHits = [];
-    this.lastProcessedKill = null;
     this.sessionSeed = Math.floor(Math.random() * 2000000000);
     this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
+    this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
+    this.hostGameStartTime = this.gameStartTime = 0;
+    this.lastBroadcastStr = {};
+    this.hostCheckTimer = this.emptyWaveTimer = 0;
+    this.leftClickInterval = this.touchLeftClickInterval = this.s2HoldTimer = this.gameOverCooldownTimer = null;
 
     const saved = JSON.parse(localStorage.getItem('nightvibe-settings') || '{}');
-    this.settings = {
-      particles: saved.particles !== undefined ? saved.particles : 2.0,
-      bgElements: saved.bgElements !== undefined ? saved.bgElements : 2.0,
-      groundElements: saved.groundElements !== undefined ? saved.groundElements : 2.0,
-      atmos: saved.atmos !== undefined ? saved.atmos : 2.0,
-      autoGraphics: saved.autoGraphics !== undefined ? saved.autoGraphics : true,
-      autoLimit: saved.autoLimit !== undefined ? saved.autoLimit : true
-    };
-    this.atmosEffects = [];
+    this.settings = {};
+    ['particles', 'bgElements', 'groundElements', 'atmos'].forEach(k => this.settings[k] = saved[k] !== undefined ? saved[k] : 2.0);
+    this.settings.autoGraphics = saved.autoGraphics !== undefined ? saved.autoGraphics : true;
+    this.settings.autoLimit = saved.autoLimit !== undefined ? saved.autoLimit : true;
 
-    this.restoreWebsocketStats = this.restoreWebsocketStats.bind(this);
-    this.saveLocalProgression = this.saveLocalProgression.bind(this);
+    this.particleManager = new ParticleManager(this);
+    this.sceneryManager = new SceneryManager(this);
+    this.atmosphereManager = new AtmosphereManager(this);
+    this.itemManager = new ItemManager(this);
+    this.inputManager = new InputManager(this);
+    this.viewportManager = new ViewportManager(this);
+    this.progressionManager = new ProgressionManager(this);
+    this.waveManager = new WaveManager(this);
+    this.combatManager = new CombatManager(this);
+    this.networkSync = new NetworkSync(this);
+    this.settingsManager = new SettingsManager(this);
+    this.hudManager = new HudManager(this);
+    this.renderer = new Renderer(this);
 
-    this.bindEvents();
-
-    // Bind network events
-    this.net.on('room.info', () => this.checkHost());
-    this.net.on('room.user_join', () => {
-      this.checkHost();
-      if (this.isHost) {
-        this.net.send_cmd('set_data', {
-          syncProjectiles: this.projectiles.map(p => ({
-            type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
-            angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
-            originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
-            ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
-            critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
-            casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
-            trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
-          }))
-        });
-      }
-    });
-    this.net.on('room.msg', (data) => {
-      if (data.cmd === 'game.event' && data.data && data.data.type) {
-        this.handleGameEvent(data.data);
-      }
-    });
-    this.net.on('item_pickup', (event) => {
-      this.handleItemPickup(event);
-    });
-    this.net.on('item_drop', (event) => {
-      this.handleItemDrop(event);
-    });
-    this.net.on('room.user_leave', (data) => {
-      if (this.otherPlayers[data.user]) {
-        delete this.otherPlayers[data.user];
-      }
-      this.checkHost();
-    });
-    this.net.on('room.user_data', (data) => {
-      // Process enemyKilled for ourselves even if it comes from our own user data broadcast
-      if (data.data && data.data.enemyKilled && this.player && typeof data.data.enemyKilled === 'string') {
-        if (data.data.enemyKilled !== this.lastProcessedKill && data.data.enemyKilled.split('_')[0] === this.net.me.info.user) {
-          this.lastProcessedKill = data.data.enemyKilled;
-          if (this.player.addKill()) {
-            this.s2Cooldown = 0;
-            this.ui.addLog(`🌟 Level Up! Level ${this.player.level}`, 'reward');
-            this.ui.updateHUD(this.player);
-            this.triggerLevelUpAnimation(this.player);
-            this.broadcastState();
-            this.saveLocalProgression();
-          }
-          if (this.state === 'PLAYING') {
-            this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
-          }
-        }
-      }
-
-      if (this.net.me && data.user !== this.net.me.info.user) {
-        const fullData = (this.net.room.users[data.user] && this.net.room.users[data.user].data) ? this.net.room.users[data.user].data : data.data;
-        if (!this.otherPlayers[data.user]) {
-          // Default spawn for other players
-          this.otherPlayers[data.user] = new Player(data.user, false, fullData.classType || 'warrior', fullData.x || this.gameW / 2, fullData.y || (getGroundY(this.selectedEnv) + this.gameH) / 2);
-        }
-
-        if (this.isHost && data.data.requestSync) {
-          this.net.send_cmd('set_data', {
-            syncProjectiles: this.projectiles.map(p => ({
-           type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
-            angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
-            originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
-            ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
-            critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
-            casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
-            trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
-            }))
-          });
-        }
-
-        if (this.state === 'PLAYING' && data.data.spawnedProjectile) {
-          if (!this.projectiles.find(p => p.id === data.data.spawnedProjectile.id)) {
-            this.projectiles.push(new Projectile(data.data.spawnedProjectile));
-            if (this.otherPlayers[data.user]) {
-              this.otherPlayers[data.user].animTimer = 15;
-              this.otherPlayers[data.user].action = 'attack';
-            }
-          }
-        }
-        if (this.state === 'PLAYING' && data.data.syncProjectiles) {
-          for (let sp of data.data.syncProjectiles) {
-            if (!this.projectiles.find(p => p.id === sp.id)) {
-              this.projectiles.push(new Projectile(sp));
-            }
-          }
-        }
-
-        const oldInGame = this.otherPlayers[data.user].inGame;
-        const oldState = this.otherPlayers[data.user].state;
-        const oldIsHost = this.otherPlayers[data.user].isHost;
-        const oldHitFlash = this.otherPlayers[data.user].hitFlash || 0;
-
-        this.otherPlayers[data.user].set(fullData);
-
-        if (data.data.hitFlash !== undefined && data.data.hitFlash > oldHitFlash) {
-          this.spawnDamageParticles(this.otherPlayers[data.user].x, this.otherPlayers[data.user].y);
-        }
-
-        // If the other player transitions to MENU or GAME_OVER, explicitly clear their local game state data
-        // so they don't leave frozen projectiles/ghosts on our screen!
-        if (data.data.state === 'MENU' || data.data.inGame === false) {
-          this.otherPlayers[data.user].projectiles = [];
-          this.otherPlayers[data.user].hp = 0; // Consider them inactive
-        }
-
-
-        this.otherPlayers[data.user].lastDataTime = Date.now();
-        if (data.data.lastInputTime !== undefined) {
-          this.otherPlayers[data.user].lastInputTime = data.data.lastInputTime;
-        }
-
-        // Apply immediately if relevant to checkHost
-        if (data.data.inGame !== undefined) {
-          this.otherPlayers[data.user].inGame = data.data.inGame;
-        }
-        if (data.data.state !== undefined) {
-          this.otherPlayers[data.user].state = data.data.state;
-        }
-
-        if (data.data.level !== undefined) {
-          const oldLevel = this.otherPlayers[data.user].level || 1;
-          if (data.data.level > oldLevel) {
-            this.triggerLevelUpAnimation(this.otherPlayers[data.user]);
-          }
-        }
-
-        if (this.otherPlayers[data.user].inGame !== oldInGame || this.otherPlayers[data.user].state !== oldState || this.otherPlayers[data.user].isHost !== oldIsHost) {
-          this.checkHost();
-        }
-
-        // Handle remote hits
-        if (this.state === 'PLAYING' && data.data.hits) {
-          data.data.hits.forEach(hit => {
-            let e = this.enemies.find(ex => ex.id === hit.id);
-            if (e && e.alive) {
-              e.hp -= hit.damage;
-              e.hitFlash = 8;
-              this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (hit.isCrit ? '💥 ' : '') + hit.damage, color: hit.isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: hit.isCrit });
-              if (e.hp <= 0) {
-                e.alive = false; e.deathTime = Date.now(); e.hp = 0;
-                this.spawnEnemyDeathExplosion(e);
-                if (this.isHost) {
-                  if (hit.source) {
-                    this.net.send_cmd('set_data', { enemyKilled: hit.source + '_' + Math.random() });
-                  }
-                  this.waveEnemiesKilled++;
-                  if (this.bossActive && e.name === 'BOSS') {
-                    const aliveBosses = this.enemies.filter(ex => ex.name === 'BOSS' && ex.alive);
-                    if (aliveBosses.length === 0) {
-                      this.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
-                      this.waveTransitionTimer = 120;
-                    }
-                  } else if (!this.bossActive && this.waveEnemiesKilled >= this.waveTotalEnemies) {
-                    this.waveTransitionTimer = 120;
-                  }
-                }
-              }
-            }
-          });
-        }
-
-        if (data.data.enemyHitPlayer) {
-          if (data.data.enemyHitPlayer.id === this.net.me.info.user) {
-            this.dealDamageToPlayer(data.data.enemyHitPlayer.dmg);
-          }
-        }
-
-        if (data.data.gameOver) {
-          this.quitToMenu();
-        }
-
-        if (this.isHost && data.data.spawnItem) {
-          this.items.push(data.data.spawnItem);
-        }
-
-        // Handle Host Sync
-        if (this.state === 'PLAYING' && data.data.hostData && !this.isHost) {
-          const currentBestHost = this.getDeterministicHost();
-          if (data.user === currentBestHost) {
-            this.syncHostData(data.data.hostData);
-          }
-        }
-
-        // Sync Gameplay balance config from the Host 
-        if (data.data.gameplayConfig && !this.isHost) {
-          const op = this.otherPlayers[data.user];
-          const isSenderHost = (data.data.isHost || (op && op.isHost)) && op && op.state !== 'MENU';
-          if (isSenderHost) {
-            ConfigModule.updateConfig(data.data.gameplayConfig);
-            if (data.data.gameplayConfigName) {
-              ConfigModule.setActivePresetName(data.data.gameplayConfigName);
-            }
-            if (data.data.classData) ConfigModule.updateClassData(data.data.classData);
-            if (data.data.enemyTypes) ConfigModule.updateEnemyTypes(data.data.enemyTypes);
-            if (data.data.itemsDb) ConfigModule.updateItemsDb(data.data.itemsDb);
-
-            // Pre-cache all custom base64 images and their flipped versions to prevent mid-game lag
-            if (data.data.classData) {
-              for (const k in data.data.classData) {
-                const ic = data.data.classData[k].icon;
-                if (ic && typeof ic === 'string') preloadFlippedImagesForAsset(ic);
-              }
-            }
-            if (data.data.enemyTypes) {
-              for (const e of data.data.enemyTypes) {
-                if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
-              }
-            }
-            if (data.data.itemsDb) {
-              for (const item of data.data.itemsDb) {
-                if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
-              }
-            }
-
-            if (this.updateLayout) this.updateLayout();
-            if (this.ui) {
-              if (this.ui.buildClassesTab) this.ui.buildClassesTab();
-              if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
-              if (this.ui.buildItemsTab) this.ui.buildItemsTab();
-              if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
-            }
-          }
-        }
-      }
-    });
-  }
-
-  getDeterministicHost() {
-    if (!this.net || !this.net.room || !this.net.room.users) {
-      return null;
-    }
-
-    const users = Object.keys(this.net.room.users);
-    if (this.net.me && this.net.me.info && !users.includes(this.net.me.info.user)) {
-      users.push(this.net.me.info.user);
-    }
-
-    // Filter to active playing users
-    const activeUsers = users.filter(user => {
-      // Must not be disconnected
-      if (this.net.room && this.net.room.users && this.net.room.users[user]) {
-        const uInfo = this.net.room.users[user].info;
-        if (uInfo && uInfo.disconnected !== false && uInfo.disconnected !== undefined) {
-          return false;
-        }
-      }
-
-      if (this.net.me && this.net.me.info && user === this.net.me.info.user) {
-        // Local player
-        return this.state === 'PLAYING';
-      } else {
-        // Remote player
-        const roomUser = this.net.room && this.net.room.users && this.net.room.users[user];
-        if (!roomUser || !roomUser.data) return false;
-        
-        const inGame = roomUser.data.inGame === true;
-        const pState = roomUser.data.state;
-
-        return inGame && pState === 'PLAYING';
-      }
-    });
-
-    if (activeUsers.length === 0) {
-      return null;
-    }
-
-    // Deterministic selection: sort by gameStartTime (oldest first) to prevent host stealing when a player returns from menu.
-    // Fallback to alphabetical username sort if timestamps are identical.
-    const hostCandidates = activeUsers.sort((a, b) => {
-      let timeA = 0;
-      let timeB = 0;
-
-      if (this.net.me && this.net.me.info && a === this.net.me.info.user) {
-        timeA = this.gameStartTime || 0;
-      } else if (this.net.room && this.net.room.users && this.net.room.users[a] && this.net.room.users[a].data) {
-        timeA = this.net.room.users[a].data.gameStartTime || 0;
-      }
-
-      if (this.net.me && this.net.me.info && b === this.net.me.info.user) {
-        timeB = this.gameStartTime || 0;
-      } else if (this.net.room && this.net.room.users && this.net.room.users[b] && this.net.room.users[b].data) {
-        timeB = this.net.room.users[b].data.gameStartTime || 0;
-      }
-
-      if (timeA !== timeB) {
-        return timeA - timeB;
-      }
-      return a.localeCompare(b);
-    });
-
-    return hostCandidates[0];
-  }
-
-  checkHost() {
-    if (!this.net || !this.net.room || !this.net.room.users || !this.net.me || !this.net.me.info) {
-      if (this.isHost) {
-        this.isHost = false;
-        this.ui.addLog('👥 You are a Client', 'reward');
-      }
-      return;
-    }
-
-    // A player in the menu cannot be the host
-    if (this.state !== 'PLAYING') {
-      if (this.isHost) {
-        this.isHost = false;
-        this.ui.addLog('👥 You are a Client', 'reward');
-      }
-      return;
-    }
-
-    const bestHost = this.getDeterministicHost();
-    const isHost = bestHost === this.net.me.info.user;
-
-    if (this.isHost !== isHost) {
-      this.isHost = isHost;
-      this.ui.addLog(this.isHost ? '👑 You are the Host!' : '👥 You are a Client', 'reward');
-      
-      // Even though host is determined purely locally by everyone, we still send config if we become host
-      if (this.isHost) {
-        this.net.send_cmd('set_data', {
-          isHost: true,
-          gameplayConfig: ConfigModule.activeConfig,
-          classData: ConfigModule.CLASS_DATA,
-          enemyTypes: ConfigModule.ENEMY_TYPES,
-          itemsDb: ConfigModule.ITEMS_DB
-        });
-      } else {
-        this.net.send_cmd('set_data', { isHost: false });
-      }
-    }
-  }
-
-  syncHostData(hostData) {
-    if (hostData.gameStartTime !== undefined) {
-      this.hostGameStartTime = hostData.gameStartTime;
-    }
-    if (hostData.time !== undefined) {
-      this.globalTime = hostData.time;
-    }
-
-    if (hostData.sessionSeed !== undefined) {
-      this.sessionSeed = hostData.sessionSeed;
-    }
-    if (hostData.seed !== undefined) {
-      if (!this.prng) this.prng = new PRNG(hostData.seed);
-      else this.prng.seed = hostData.seed;
-    }
-    if (hostData.dropSeed !== undefined) {
-      if (!this.dropPrng) this.dropPrng = new PRNG(hostData.dropSeed);
-      else this.dropPrng.seed = hostData.dropSeed;
-    }
-
-    if (this.wave !== hostData.wave && hostData.wave) {
-      if (this.player && !this.player.alive) {
-        this.respawnPlayer();
-      }
-      this.wave = hostData.wave;
-    }
-
-    // Always sync these, so a new host doesn't lose spawn state
-    if (hostData.waveTotal !== undefined) this.waveTotalEnemies = hostData.waveTotal;
-    if (hostData.waveSpawn !== undefined) this.waveEnemiesToSpawn = hostData.waveSpawn;
-
-    this.kills = hostData.kills;
-    this.waveEnemiesKilled = hostData.waveKilled || 0;
-    this.bossActive = hostData.bossActive || false;
-
-    if (this.state === 'PLAYING') {
-      this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
-    }
-
-    if (this.selectedEnv !== hostData.env) {
-      this.selectedEnv = hostData.env || 'forest';
-      this.generateScenery();
-      if (this.state === 'PLAYING') this.ui.updateEnvironment(this.selectedEnv);
-      this.initBgParticles();
-    }
-
-    // Sync enemies position/hp to host
-    // First, purge any enemies we have locally that the host no longer has (ghosts)
-    const hostEnemyIds = hostData.enemies.map(e => e.id);
-    this.enemies = this.enemies.filter(e => hostEnemyIds.includes(e.id));
-
-    hostData.enemies.forEach(eData => {
-      let e = this.enemies.find(ex => ex.id === eData.id);
-      if (!e) {
-        let isBoss = eData.name === 'BOSS';
-        let spawnIndex = 0;
-        if (eData.id && eData.id.startsWith('E_')) {
-          const parts = eData.id.split('_');
-          if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
-        }
-
-        // Generate full visual properties using deterministic PRNG
-        e = new Enemy(this, isBoss, false, spawnIndex);
-        e.id = eData.id;
-
-        // If it's a missile, fix properties
-        if (eData.id && eData.id.startsWith('M_')) {
-          e.name = 'MISSILE';
-          e.icon = '🚀';
-          e.size = 20;
-          e.color = '#e74c3c';
-        }
-
-        e.x = eData.x || e.x;
-        e.y = eData.y || e.y;
-        this.enemies.push(e);
-      }
-      if (eData.x !== undefined) e.serverX = eData.x;
-      if (eData.y !== undefined) e.serverY = eData.y;
-      if (eData.hp !== undefined) e.hp = eData.hp;
-      if (eData.maxHp !== undefined) e.maxHp = eData.maxHp;
-      if (eData.alive !== undefined) {
-        if (e.alive && !eData.alive) {
-          this.spawnEnemyDeathExplosion(e);
-        }
-        e.alive = eData.alive;
-      }
-      if (eData.name !== undefined) e.name = eData.name;
-      if (eData.size !== undefined) e.size = eData.size;
-      if (eData.bossState !== undefined) e.bossState = eData.bossState;
-      if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
-      if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
-      if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
-      // Icons and colors are locally deterministic or default, no need to sync from network
-      if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
-    });
-    // Remove enemies not in host, but keep dead ones until their death animation finishes
-    this.enemies = this.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
-
-    if (hostData.items) {
-      this.items = hostData.items.map(item => ({ ...item }));
-    }
+    this.renderer.initWebGL();
+    this.networkSync.bindEvents();
+    this.inputManager.bindEvents();
+    this.scheduleLayoutUpdate();
   }
 
   init() {
@@ -544,586 +126,52 @@ export default class Game {
     requestAnimationFrame((t) => this.loop(t));
   }
 
-  initWebGL() {
-    const gl = this.gl;
-    if (!gl) {
-      if (this.canvas) this.canvas.style.opacity = 1;
-      if (this.webglCanvas) this.webglCanvas.style.display = 'none';
-      return;
-    }
-
-    const vsSource = `
-      attribute vec4 aVertexPosition;
-      attribute vec2 aTextureCoord;
-      varying highp vec2 vTextureCoord;
-      void main(void) {
-        gl_Position = aVertexPosition;
-        vTextureCoord = aTextureCoord;
-      }
-    `;
-
-    const fsSource = `
-      varying highp vec2 vTextureCoord;
-      uniform sampler2D uSampler;
-      void main(void) {
-        gl_FragColor = texture2D(uSampler, vTextureCoord);
-      }
-    `;
-
-    const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsSource);
-    const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
-
-    const shaderProgram = gl.createProgram();
-    gl.attachShader(shaderProgram, vertexShader);
-    gl.attachShader(shaderProgram, fragmentShader);
-    gl.linkProgram(shaderProgram);
-
-    this.programInfo = {
-      program: shaderProgram,
-      attribLocations: {
-        vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-        textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
-      },
-      uniformLocations: {
-        uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
-      },
-    };
-
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    const positions = [
-      -1.0, 1.0,
-      1.0, 1.0,
-      -1.0, -1.0,
-      1.0, -1.0,
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-    const textureCoordBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-    const textureCoordinates = [
-      0.0, 0.0,
-      1.0, 0.0,
-      0.0, 1.0,
-      1.0, 1.0,
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
-
-    this.buffers = {
-      position: positionBuffer,
-      textureCoord: textureCoordBuffer,
-    };
-
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    this.texture = texture;
-  }
-
-  loadShader(gl, type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
-      gl.deleteShader(shader);
-      return null;
-    }
-    return shader;
-  }
-
-  renderWebGL() {
-    const gl = this.gl;
-    if (!gl) return;
-
-    if (this.webglCanvas.width !== this.canvas.width || this.webglCanvas.height !== this.canvas.height) {
-      this.webglCanvas.width = this.canvas.width;
-      this.webglCanvas.height = this.canvas.height;
-      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    }
-
-    gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.canvas);
-
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.position);
-    gl.vertexAttribPointer(this.programInfo.attribLocations.vertexPosition, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(this.programInfo.attribLocations.vertexPosition);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.textureCoord);
-    gl.vertexAttribPointer(this.programInfo.attribLocations.textureCoord, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(this.programInfo.attribLocations.textureCoord);
-
-    gl.useProgram(this.programInfo.program);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    gl.uniform1i(this.programInfo.uniformLocations.uSampler, 0);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }
-
-  scheduleLayoutUpdate() {
-    this.updateLayout();
-
-    // Run again on the next two animation frames — after orientation changes
-    // some devices (notably Samsung S24 FE) report stale viewport sizes for
-    // one or two frames, so a single updateLayout() leaves a black strip.
-    requestAnimationFrame(() => {
-      this.updateLayout();
-      requestAnimationFrame(() => this.updateLayout());
-    });
-
-    clearTimeout(this.layoutRefreshTimer);
-    clearTimeout(this.layoutSettledTimer);
-    this.layoutRefreshTimer = setTimeout(() => this.updateLayout(), 120);
-    this.layoutSettledTimer = setTimeout(() => this.updateLayout(), 500);
-  }
-
-  bindEvents() {
-    const mainArea = document.getElementById('main-area');
-
-    mainArea.addEventListener('mousemove', (e) => {
-      if (this.state !== 'PLAYING') return;
-      const pos = this.toGameCoords(e.clientX, e.clientY);
-      if (this.player) {
-        this.player.mouseX = pos.x;
-        this.player.mouseY = pos.y;
-
-        const reqLevel = 4 + (this.player.resets || 0) * 5;
-        const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
-        const py = this.player.y;
-        const weaponY = py - 40 * lvlScale;
-        const computedAimAngle = parseFloat(Math.atan2(this.player.mouseY - weaponY, this.player.mouseX - this.player.x).toFixed(1));
-
-        const oldFacing = this.player.facing;
-        this.player.facing = this.player.mouseX > this.player.x ? 1 : -1;
-        const oldAimAngle = this.player.aimAngle;
-        this.player.aimAngle = computedAimAngle;
-
-        if (this.player.facing !== oldFacing || this.player.aimAngle !== oldAimAngle) {
-          this.broadcastState();
-        }
-      }
-    });
-
-    this.canvas.addEventListener('mousedown', (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
-      if (e.button === 0) {
-        e.preventDefault();
-        clearInterval(this.leftClickInterval); // FIX: clear previous interval
-        const p = this.toGameCoords(e.clientX, e.clientY);
-        this.player.mouseX = p.x;
-        this.player.mouseY = p.y;
-        this.handleLeftClick(p.x, p.y);
-        this.leftClickInterval = setInterval(() => {
-          if (this.state === 'PLAYING' && this.player) {
-            this.handleLeftClick(this.player.mouseX, this.player.mouseY);
-          }
-        }, 100);
-      }
-      if (e.button === 2) {
-        e.preventDefault();
-        this.mouseDown = true;
-        const p = this.toGameCoords(e.clientX, e.clientY);
-        this.player.mouseX = p.x;
-        this.player.mouseY = p.y;
-        if (this.s2HoldTimer) clearTimeout(this.s2HoldTimer); // FIX: clear previous timeout
-        this.s2HoldTimer = setTimeout(() => {
-          if (this.state === 'PLAYING' && this.mouseDown && this.player && this.s2Cooldown <= 0) {
-            this.player.s2HoldStartTime = Date.now();
-            this.startChargingSkill2();
-          }
-          this.s2HoldTimer = null;
-        }, 300);
-      }
-    });
-
-    this.canvas.addEventListener('mouseup', (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
-      if (e.button === 0) {
-        e.preventDefault();
-        clearInterval(this.leftClickInterval);
-      }
-      if (e.button === 2) {
-        e.preventDefault();
-        this.mouseDown = false;
-        clearInterval(this.leftClickInterval);
-        if (this.s2HoldTimer) {
-          clearTimeout(this.s2HoldTimer);
-          this.s2HoldTimer = null;
-        }
-        if (!this.player.isChargingS2) {
-          const p = this.toGameCoords(e.clientX, e.clientY);
-          this.player.mouseX = p.x;
-          this.player.mouseY = p.y;
-          this.startChargingSkill2();
-          this.releaseSkill2();
-        } else {
-          const p = this.toGameCoords(e.clientX, e.clientY);
-          this.player.mouseX = p.x;
-          this.player.mouseY = p.y;
-          this.releaseSkill2();
-        }
-      }
-    });
-
-    this.canvas.addEventListener('mouseleave', (e) => {
-      clearInterval(this.leftClickInterval);
-      this.mouseDown = false;
-      if (this.s2HoldTimer) {
-        clearTimeout(this.s2HoldTimer);
-        this.s2HoldTimer = null;
-      }
-      if (this.player && this.player.isChargingS2) {
-        this.releaseSkill2();
-      }
-    });
-
-    // Also attach to window mouseup to catch releases outside canvas
-    window.addEventListener('mouseup', (e) => {
-      if (this.state !== 'PLAYING') return;
-      clearInterval(this.leftClickInterval);
-      this.mouseDown = false;
-      if (this.s2HoldTimer) {
-        clearTimeout(this.s2HoldTimer);
-        this.s2HoldTimer = null;
-      }
-      if (this.player && this.player.isChargingS2) {
-        this.releaseSkill2();
-      }
-    });
-
-    document.addEventListener('contextmenu', (e) => {
-      if (this.state === 'PLAYING') {
-        e.preventDefault();
-      }
-    });
-
-    // Mouse wheel zoom
-    this.canvas.addEventListener('wheel', (e) => {
-      if (this.state !== 'PLAYING' || !this.player || !this.player.alive) return;
-      e.preventDefault();
-      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-      this.zoomTarget *= zoomFactor;
-
-      const cw = this.canvas.width / (this.pixelRatio || 1);
-      const ch = this.canvas.height / (this.pixelRatio || 1);
-
-      // Lowest zoom (most zoomed out): full map fills screen in BOTH dimensions
-      const zoomOutMinWidth = (cw / this.gameW) / this.viewScale;
-      const zoomOutMinHeight = (ch / this.gameH) / this.viewScale;
-      const zoomOutMin = Math.max(zoomOutMinWidth, zoomOutMinHeight);
-
-      // Highest zoom (most zoomed in): character fills most of screen
-      const zoomInMax = Math.max(5, (ch / 30) / this.viewScale);
-
-      this.zoomTarget = Math.max(zoomOutMin, Math.min(zoomInMax, this.zoomTarget));
-    }, { passive: false });
-
-    let touchActive = false;
-    let touchLongPressTimer = null;
-    let touchLeftClickTimer = null;
-    let pinchStartDist = 0;
-    let pinchStartZoom = 0;
-
-    this.canvas.addEventListener('touchstart', (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
-      e.preventDefault();
-      if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        pinchStartDist = Math.hypot(dx, dy);
-        pinchStartZoom = this.zoomTarget;
-        return;
-      }
-      const t = e.touches[0];
-      const pos = this.toGameCoords(t.clientX, t.clientY);
-      touchActive = true;
-      this.player.mouseX = pos.x;
-      this.player.mouseY = pos.y;
-
-      clearTimeout(touchLongPressTimer);
-      clearTimeout(touchLeftClickTimer);
-      touchLongPressTimer = setTimeout(() => {
-        if (!touchActive) return;
-        clearTimeout(touchLeftClickTimer);
-        this.startChargingSkill2();
-      }, 400);
-
-      this.handleLeftClick(pos.x, pos.y);
-      clearInterval(this.touchLeftClickInterval); // FIX: clear previous interval
-      touchLeftClickTimer = setTimeout(() => {
-        if (!touchActive) return;
-        clearInterval(this.touchLeftClickInterval); // FIX: double check clear
-        const interval = setInterval(() => {
-          if (!touchActive || this.player.isChargingS2) {
-            clearInterval(interval);
-            return;
-          }
-          this.handleLeftClick(this.player.mouseX, this.player.mouseY);
-        }, 100);
-        this.touchLeftClickInterval = interval;
-      }, 150);
-    }, { passive: false });
-
-    this.canvas.addEventListener('touchmove', (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
-      e.preventDefault();
-      if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const currentDist = Math.hypot(dx, dy);
-        const scale = currentDist / pinchStartDist;
-        this.zoomTarget = pinchStartZoom * scale;
-
-        const cw = this.canvas.width / (this.pixelRatio || 1);
-        const ch = this.canvas.height / (this.pixelRatio || 1);
-        const zoomOutMinWidth = (cw / this.gameW) / this.viewScale;
-        const zoomOutMinHeight = (ch / this.gameH) / this.viewScale;
-        const zoomOutMin = Math.max(zoomOutMinWidth, zoomOutMinHeight);
-        const zoomInMax = Math.max(5, (ch / 30) / this.viewScale);
-        this.zoomTarget = Math.max(zoomOutMin, Math.min(zoomInMax, this.zoomTarget));
-        return;
-      }
-      const t = e.touches[0];
-      const pos = this.toGameCoords(t.clientX, t.clientY);
-      this.player.mouseX = pos.x;
-      this.player.mouseY = pos.y;
-    }, { passive: false });
-
-    this.canvas.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) {
-        pinchStartDist = 0;
-        pinchStartZoom = 0;
-      }
-      touchActive = false;
-      clearTimeout(touchLongPressTimer);
-      clearTimeout(touchLeftClickTimer);
-      clearInterval(this.touchLeftClickInterval);
-      if (this.player && this.player.isChargingS2) {
-        this.mouseDown = false;
-        this.releaseSkill2();
-      }
-    });
-    this.canvas.addEventListener('touchcancel', (e) => {
-      if (e.touches.length < 2) {
-        pinchStartDist = 0;
-        pinchStartZoom = 0;
-      }
-      touchActive = false;
-      clearTimeout(touchLongPressTimer);
-      clearTimeout(touchLeftClickTimer);
-      clearInterval(this.touchLeftClickInterval);
-      if (this.player && this.player.isChargingS2) {
-        this.mouseDown = false;
-        this.releaseSkill2();
-      }
-    });
-
-    const cdRingBtn = document.getElementById('cd-ring');
-    const startUltBtn = (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
-      e.preventDefault(); e.stopPropagation();
-      this.mouseDown = true;
-      this.startChargingSkill2();
-    };
-    const endUltBtn = (e) => {
-      if (this.state !== 'PLAYING' || !this.player) return;
-      e.preventDefault(); e.stopPropagation();
-      if (this.player.isChargingS2) {
-        this.mouseDown = false;
-        this.releaseSkill2();
-      } else {
-        this.mouseDown = false;
-      }
-    };
-    cdRingBtn.addEventListener('mousedown', startUltBtn);
-    cdRingBtn.addEventListener('touchstart', startUltBtn, { passive: false });
-    cdRingBtn.addEventListener('mouseup', endUltBtn);
-    cdRingBtn.addEventListener('mouseleave', endUltBtn);
-    cdRingBtn.addEventListener('touchend', endUltBtn);
-    cdRingBtn.addEventListener('touchcancel', endUltBtn);
-  }
-
-  updateLayout() {
-    // Trust the browser's own layout: the canvas is CSS-sized to fill the
-    // viewport-pinned main-area (position:absolute; inset:0). Read whatever
-    // size it actually ended up with via getBoundingClientRect() — this is
-    // the only reliable measurement across devices. Earlier attempts to use
-    // parent.clientWidth or visualViewport.width gave stale/under-reported
-    // numbers on some Samsung phones, leaving a black strip on the right.
-    const rect = this.canvas.getBoundingClientRect();
-    const cw = Math.round(rect.width);
-    const ch = Math.round(rect.height);
-    if (cw <= 0 || ch <= 0) return;
-
-    const rawDpr = Math.min(window.devicePixelRatio || 1, 2);
-    const isTouchDisplay = navigator.maxTouchPoints > 0;
-    const maxMobilePixels = 900000;
-    const pixelBudgetDpr = Math.sqrt(maxMobilePixels / (cw * ch));
-    const dpr = isTouchDisplay ? Math.max(1, Math.min(rawDpr, pixelBudgetDpr)) : rawDpr;
-    this.pixelRatio = dpr;
-    this.canvas.width = cw * dpr;
-    this.canvas.height = ch * dpr;
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    // Lock scaling to the screen height to provide native side-scrolling experience
-    this.viewScale = ch / this.gameH;
-
-    // Dynamically adjust this.gameW if the screen is wider than the configured width
-    const requiredGameW = Math.ceil(cw / this.viewScale);
-    const baseConfigW = ConfigModule.activeConfig.GAME_W || 2560;
-    const targetW = Math.max(baseConfigW, requiredGameW);
-
-    if (targetW !== this.gameW) {
-      this.gameW = targetW;
-      if (this.player && this.player.isLocal) {
-        this.player.x = Math.max(20, Math.min(targetW - 20, this.player.x));
-      }
-      this.generateScenery();
-      this.initBgParticles();
-    }
-
-    const scaledW = this.gameW * this.viewScale;
-
-    // If the game width is wider than the screen, left-align and let side-scrolling handle offsets.
-    // Otherwise, center the game world horizontally on screen.
-    if (cw < scaledW) {
-      this.viewOX = 0;
-    } else {
-      this.viewOX = (cw - scaledW) / 2;
-    }
-    this.viewOY = 0;
-
-    this.cachedCanvasRect = this.canvas.getBoundingClientRect();
-
-    if (this.state === 'MENU') this.drawMenuBackground();
-  }
-
-  toGameCoords(clientX, clientY) {
-    const rect = this.cachedCanvasRect || this.canvas.getBoundingClientRect();
-    const canvasX = clientX - rect.left;
-    const canvasY = clientY - rect.top;
-    const effectiveScale = this.viewScale * this.zoomScale;
-    const cw = this.canvas.width / (this.pixelRatio || 1);
-    const ch = this.canvas.height / (this.pixelRatio || 1);
-    const camX = this.cameraX || 0;
-    const camY = this.cameraY ?? (this.player ? this.player.y : this.gameH / 2);
-    const viewOX = this.viewOX || 0;
-    const gameX = (canvasX - cw / 2 - viewOX) / effectiveScale + camX;
-    const gameY = (canvasY - ch / 2) / effectiveScale + camY;
-    return { x: gameX, y: gameY };
-  }
-
-  applyViewport(dt = 0) {
-    if (this.player && !this.player.alive) {
-      if (!this.savedZoomTarget) {
-        this.savedZoomTarget = this.zoomTarget;
-      }
-      const cw = this.canvas.width / (this.pixelRatio || 1);
-      const ch = this.canvas.height / (this.pixelRatio || 1);
-      const zoomOutMinWidth = (cw / this.gameW) / this.viewScale;
-      const zoomOutMinHeight = (ch / this.gameH) / this.viewScale;
-      this.zoomTarget = Math.max(zoomOutMinWidth, zoomOutMinHeight);
-    } else {
-      if (this.savedZoomTarget) {
-        this.zoomTarget = this.savedZoomTarget;
-        this.savedZoomTarget = null;
-      }
-    }
-
-    // Smooth zoom transition
-    if (Math.abs(this.zoomScale - this.zoomTarget) > 0.001) {
-      this.zoomScale += (this.zoomTarget - this.zoomScale) * Math.min(0.2, 0.15 * dt);
-    } else {
-      this.zoomScale = this.zoomTarget;
-    }
-
-    let shakeX = 0, shakeY = 0;
-    if (this.screenShake > 0) {
-      shakeX = (Math.random() - 0.5) * this.screenShake;
-      shakeY = (Math.random() - 0.5) * this.screenShake;
-      this.screenShake -= dt;
-      if (this.screenShake < 0) this.screenShake = 0;
-    }
-
-    const effectiveScale = this.viewScale * this.zoomScale;
-    const cw = this.canvas.width / (this.pixelRatio || 1);
-    const ch = this.canvas.height / (this.pixelRatio || 1);
-
-    // Camera centered on player with edge clamping
-    if (this.player && this.canvas) {
-      const halfViewportX = (cw / 2) / effectiveScale;
-      const halfViewportY = (ch / 2) / effectiveScale;
-
-      if (halfViewportX >= this.gameW / 2) {
-        // Visible area >= game width: center the game world
-        this.cameraX = this.gameW / 2;
-      } else {
-        // Visible area < game width: center on player
-        this.cameraX = Math.max(halfViewportX, Math.min(this.gameW - halfViewportX, this.player.x));
-      }
-
-      // Center vertically on player, clamp to map edges to avoid empty space
-      this.cameraY = Math.max(halfViewportY, Math.min(this.gameH - halfViewportY, this.player.y));
-    } else {
-      this.cameraX = this.gameW / 2;
-      this.cameraY = this.gameH / 2;
-    }
-
-    const camX = this.cameraX;
-    const camY = this.cameraY;
-    const viewOX = this.viewOX || 0;
-
-    const cullMargin = 150;
-    const cwHalf = (cw / 2) / effectiveScale;
-    const chHalf = (ch / 2) / effectiveScale;
-    this.cullMinX = camX - cwHalf - cullMargin;
-    this.cullMaxX = camX + cwHalf + cullMargin;
-    this.cullMinY = camY - chHalf - cullMargin;
-    this.cullMaxY = camY + chHalf + cullMargin;
-
-    // Center transform: translate to screen center, scale, translate by camera offset
-    this.ctx.translate(cw / 2 + viewOX + shakeX, ch / 2 + shakeY);
-    this.ctx.scale(effectiveScale, effectiveScale);
-    this.ctx.translate(-camX, -camY);
-  }
+  getGroundY() { return getGroundY(this.selectedEnv); }
+  generateScenery() { this.sceneryManager.generateScenery(); }
+  initBgParticles() { this.particleManager.initBgParticles(); }
+  spawnParticles(x, y, color, count, speed, sizeScale) { this.particleManager.spawnParticles(x, y, color, count, speed, sizeScale); }
+  spawnDamageParticles(x, y) { this.particleManager.spawnDamageParticles(x, y); }
+  spawnEnemyDeathExplosion(e) { this.particleManager.spawnEnemyDeathExplosion(e); }
+  triggerLevelUpAnimation(p) { this.particleManager.triggerLevelUpAnimation(p); }
+  handleLeftClick(cx, cy) { this.combatManager.handleLeftClick(cx, cy); }
+  doSkill1(tx, ty) { this.combatManager.doSkill1(tx, ty); }
+  startChargingSkill2() { this.combatManager.startChargingSkill2(); }
+  releaseSkill2() { this.combatManager.releaseSkill2(); }
+  dealDamage(enemy, baseDamage, critChance) { this.combatManager.dealDamage(enemy, baseDamage, critChance); }
+  dealDamageToPlayer(damage) { this.combatManager.dealDamageToPlayer(damage); }
+  applyKnockback(enemy, dirAngle, distance) { this.combatManager.applyKnockback(enemy, dirAngle, distance); }
+  spawnProjectile(props, broadcast) { this.combatManager.spawnProjectile(props, broadcast); }
+  getDeterministicHost() { return this.networkSync.getDeterministicHost(); }
+  checkHost() { this.networkSync.checkHost(); }
+  syncHostData(hostData) { this.networkSync.syncHostData(hostData); }
+  broadcastState() { this.networkSync.broadcastState(); }
+  emitEvent(type, data) { this.networkSync.emitEvent(type, data); }
+  upgradeStat(statType, amount) { this.progressionManager.upgradeStat(statType, amount); }
+  requestRebirth() { this.progressionManager.requestRebirth(); }
+  performRebirth() { this.progressionManager.performRebirth(); }
+  restoreWebsocketStats(target, myData, selectedClass) { this.progressionManager.restoreWebsocketStats(target, myData, selectedClass); }
+  saveLocalProgression() { this.progressionManager.saveLocalProgression(); }
+  _resetSessionData() { this.progressionManager._resetSessionData(); }
+  respawnPlayer() { this.progressionManager.respawnPlayer(); }
+  handleItemPickup(event) { this.itemManager.handleItemPickup(event); }
+  handleItemDrop(event) { this.itemManager.handleItemDrop(event); }
+  handleGameEvent(event) { this.itemManager.handleGameEvent(event); }
+  scheduleLayoutUpdate() { this.viewportManager.scheduleLayoutUpdate(); }
+  updateLayout() { this.viewportManager.updateLayout(); }
+  toGameCoords(clientX, clientY) { return this.viewportManager.toGameCoords(clientX, clientY); }
+  applyViewport(dt) { this.viewportManager.applyViewport(dt); }
+  drawMenuBackground() { this.renderer.drawMenuBackground(); }
+  drawEnvironment() { this.renderer.drawEnvironment(); }
+  renderWebGL() { this.renderer.renderWebGL(); }
 
   startGame(selectedClass) {
-    if (this.ui && this.ui.saveLastGameConfig) {
-      this.ui.saveLastGameConfig();
-    }
-    // Ensure all menu/previous session parameters are fully reset
+    if (this.ui?.saveLastGameConfig) this.ui.saveLastGameConfig();
     this._resetSessionData();
-
     this.state = 'PLAYING';
     this.selectedEnv = ENV_LIST[0];
     this.kills = GAME_INITIAL_KILLS;
-    this.wave = ConfigModule.GAME_INITIAL_WAVE;
-    if (this.wave % ConfigModule.BOSS_WAVE_INTERVAL === 0) {
-      this.bossActive = true;
-      let numBosses = 1;
-      if (ConfigModule.BOSS_WAVE_INTERVAL > 0) {
-        const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
-        if (bossWaveNum > 1) {
-          numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
-        }
-      }
-      this.waveTotalEnemies = numBosses;
-      this.waveEnemiesToSpawn = numBosses;
-    } else {
-      this.bossActive = false;
-      this.waveTotalEnemies = ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
-      this.waveEnemiesToSpawn = ConfigModule.GAME_INITIAL_WAVE_ENEMIES;
-    }
-    this.waveEnemiesKilled = 0;
-    this.waveTransitionTimer = 0;
-    this.emptyWaveTimer = 0;
+    this.wave = GAME_INITIAL_WAVE;
+    this.waveManager.initWaves();
     this.enemySpawnInterval = ENEMY_SPAWN_INTERVAL;
     this.enemySpawnTimer = 0;
     this.enemies = [];
@@ -1136,52 +184,26 @@ export default class Game {
     this.sessionSeed = Math.floor(Math.random() * 2000000000);
     this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
     this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
-    
-    // Set our game start time using a real chronological timestamp to prevent host stealing
     this.gameStartTime = Date.now();
     this.hostGameStartTime = 0;
 
-    // Inherit current room state and gameplay configuration from the deterministically computed host
     let hostFound = false;
     const bestHost = this.getDeterministicHost();
-    const amIHost = bestHost === (this.net && this.net.me && this.net.me.info ? this.net.me.info.user : null);
+    const amIHost = bestHost === (this.net?.me?.info ? this.net.me.info.user : null);
 
-    if (bestHost && !amIHost && this.net && this.net.room && this.net.room.users[bestHost]) {
-      const u = bestHost;
-      const userData = this.net.room.users[u].data;
-      if (userData && userData.inGame && userData.state === 'PLAYING') {
+    if (bestHost && !amIHost && this.net?.room?.users[bestHost]) {
+      const userData = this.net.room.users[bestHost].data;
+      if (userData?.inGame && userData.state === 'PLAYING') {
         hostFound = true;
         this.isHost = false;
         if (userData.gameplayConfig) {
           ConfigModule.updateConfig(userData.gameplayConfig);
-          if (userData.gameplayConfigName) {
-            ConfigModule.setActivePresetName(userData.gameplayConfigName);
-          }
-          if (userData.classData) {
-            ConfigModule.updateClassData(userData.classData);
-            for (const k in userData.classData) {
-              if (userData.classData[k].icon && typeof userData.classData[k].icon === 'string') preloadFlippedImagesForAsset(userData.classData[k].icon);
-            }
-          }
-          if (userData.enemyTypes) {
-            ConfigModule.updateEnemyTypes(userData.enemyTypes);
-            for (const e of userData.enemyTypes) {
-              if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
-            }
-          }
-          if (userData.itemsDb) {
-            ConfigModule.updateItemsDb(userData.itemsDb);
-            for (const item of userData.itemsDb) {
-              if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
-            }
-          }
-          if (this.ui) {
-            if (this.ui.buildClassesTab) this.ui.buildClassesTab();
-            if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
-            if (this.ui.buildItemsTab) this.ui.buildItemsTab();
-            if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
-          }
-          this.ui.addLog(`📥 Synced gameplay balance config from the Host (${u}).`, 'system');
+          if (userData.gameplayConfigName) ConfigModule.setActivePresetName(userData.gameplayConfigName);
+          if (userData.classData) { ConfigModule.updateClassData(userData.classData); Object.values(userData.classData).forEach(c => { if (c.icon && typeof c.icon === 'string') preloadFlippedImagesForAsset(c.icon); }); }
+          if (userData.enemyTypes) { ConfigModule.updateEnemyTypes(userData.enemyTypes); userData.enemyTypes.forEach(e => { if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon); }); }
+          if (userData.itemsDb) { ConfigModule.updateItemsDb(userData.itemsDb); userData.itemsDb.forEach(item => { if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon); }); }
+          if (this.ui) { this.ui.buildClassesTab?.(); this.ui.buildMonstersTab?.(); this.ui.buildItemsTab?.(); this.ui.updateClassCarousel?.(); }
+          this.ui.addLog(`📥 Synced gameplay balance config from the Host (${bestHost}).`, 'system');
         }
         if (userData.hostData) {
           this.wave = userData.hostData.wave || GAME_INITIAL_WAVE;
@@ -1193,60 +215,28 @@ export default class Game {
           this.sessionSeed = userData.hostData.sessionSeed || 0;
           this.prng = new PRNG(userData.hostData.seed !== undefined ? userData.hostData.seed : (this.sessionSeed + this.wave * 12345));
           this.dropPrng = new PRNG(userData.hostData.dropSeed !== undefined ? userData.hostData.dropSeed : (this.sessionSeed + this.wave * 54321));
-
-          // Sync ground items and monsters instantly on game entry
           if (userData.hostData.enemies) {
             userData.hostData.enemies.forEach(eData => {
               let e = this.enemies.find(ex => ex.id === eData.id);
               if (e) {
-                // Update existing
-                // Only snap position if it diverged significantly, to allow local smooth movement
-                const dist = Math.hypot(e.x - eData.x, e.y - eData.y);
-                if (dist > 50) {
-                  e.x = eData.x;
-                  e.y = eData.y;
-                }
-                e.serverX = eData.x;
-                e.serverY = eData.y;
+                if (Math.hypot(e.x - eData.x, e.y - eData.y) > 50) { e.x = eData.x; e.y = eData.y; }
+                e.serverX = eData.x; e.serverY = eData.y;
                 if (e.hp > eData.hp && eData.hp <= 0) e.deathTime = eData.deathTime || Date.now();
-                e.hp = eData.hp;
-                e.alive = eData.alive;
-                if (eData.bossState !== undefined) e.bossState = eData.bossState;
-                if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
-                if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
-                if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
+                e.hp = eData.hp; e.alive = eData.alive;
+                ['bossState', 'bossChannelTimer', 'targetLaserPos', 'bossLaserTimer'].forEach(k => { if (eData[k] !== undefined) e[k] = eData[k]; });
               } else {
-                // Spawn new
-                let isBoss = eData.name === 'BOSS';
-                let spawnIndex = 0;
-                if (eData.id && eData.id.startsWith('E_')) {
-                  const parts = eData.id.split('_');
-                  if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
-                }
-                const newE = new Enemy(this, isBoss, false, spawnIndex);
+                const newE = new Enemy(this, eData.name === 'BOSS', false, eData.id?.startsWith('E_') ? (parseInt(eData.id.split('_')[2]) || 0) : 0);
                 newE.id = eData.id;
-                if (eData.id && eData.id.startsWith('M_')) {
-                  newE.name = 'MISSILE';
-                  newE.icon = '🚀';
-                  newE.size = 20;
-                  newE.color = '#e74c3c';
-                }
-                newE.x = eData.x || newE.x;
-                newE.y = eData.y || newE.y;
-                newE.serverX = eData.x || newE.x;
-                newE.serverY = eData.y || newE.y;
-                newE.hp = eData.hp;
-                newE.maxHp = eData.maxHp;
-                newE.alive = eData.alive;
-                newE.name = eData.name;
-                newE.size = eData.size;
+                if (eData.id?.startsWith('M_')) { newE.name = 'MISSILE'; newE.icon = '🚀'; newE.size = 20; newE.color = '#e74c3c'; }
+                newE.x = eData.x || newE.x; newE.y = eData.y || newE.y;
+                newE.serverX = eData.x || newE.x; newE.serverY = eData.y || newE.y;
+                newE.hp = eData.hp; newE.maxHp = eData.maxHp; newE.alive = eData.alive;
+                newE.name = eData.name; newE.size = eData.size;
                 this.enemies.push(newE);
               }
             });
           }
-          if (userData.hostData.items) {
-            this.items = userData.hostData.items.map(item => ({ ...item }));
-          }
+          if (userData.hostData.items) this.items = userData.hostData.items.map(item => ({ ...item }));
         }
       }
     }
@@ -1254,2395 +244,232 @@ export default class Game {
     if (!hostFound) {
       this.isHost = true;
       this.ui.addLog('👑 You are the Host!', 'reward');
-      if (this.net && this.net.me) {
-        this.net.send_cmd('set_data', {
-          isHost: true,
-          gameplayConfig: ConfigModule.activeConfig,
-          gameplayConfigName: ConfigModule.activePresetName || 'Default',
-          classData: ConfigModule.CLASS_DATA,
-          enemyTypes: ConfigModule.ENEMY_TYPES,
-          itemsDb: ConfigModule.ITEMS_DB
-        });
-      }
+      if (this.net?.me) this.net.send_cmd('set_data', { isHost: true, gameplayConfig: ConfigModule.activeConfig, gameplayConfigName: ConfigModule.activePresetName || 'Default', classData: ConfigModule.CLASS_DATA, enemyTypes: ConfigModule.ENEMY_TYPES, itemsDb: ConfigModule.ITEMS_DB });
     }
 
-    // Pre-cache images for local host
     if (this.isHost) {
-      for (const k in ConfigModule.CLASS_DATA) {
-        const ic = ConfigModule.CLASS_DATA[k].icon;
-        if (ic && typeof ic === 'string') preloadFlippedImagesForAsset(ic);
-      }
-      for (const e of ConfigModule.ENEMY_TYPES) {
-        if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
-      }
-      for (const item of ConfigModule.ITEMS_DB) {
-        if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
-      }
+      Object.values(ConfigModule.CLASS_DATA).forEach(c => { if (c.icon && typeof c.icon === 'string') preloadFlippedImagesForAsset(c.icon); });
+      ConfigModule.ENEMY_TYPES.forEach(e => { if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon); });
+      ConfigModule.ITEMS_DB.forEach(item => { if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon); });
     }
 
     this.generateScenery();
-
-    let myData = null;
-    if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
-      myData = this.net.room.users[this.net.me.info.user].data;
-    }
-
+    let myData = this.net?.room?.users?.[this.net?.me?.info?.user]?.data || null;
     let spawnX = this.gameW / 2;
     let spawnY = (getGroundY(this.selectedEnv) + this.gameH) / 2;
-    
-    // If we are joining an existing game, spawn near the host
-    if (bestHost && !amIHost && this.net && this.net.room && this.net.room.users[bestHost]) {
+
+    if (bestHost && !amIHost && this.net?.room?.users[bestHost]) {
       const hd = this.net.room.users[bestHost].data;
-      if (hd && hd.x !== undefined && hd.y !== undefined) {
-        // Create a deterministic PRNG based on the session seed + player ID so everyone calculates the exact same spawn
+      if (hd?.x !== undefined && hd?.y !== undefined) {
         const userHash = this.net.me.info.user.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
         const spawnPrng = new PRNG(this.sessionSeed + userHash);
-        
-        spawnX = hd.x + (spawnPrng.nextFloat() - 0.5) * 150;
-        spawnY = hd.y + (spawnPrng.nextFloat() - 0.5) * 60;
-        // Clamp to bounds
-        spawnX = Math.max(20, Math.min(this.gameW - 20, spawnX));
-        spawnY = Math.max(getGroundY(this.selectedEnv) - 50, Math.min(this.gameH - 45, spawnY));
+        spawnX = Math.max(20, Math.min(this.gameW - 20, hd.x + (spawnPrng.nextFloat() - 0.5) * 150));
+        spawnY = Math.max(getGroundY(this.selectedEnv) - 50, Math.min(this.gameH - 45, hd.y + (spawnPrng.nextFloat() - 0.5) * 60));
       }
     }
 
     this.player = new Player(this.net.me.info.user, true, selectedClass, spawnX, spawnY);
-
     this.checkHost();
-
     this.restoreWebsocketStats(this.player, myData, selectedClass);
     this.player.hp = this.player.maxHp;
-
     const nickInput = document.getElementById('nick-input');
     if (nickInput) this.player.nick = nickInput.value;
-
     this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
     this.ui.updateHUD(this.player);
     this.ui.updateEnvironment(this.selectedEnv);
     this.initBgParticles();
-
     document.getElementById('menu-panel').classList.add('hidden');
     document.getElementById('main-area').style.display = 'flex';
     this.canvas.style.display = 'block';
-    document.getElementById('hud').classList.add('visible');
-    document.getElementById('cd-ring').classList.add('visible');
-    document.getElementById('compact-log').classList.add('visible');
+    ['hud', 'cd-ring', 'compact-log'].forEach(id => document.getElementById(id).classList.add('visible'));
     document.getElementById('game-btns').style.display = 'flex';
-
     this.ui.addLog('⚔️ Fight started! Tap ground to move, tap enemies to attack!', 'player');
     this.updateLayout();
-    setTimeout(() => {
-      if (this.state === 'PLAYING') this.updateLayout();
-    }, 100);
-    setTimeout(() => {
-      if (this.state === 'PLAYING') this.updateLayout();
-    }, 500);
-
-    // Recheck host status since we are now playing
+    [100, 500].forEach(d => setTimeout(() => { if (this.state === 'PLAYING') this.updateLayout(); }, d));
     this.checkHost();
-
-    // Clear any lingering game over state
     this.net.send_cmd('set_data', { gameOver: 0 });
-
-    // Broadcast our spawn
     this.broadcastState();
-  }
-
-  upgradeStat(statType, amount = 1) {
-    if (!this.player || !this.player.statPoints || this.player.statPoints <= 0) return;
-
-    let count = amount === 'all' ? this.player.statPoints : parseInt(amount, 10);
-    if (isNaN(count) || count <= 0) count = 1;
-    count = Math.min(count, this.player.statPoints);
-    if (count <= 0) return;
-
-    let remaining = count;
-    while (remaining > 0) {
-      this.player.statPoints--;
-      remaining--;
-    }
-
-    if (statType === 'atk') {
-      this.player._atk += 1.0 * count;
-    } else if (statType === 'spd') {
-      this.player._spd += 1.0 * count;
-    } else if (statType === 'hp') {
-      this.player._maxHp += 1 * count;
-      this.player.hp += 1 * count;
-    }
-
-    this.ui.updateHUD(this.player);
-    this.broadcastState();
-    if (this.net && this.net.me && this.net.me.info) {
-      this.net.send_cmd('set_data', {
-        statPoints: this.player.statPoints,
-        sessionStatPoints: this.player.sessionStatPoints
-      });
-    }
-    this.saveLocalProgression();
-  }
-
-  async requestRebirth() {
-    if (!this.player) return;
-    const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
-    if (this.player.level < reqLevel) return;
-
-    await this.ui.showRebirthConfirm(
-      "🔄 Rebirth",
-      `Do you want to Rebirth? You will return to the menu and start over.\nYou will gain ${this.player.level * REBIRTH_POINTS_PER_LEVEL} unallocated bonus stats on your next play!`,
-      () => { this.performRebirth(); },
-    );
-  }
-
-  performRebirth() {
-    if (!this.player) return;
-    const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
-    if (this.player.level < reqLevel) return;
-
-    const newResets = (this.player.resets || 0) + 1;
-
-    // The old bonus stats come from localStorage (the persistent account value)
-    const oldBonusStats = parseInt(localStorage.getItem('nightvibe-statpoints'), 10) || 0;
-
-    const extraPoints = this.player.level * REBIRTH_POINTS_PER_LEVEL;
-    const newBonusStats = oldBonusStats + extraPoints;
-
-    localStorage.setItem('nightvibe-resets', newResets);
-    localStorage.setItem('nightvibe-statpoints', newBonusStats);
-
-    const base = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
-
-    // Reset local player object state for a fresh start on next game.
-    // Persistent progression (resets, bonusStatPoints) is already saved to localStorage.
-    this.player.level = 1;
-    this.player.kills = 0;
-    this.player.resets = newResets;
-    this.player.bonusStatPoints = newBonusStats;
-    this.player.sessionStatPoints = newBonusStats;
-    this.player.levelUpStatPoints = 0;
-    this.player.atk = base.atk;
-    this.player.spd = base.spd;
-    this.player.maxHp = base.hp;
-    this.player.hp = base.hp;
-    this.player.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(1, REQ_KILLS_EXPONENT) + Math.sin(1) * REQ_KILLS_SIN_AMP);
-
-    this.net.send_cmd('set_data', {
-      resets: newResets,
-      bonusStatPoints: newBonusStats,
-      statPoints: newBonusStats
-    });
-
-    this.quitToMenu();
-  }
-
-  restoreWebsocketStats(target, myData, selectedClass) {
-    // Read resets and statPoints from localStorage as default fallbacks
-    const hasSavedResets = localStorage.getItem('nightvibe-resets') !== null;
-    const hasSavedStatPoints = localStorage.getItem('nightvibe-statpoints') !== null;
-
-    const savedResets = hasSavedResets ? parseInt(localStorage.getItem('nightvibe-resets'), 10) : PLAYER_INITIAL_RESETS;
-    const savedStatPoints = hasSavedStatPoints ? parseInt(localStorage.getItem('nightvibe-statpoints'), 10) : PLAYER_INITIAL_STAT_POINTS;
-
-    target.resets = savedResets;
-    target.sessionStatPoints = savedStatPoints;
-    target.levelUpStatPoints = 0;
-
-    // Inventory and Equipment are loaded in Player constructor
-
-    if (!myData) return;
-
-    // If they explicitly cleared localStorage, we ignore stale websocket progression data
-    // to allow a true fresh start with 0 resets and 0 stats.
-    const isLocalStorageCleared = !hasSavedResets && !hasSavedStatPoints;
-
-    if (!isLocalStorageCleared) {
-      // Socket takes priority, fallback to localStorage
-      if (myData.resets !== undefined && myData.resets > 0) {
-        target.resets = myData.resets;
-      }
-
-      const socketBonusStats = myData.bonusStatPoints !== undefined ? myData.bonusStatPoints : (myData.statPoints !== undefined ? myData.statPoints : undefined);
-      if (socketBonusStats !== undefined) {
-        target.sessionStatPoints = socketBonusStats;
-      }
-    }
-
-    // Only restore in-game progression if we are reconnecting to an active session
-    const isReconnecting = myData.inGame === true && (myData.state === 'PLAYING' || myData.state === 'GAME_OVER');
-
-    if (myData.classType === selectedClass && isReconnecting) {
-      if (myData.level !== undefined) target.level = myData.level;
-      if (myData.atk !== undefined) target.atk = myData.atk;
-      if (myData.spd !== undefined) target.spd = myData.spd;
-      if (myData.maxHp !== undefined) {
-        target.maxHp = myData.maxHp;
-        target.hp = myData.maxHp;
-      }
-      if (myData.kills !== undefined) target.kills = myData.kills;
-      target.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(target.level, REQ_KILLS_EXPONENT) + Math.sin(target.level) * REQ_KILLS_SIN_AMP);
-    }
-  }
-
-  emitEvent(type, data) {
-    if (!this.net || !this.net.me) return;
-    this.net.send_cmd('room.msg', {
-      cmd: 'game.event',
-      data: {
-        type: type,
-        source: this.net.me.info.user,
-        timestamp: Date.now(),
-        ...data
-      }
-    });
-  }
-
-  handleGameEvent(event) {
-    if (!this.player || this.state !== 'PLAYING') return;
-    if (event.source === this.net.me.info.user) return;
-
-    switch (event.type) {
-      case 'item_spawn': {
-        if (!this.items.find(i => i.id === event.id)) {
-          this.items.push(event.item);
-        }
-        break;
-      }
-    }
-  }
-
-  handleItemPickup(event) {
-    if (!this.player || this.state !== 'PLAYING') return;
-
-    let itemId = event.data;
-    let idx = this.items.findIndex(i => i.id === itemId);
-    if (idx !== -1) {
-      this.items.splice(idx, 1);
-    }
-  }
-
-  handleItemDrop(event) {
-    if (!this.player || this.state !== 'PLAYING') return;
-
-    let { itemId, item } = event.data;
-    if (!this.items.find(i => i.id === itemId)) {
-      this.items.push(item);
-    }
-  }
-
-  saveLocalProgression() {
-    if (!this.player) return;
-    localStorage.setItem('nightvibe-resets', this.player.resets || 0);
-    localStorage.setItem('nightvibe-inventory', JSON.stringify(this.player.inventory || []));
-    localStorage.setItem('nightvibe-equipment', JSON.stringify(this.player.equipment || {}));
   }
 
   quitToMenu() {
-    // Auto-rebirth logic if eligible
     if (this.player) {
       const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
       if (this.player.level >= reqLevel) {
         this.ui.addLog(`✨ Auto-Rebirth applied! (+${this.player.level * REBIRTH_POINTS_PER_LEVEL} Stats)`, 'reward');
         this.performRebirth();
-        return; // performRebirth calls quitToMenu again, so we stop here
+        return;
       }
     }
-
-    if (this.ui && this.ui.saveLastGameConfig) {
-      this.ui.saveLastGameConfig();
-    }
+    if (this.ui?.saveLastGameConfig) this.ui.saveLastGameConfig();
     this.saveLocalProgression();
     this.state = 'MENU';
     document.getElementById('game-btns').style.display = 'none';
-    document.getElementById('hud').classList.remove('visible');
-    document.getElementById('cd-ring').classList.remove('visible');
-    document.getElementById('compact-log').classList.remove('visible');
-    document.getElementById('walk-indicator').classList.remove('visible');
+    ['hud', 'cd-ring', 'compact-log', 'walk-indicator'].forEach(id => document.getElementById(id).classList.remove('visible'));
     document.getElementById('menu-panel').classList.remove('hidden');
     document.getElementById('main-area').style.display = 'none';
     this.canvas.style.display = 'none';
     document.getElementById('death-overlay').classList.remove('show');
-
     this.player = null;
-    this.enemies = [];
-    this.projectiles = [];
-    this.particles = [];
-    this.items = [];
-    this.floatingTexts = [];
-    this.bgParticles = [];
-    this.pendingHits = [];
-    
-    this.wave = 1;
-    this.kills = 0;
-    this.waveTotalEnemies = 10;
-    this.waveEnemiesKilled = 0;
-    this.waveEnemiesToSpawn = 10;
-    this.bossActive = false;
-    this.waveTransitionTimer = 0;
-
-    this.s2Cooldown = 0;
-    this.mouseDown = false;
-    this.autoRestartS2 = false;
-    this.queuedFireball = null;
-    this.enemySpawnTimer = 0;
-
+    this.enemies = []; this.projectiles = []; this.particles = []; this.items = []; this.floatingTexts = []; this.bgParticles = []; this.pendingHits = [];
+    this.wave = 1; this.kills = 0; this.waveTotalEnemies = 10; this.waveEnemiesKilled = 0; this.waveEnemiesToSpawn = 10;
+    this.bossActive = false; this.waveTransitionTimer = 0; this.s2Cooldown = 0; this.mouseDown = false; this.autoRestartS2 = false; this.queuedFireball = null; this.enemySpawnTimer = 0;
     this.ui.addLog('🎮 Returned to character selection!', 'player');
-
-    // Broadcast leaving the game and thoroughly clean up our network state so old data isn't deep-merged next time we join
-    if (this.net && this.net.me) {
+    if (this.net?.me) {
       this._resetSessionData();
-      this.isHost = false;
-      this.gameStartTime = 0;
-      this.hostGameStartTime = 0;
-      this.lastBroadcastStr = {}; // Clear delta cache so next join sends a full packet
-      this.net.send_cmd('set_data', { 
-        inGame: false, 
-        state: 'MENU', 
-        isHost: false,
-        gameStartTime: 0,
-        gameOver: false,
-        hostData: { wave: 1, kills: 0, enemies: [], items: [], bossActive: false },
-        hits: [],
-        syncProjectiles: [],
-        spawnedProjectile: {},
-        enemyHitPlayer: {},
-        gameplayConfig: {},
-        classData: {},
-        enemyTypes: [],
-        itemsDb: []
-      });
+      this.isHost = false; this.gameStartTime = 0; this.hostGameStartTime = 0; this.lastBroadcastStr = {};
+      this.net.send_cmd('set_data', { inGame: false, state: 'MENU', isHost: false, gameStartTime: 0, gameOver: false, hostData: { wave: 1, kills: 0, enemies: [], items: [], bossActive: false }, hits: [], syncProjectiles: [], spawnedProjectile: {}, enemyHitPlayer: {}, gameplayConfig: {}, classData: {}, enemyTypes: [], itemsDb: [] });
     }
-
     this.checkHost();
     this.updateLayout();
-    if (this.ui) {
-      if (this.ui.buildClassesTab) this.ui.buildClassesTab();
-      if (this.ui.buildMonstersTab) this.ui.buildMonstersTab();
-      if (this.ui.updateClassCarousel) this.ui.updateClassCarousel();
-    }
-  }
-
-  _resetSessionData() {
-    const base = CLASS_DATA.warrior;
-    const savedResets = parseInt(localStorage.getItem('nightvibe-resets'), 10) || 0;
-    const savedStatPoints = parseInt(localStorage.getItem('nightvibe-statpoints'), 10) || 0;
-
-    this.enemies = [];
-    this.projectiles = [];
-    this.particles = [];
-    this.items = [];
-    this.floatingTexts = [];
-
-    if (this.net && this.net.room && this.net.me && this.net.me.info && this.net.room.users[this.net.me.info.user]) {
-      const myData = this.net.room.users[this.net.me.info.user].data;
-      myData.resets = savedResets;
-      myData.bonusStatPoints = savedStatPoints;
-      myData.statPoints = savedStatPoints;
-      myData.level = 1;
-      myData.kills = 0;
-      myData.reqKills = Math.floor(REQ_KILLS_BASE_MULT * Math.pow(1, REQ_KILLS_EXPONENT) + Math.sin(1) * REQ_KILLS_SIN_AMP);
-      myData.atk = base.atk;
-      myData.spd = base.spd;
-      myData.maxHp = base.hp;
-      myData.hp = base.hp;
-    }
-  }
-
-  respawnPlayer() {
-    document.getElementById('death-overlay').classList.remove('show');
-    if (this.player) {
-      // Do not change this.player.x or this.player.y to respawn where they died
-      this.player.moveTargetX = this.player.x;
-      this.player.moveTargetY = this.player.y;
-      this.player.hasTarget = false;
-      this.player.hp = this.player.maxHp;
-      this.player.alive = true;
-    } else {
-      this.player = new Player(this.net.me.info.user, true, this.ui.selectedClass, this.gameW / 2, (getGroundY(this.selectedEnv) + this.gameH) / 2);
-    }
-    this.ui.updateHUD(this.player);
-    this.ui.addLog('✨ Respawned!', 'reward');
-    this.broadcastState();
-  }
-
-  handleLeftClick(cx, cy) {
-    if (!this.player || !this.player.alive) return;
-    this.autoRestartS2 = false;
-    this.player.lastInputTime = Date.now();
-    const groundY = getGroundY(this.selectedEnv);
-    const onGround = cy >= groundY - GROUND_TOLERANCE;
-    let clickedEnemy = null;
-    let clickedItem = null;
-
-    // Check if player clicked a potion on the ground
-    if (this.items) {
-      for (let item of this.items) {
-        const dist = Math.hypot(cx - item.x, cy - item.y);
-        if (dist < 40) {
-          clickedItem = item;
-          break;
-        }
-      }
-    }
-
-    if (clickedItem) {
-      this.player.autoAttackTarget = null;
-      this.player.targetedItemId = clickedItem.id;
-      this.player.isMoving = true;
-      this.player.moveTargetX = clickedItem.x;
-      this.player.moveTargetY = clickedItem.y;
-      this.player.action = 'walk';
-
-      // Visual feedback
-      this.moveMarker = { x: clickedItem.x, y: clickedItem.y, life: 30, maxLife: 30, color: 'green' };
-      const typeStr = clickedItem.type === 'red' ? '❤️ Potion' : '⚡ Potion';
-      document.getElementById('walk-indicator').innerHTML = `🧪 Collecting ${typeStr}...`;
-      document.getElementById('walk-indicator').classList.add('visible');
-      this.broadcastState();
-      return;
-    }
-
-    // Clear item target if clicked elsewhere
-    this.player.targetedItemId = null;
-
-    for (let e of this.enemies) {
-      if (!e.alive) continue;
-
-      // Melee classes cannot click or lock onto enemies in the upper half of the screen
-      if ((this.player.classType === 'warrior' || this.player.classType === 'magicgladiator') && e.y < this.gameH / 2) {
-        continue;
-      }
-
-      const dist = Math.hypot(cx - e.x, cy - e.y);
-      if (dist < e.size + 30) {
-        clickedEnemy = e; break;
-      }
-    }
-
-    if (!onGround || clickedEnemy) {
-      if (clickedEnemy) {
-        this.player.autoAttackTarget = clickedEnemy;
-        // UI Indicator
-        document.getElementById('walk-indicator').innerHTML = '⚔️ Attacking...';
-        document.getElementById('walk-indicator').classList.add('visible');
-
-        // Let updateMovement handle the chasing/attacking loop for ALL classes
-        // But if they are ranged, they might just shoot immediately.
-        // The updateMovement will handle distance checks.
-        // Wait, range check depends on class!
-        return;
-      }
-
-      this.player.autoAttackTarget = null;
-      this.doSkill1(cx, cy);
-    } else {
-      this.player.autoAttackTarget = null;
-      this.player.isMoving = true;
-      this.player.moveTargetX = Math.max(20, Math.min(this.gameW - 20, cx));
-      this.player.moveTargetY = Math.max(groundY - 50, Math.min(this.gameH - 45, cy));
-      this.player.action = 'walk';
-      document.getElementById('walk-indicator').innerHTML = '🚶 Walking...';
-      document.getElementById('walk-indicator').classList.add('visible');
-    }
-
-    this.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30, color: 'yellow' };
-    this.broadcastState();
-  }
-
-  doSkill1(tx, ty) {
-    this.player.stopWalking(this);
-    const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
-    const reqLevel = 4 + (this.player.resets || 0) * 5;
-    const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
-    const weaponY = this.player.y - 40 * lvlScale;
-    const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
-    this.player.animTimer = 15;
-    this.player.action = 'attack';
-    this.player.lastSkill = 1;
-    this.player.facing = tx > this.player.x ? 1 : -1;
-    const s1Scale = Math.min(3.0, 1 + (this.player.atk - cd.atk) * 0.02);
-
-    let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing, damage: this.player.atk, critChance: 0.1 };
-
-    const skillType = cd.s1Name;
-    if (skillType === 'Bash' || this.player.classType === 'warrior') {
-      const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
-      this.spawnProjectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps });
-      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 8, 4);
-      for (let i = 0; i < 6; i++) {
-        const a = Math.random() * Math.PI * 2;
-        gameInstance.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, Math.random() > 0.5 ? '#ffd700' : '#fff', 1, 2 + Math.random() * 3, 2);
-      }
-    } else if (skillType === 'Magic Bolt' || this.player.classType === 'mage') {
-      const mageBaseAtk = cd.atk;
-      const mageRangeMult = Math.pow(this.player.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
-      const mageLife = Math.round(60 * mageRangeMult);
-      this.spawnProjectile({ type: 'bolt', x: this.player.x, y: weaponY, tx: tx, ty: ty, speed: 8, life: mageLife, maxLife: mageLife, color: cd.s1Color || '#3498db', damage: this.player.atk * 0.9, radius: 6 * s1Scale * lvlScale, ...projProps });
-      this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#3498db', 3, 2);
-    } else if (skillType === 'Quick Shot' || this.player.classType === 'archer') {
-      const archerBaseAtk = cd.atk;
-      const archerRangeMult = Math.pow(this.player.atk / archerBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
-      const archerLife = Math.round(50 * archerRangeMult);
-      const speed = 10;
-      const archerS1Scale = Math.min(5, 1 + (this.player.atk - archerBaseAtk) * 0.0227);
-      const arrowRadius = 12 * archerS1Scale * lvlScale;
-      this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * speed, vy: Math.sin(aimAngle) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, ...projProps });
-      const extraArrows = Math.max(0, Math.floor((this.player.atk - 100) / 100));
-      if (extraArrows > 0) {
-        let nearest = null, nearDist = Infinity;
-        for (let e of this.enemies) {
-          if (!e.alive) continue;
-          const d = Math.hypot(e.x - this.player.x, e.y - weaponY);
-          if (d < nearDist) { nearDist = d; nearest = e; }
-        }
-        if (nearest) {
-          const targetAngle = Math.atan2(nearest.y - weaponY, nearest.x - this.player.x);
-          const spread = 0.12;
-          for (let i = 0; i < extraArrows; i++) {
-            const offset = (i - (extraArrows - 1) / 2) * spread;
-            const a = targetAngle + offset;
-            this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: archerLife, maxLife: archerLife, color: cd.s1Color || '#e74c3c', damage: this.player.atk * 1.1, radius: arrowRadius, tx: nearest.x, ty: nearest.y, angle: a, facing: this.player.facing, critChance: 0.1 });
-          }
-        }
-      }
-      this.spawnParticles(this.player.x, weaponY, cd.s1Color || '#e74c3c', 4, 3);
-    } else if (skillType === 'Psionic Slash' || this.player.classType === 'magicgladiator') {
-      const mgScale = 1 + (this.player.atk - cd.atk) * 0.002;
-      this.spawnProjectile({ type: 'psionic_slash', x: this.player.x, y: weaponY, vx: Math.cos(aimAngle) * 8, vy: Math.sin(aimAngle) * 8, angle: aimAngle, speed: 8, life: 8, maxLife: 8, color: cd.s1Color || '#e74c3c', radius: 45 * mgScale * lvlScale, damage: this.player.atk * 1.1, critChance: 0.12, ...projProps });
-      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#e74c3c', 7, 4);
-    } else {
-      // Default fallback is Warrior Bash style
-      const wScale = 1 + (this.player.atk - cd.atk) * 0.005;
-      this.spawnProjectile({ type: 'slash', originX: this.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.player.atk * 1.0, ...projProps });
-      this.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 8, 4);
-      for (let i = 0; i < 6; i++) {
-        const a = Math.random() * Math.PI * 2;
-        gameInstance.spawnParticles(this.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, Math.random() > 0.5 ? '#ffd700' : '#fff', 1, 2 + Math.random() * 3, 2);
-      }
-    }
-    this.broadcastState();
-  }
-
-  startChargingSkill2() {
-    if (this.s2Cooldown > 0 || !this.player) return;
-    this.player.lastInputTime = Date.now();
-    this.player.autoAttackTarget = null;
-    this.player.targetedItemId = null;
-    this.player.stopWalking(this);
-    if (!this.player || !this.player.alive || this.s2Cooldown > 0) return;
-    this.player.isChargingS2 = true;
-    this.player.s2ChargeTime = 0;
-    this.player.s2ChargeCount = 0;
-    this.player.action = 'attack';
-    this.player.animTimer = 9999;
-    this.player.lastSkill = 2;
-    this.broadcastState();
-  }
-
-  releaseSkill2() {
-    if (!this.player || !this.player.isChargingS2) return;
-    this.queuedFireball = null;
-    this.player.lastInputTime = Date.now();
-    this.player.isChargingS2 = false;
-    this.autoRestartS2 = this.mouseDown;
-
-    const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
-
-    // Calculate dynamic cooldown based on SPD. Starts at 5000ms.
-    const baseSpd = cd.spd;
-    const diff = Math.max(0, this.player.spd - baseSpd);
-    this.s2MaxCooldown = Math.max(1000, 5000 - diff * 200);
-    this.s2Cooldown = this.s2MaxCooldown;
-
-    // SPD controls AOE
-    const aoeScale = 1 + (this.player.spd - baseSpd) * 0.02;
-    const reqLevel = 4 + (this.player.resets || 0) * 5;
-    const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
-
-    // Charges scale logic:
-    // charge = 0 -> 1x
-    // charge = 1 -> 1.25x dmg, larger area
-    // charge = 2 -> 1.50x dmg
-    // charge = 3 -> 1.75x dmg
-    const charges = this.player.s2ChargeCount || 0;
-    const dmgMulti = 1 + (charges * 0.15);
-    const areaMulti = 1 + (charges * 0.08);
-
-    const tx = this.player.mouseX, ty = this.player.mouseY;
-    const weaponY = this.player.y - 30 * lvlScale;
-    const aimAngle = Math.atan2(ty - weaponY, tx - this.player.x);
-    this.player.facing = tx > this.player.x ? 1 : -1;
-    this.player.animTimer = 25; // finalize attack animation
-    this.player.action = 'attack';
-    this.player.lastSkill = 2;
-
-    let projProps = { tx, ty, angle: aimAngle, facing: this.player.facing };
-
-    const skillType = cd.s2Name;
-    if (skillType === 'Sword Slash' || this.player.classType === 'warrior') {
-      const effectiveSpd = Math.min(200, this.player.spd);
-      const spdDiff = Math.max(0, effectiveSpd - cd.spd);
-      
-      // Merge all potential waves into one massive, lag-free slash
-      const powerMulti = 1 + (charges * 0.5) + Math.floor(spdDiff / 100) * 0.5;
-      const waveDistance = Math.min(this.gameW * 0.4, (150 + spdDiff * 8) * areaMulti);
-      const areaMultiRadius = Math.min(3.0, areaMulti * (1 + powerMulti * 0.2));
-      
-      // Damage reduced to 25% of its previous value (2.0 -> 0.5)
-      const singleDamage = this.player.atk * 0.5 * dmgMulti * powerMulti;
-      // Base radius increased, scales up with power
-      const singleRadius = 25 * aoeScale * areaMultiRadius * lvlScale;
-      
-      this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 6.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: singleDamage, critChance: 0.2, maxDistance: waveDistance, radius: singleRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: aimAngle, charges: charges });
-    } else if (skillType === 'Fireball' || this.player.classType === 'mage') {
-      const fbRadius = Math.min(60, 15 + charges * 5);
-      const newFireballRadius = fbRadius * aoeScale * lvlScale;
-      const spawnX = this.player.x;
-      const spawnY = weaponY;
-      const spdDiff = Math.max(0, this.player.spd - 200);
-      const fbLifeMult = 1 + Math.floor(spdDiff / 50) * 0.2;
-      const fbLife = Math.round(80 * fbLifeMult);
-      let canSpawn = true;
-      for (let p of this.projectiles) {
-        if (p.type === 'fireball' && p.life > 0) {
-          const existingRadius = p.radius || newFireballRadius;
-          const dist = Math.hypot(p.x - spawnX, p.y - spawnY);
-          if (dist < newFireballRadius + existingRadius + 10) {
-            canSpawn = false;
-            break;
-          }
-        }
-      }
-      if (canSpawn) {
-        this.spawnProjectile({ type: 'fireball', x: spawnX, y: spawnY, speed: 5, life: fbLife, maxLife: fbLife, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, critChance: 0.2, radius: newFireballRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps });
-        this.spawnParticles(spawnX, spawnY, cd.s2Color || '#e67e22', 20 * aoeScale + charges * 5, 5);
-      } else if (!this.queuedFireball) {
-        this.queuedFireball = { spawnX, spawnY, speed: 5, radius: newFireballRadius, color: cd.s2Color || '#e67e22', damage: this.player.atk * 1.0 * dmgMulti, ...projProps, fbLife };
-      }
-    } else if (skillType === 'Arrow Barrage' || this.player.classType === 'archer') {
-      const maxArrowCount = 24;
-      const minArrowCount = 4;
-      const arrowRadius = 12 + charges * 0.9;
-      const arrowBodyScale = 1 + charges * 0.075;
-      const maxSpreadSpd = baseSpd + 100;
-      const baseArrowCount = Math.min(maxArrowCount, Math.max(minArrowCount, 4 + Math.floor((this.player.spd - baseSpd) * 20 / (maxSpreadSpd - baseSpd))));
-      const extraArrows = Math.max(0, Math.floor((this.player.spd - maxSpreadSpd) / 50));
-      const totalArrowCount = baseArrowCount + extraArrows;
-      const spreadRatio = totalArrowCount >= maxArrowCount ? 1 : (totalArrowCount - minArrowCount) / (maxArrowCount - minArrowCount);
-      const spreadAngle = 0.15 + spreadRatio * (2 * Math.PI - 0.15);
-      const facingAngle = aimAngle;
-      for (let i = 0; i < totalArrowCount; i++) {
-        const a = totalArrowCount === 1 ? facingAngle : facingAngle + (i / (totalArrowCount - 1) * 2 - 1) * spreadAngle / 2;
-        const speed = 11;
-        this.spawnProjectile({ type: 'arrow', x: this.player.x, y: weaponY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, speed, life: 50, maxLife: 50, color: cd.s2Color || '#e74c3c', damage: this.player.atk * 2.0 * dmgMulti, critChance: 0.15, angle: a, radius: arrowRadius, bodyScale: arrowBodyScale });
-      }
-      this.spawnParticles(this.player.x, weaponY, cd.s2Color || '#e74c3c', 10 + charges * 5, 4);
-    } else if (skillType === 'Evil Spirits' || this.player.classType === 'magicgladiator') {
-      const existingSpirits = this.projectiles.filter(p => p.type === 'spirit').length;
-      
-      const totalSpd = this.player.spd;
-      const spdRatioCount = Math.min(1, Math.max(0, (totalSpd - baseSpd) / Math.max(1, 200 - baseSpd)));
-      
-      const targetCount = 1 + Math.floor(3 * spdRatioCount) + charges * (1 + Math.floor(1.5 * spdRatioCount));
-      const spiritCount = Math.min(targetCount, 25 - existingSpirits);
-      
-      const spiritDamage = this.player.atk * 0.8 * dmgMulti;
-      const spiritRadius = Math.min(20, 10 + charges * 1.5);
-      
-      const lifeScaleBase = 30 + Math.max(0, totalSpd - baseSpd) * (60 / Math.max(1, 200 - baseSpd));
-      const spiritLife = Math.round(lifeScaleBase + charges * 15);
-      const spiritColor = cd.s2Color || '#ffd700';
-
-      for (let i = 0; i < spiritCount; i++) {
-        setTimeout(() => {
-          if (this.state !== 'PLAYING' || !this.player || !this.player.alive) return;
-          
-          const angle = Math.random() * Math.PI * 2;
-          // More random speed and size
-          const speed = 1.5 + Math.random() * 6;
-          const sizeMult = 0.7 + Math.random() * 0.6;
-          const currentWeaponY = this.player.y - 40; // follow player
-
-          this.spawnProjectile({
-            type: 'spirit',
-            x: this.player.x + Math.cos(angle) * 15,
-            y: currentWeaponY + Math.sin(angle) * 15,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            speed: speed,
-            casterSpd: this.player.spd,
-            life: spiritLife,
-            maxLife: spiritLife,
-            color: spiritColor,
-            damage: spiritDamage * sizeMult,
-            critChance: 0.25,
-            radius: spiritRadius * sizeMult,
-            wobble: Math.random() * 100, // random wobble phase
-            trailTimer: 0,
-            trailPositions: [],
-            tx: this.player.mouseX,
-            ty: this.player.mouseY,
-            angle: angle,
-            facing: 1
-          });
-        }, i * 150); // 150ms stagger interval
-      }
-      this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.atk * 0.5 * dmgMulti);
-      this.ui.updateHUD(this.player);
-    } else {
-      // Default fallback: Warrior Shockwave style (Single massive wave)
-      const effectiveSpd = Math.min(200, this.player.spd);
-      const spdDiff = Math.max(0, effectiveSpd - cd.spd);
-      
-      const powerMulti = 1 + (charges * 0.5) + Math.floor(spdDiff / 100) * 0.5;
-      const waveDistance = Math.min(this.gameW * 0.4, (150 + spdDiff * 8) * areaMulti);
-      const areaMultiRadius = Math.min(3.0, areaMulti * (1 + powerMulti * 0.2));
-      
-      // Damage reduced to 25% of its previous value
-      const singleDamage = this.player.atk * 0.5 * dmgMulti * powerMulti;
-      const singleRadius = 25 * aoeScale * areaMultiRadius * lvlScale;
-      
-      this.spawnProjectile({ type: 'shockwave', originX: this.player.x, originY: weaponY, x: this.player.x, y: weaponY, speed: 6.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: singleDamage, critChance: 0.2, maxDistance: waveDistance, radius: singleRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: aimAngle, charges: charges });
-    }
-    this.broadcastState();
-  }
-
-  broadcastState() {
-    if (!this.player) return;
-
-    const activeConfig = {};
-    for (const key in CONFIG_METADATA) {
-      activeConfig[key] = ConfigModule[key];
-    }
-    
-    const reqLevel = 4 + (this.player.resets || 0) * 5;
-    const lvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
-    const weaponY = this.player.y - 40 * lvlScale;
-    const computedAimAngle = parseFloat(Math.atan2(this.player.mouseY - weaponY, this.player.mouseX - this.player.x).toFixed(1));
-
-    const data = {
-      inGame: true,
-      gameStartTime: this.gameStartTime || 0,
-      state: this.state,
-      nick: this.player.nick,
-      alive: this.player.alive,
-      x: this.player.x,
-      y: this.player.y,
-      hp: this.player.hp,
-      maxHp: this.player._maxHp,
-      atk: this.player._atk,
-      spd: this.player._spd,
-      level: this.player.level,
-      resets: this.player.resets,
-      kills: this.player.kills,
-      reqKills: this.player.reqKills,
-      facing: this.player.facing,
-      aimAngle: computedAimAngle,
-      action: this.player.action,
-      classType: this.player.classType,
-      hitFlash: this.player.hitFlash,
-      lastInputTime: this.player.lastInputTime || 0,
-      lastSkill: this.player.lastSkill || 1,
-      isChargingS2: this.player.isChargingS2,
-      s2ChargeCount: this.player.s2ChargeCount,
-      chatMsg: this.player.chatMsg,
-      targetedItemId: this.player.targetedItemId,
-      // Intentionally omitting inventory and equipment to prevent buffer overflow (BSON limit) with custom gear
-    };
-
-
-    if (this.pendingHits && this.pendingHits.length > 0) {
-      data.hits = this.pendingHits;
-      this.pendingHits = [];
-    }
-    if (this.isHost) {
-      data.hostData = {
-        gameStartTime: this.hostGameStartTime || this.gameStartTime,
-        wave: this.wave, kills: this.kills, seed: this.prng.seed, dropSeed: this.dropPrng ? this.dropPrng.seed : 0, sessionSeed: this.sessionSeed, env: this.selectedEnv,
-        waveTotal: this.waveTotalEnemies, waveKilled: this.waveEnemiesKilled, waveSpawn: this.waveEnemiesToSpawn, bossActive: this.bossActive,
-        enemies: this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
-          id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
-        })),
-        items: this.items.map(i => ({
-          ...i,
-          icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
-        }))
-      };
-    }
-    if (!this.lastBroadcastStr) this.lastBroadcastStr = {};
-    const delta = {};
-    let hasChanges = false;
-
-    for (const key in data) {
-      const valStr = JSON.stringify(data[key]);
-      if (valStr !== this.lastBroadcastStr[key]) {
-        this.lastBroadcastStr[key] = valStr;
-        if (data[key] !== undefined) {
-          delta[key] = data[key];
-          hasChanges = true;
-        }
-      }
-    }
-
-    if (hasChanges && this.net && this.net.me) {
-      this.net.send_cmd('set_data', delta);
-      delete this.lastBroadcastStr['hits'];
-      delete this.lastBroadcastStr['enemyHitPlayer'];
-      delete this.lastBroadcastStr['spawnedProjectile'];
-      delete this.lastBroadcastStr['enemyKilled'];
-      delete this.lastBroadcastStr['spawnItem'];
-    }
-  }
-
-  dealDamageToPlayer(damage) {
-    if (!this.player || !this.player.alive) return;
-
-    const reqLevel = REBIRTH_BASE_LEVEL + (this.player.resets || 0) * REBIRTH_LEVEL_STEP;
-    const rawLvlScale = 0.5 + 0.5 * ((this.player.level - 1) / Math.max(1, reqLevel - 1));
-    const lvlScale = Math.min(1.0, Math.max(0.5, rawLvlScale));
-    const sizeReduction = lvlScale - 0.5; // Scales from 0 to 0.50 (50%)
-
-    const armor = Math.floor(this.player.maxHp / 10);
-    const armorReduction = armor * 0.005;
-    
-    const totalReduction = Math.min(0.9, armorReduction + sizeReduction);
-    const actualDamage = Math.max(1, Math.round(damage * (1 - totalReduction)));
-
-    this.player.hp -= actualDamage;
-    this.player.hitFlash = 15;
-    this.screenShake = 15;
-    this.spawnDamageParticles(this.player.x, this.player.y);
-    this.ui.updateHUD(this.player);
-    this.ui.addLog(`💔 Took -${actualDamage} damage!`, 'enemy');
-    this.floatingTexts.push({
-      x: this.player.x + (Math.random() - 0.5) * 20, y: this.player.y - 60,
-      text: '-' + actualDamage, color: '#e74c3c', life: 35, maxLife: 35
-    });
-    if (this.player.hp <= 0) {
-      this.player.hp = 0;
-      this.player.alive = false;
-      this.broadcastState();
-      // Keep state PLAYING so the network host continues to run the simulation
-      this.ui.showDeathScreen(`${this.waveEnemiesKilled}/${this.waveTotalEnemies}`, this.wave);
-    } else {
-      this.broadcastState();
-    }
-  }
-
-  dealDamage(enemy, baseDamage, critChance) {
-    if (!enemy.alive) return;
-    const isCrit = Math.random() < critChance;
-    const damage = Math.round(baseDamage * (isCrit ? 2.0 : 1.0) * (0.9 + Math.random() * 0.2));
-
-    this.pendingHits.push({ id: enemy.id, damage: damage, isCrit: isCrit, source: this.net.me.info.user });
-
-    // Local Vampirism healing (heals 75% of damage dealt)
-    if (this.player && this.player.buffHpTimer > 0 && this.player.hp > 0) {
-      const healAmount = Math.floor(damage * POTION_LIFESTEAL_PERCENT);
-      this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
-      if (healAmount > 0) {
-        this.floatingTexts.push({ x: this.player.x, y: this.player.y - 60, text: '+' + healAmount, color: '#2ecc71', life: 40, maxLife: 40, isCrit: false });
-      }
-      this.ui.updateHUD(this.player);
-    }
-
-    if (this.isHost) {
-      let e = this.enemies.find(ex => ex.id === enemy.id);
-      if (e && e.alive) {
-        e.hp -= damage;
-        e.hitFlash = 8;
-        this.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (isCrit ? '💥 ' : '') + damage, color: isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: isCrit });
-        if (e.hp <= 0) {
-          e.alive = false; e.deathTime = Date.now(); e.hp = 0;
-          this.spawnEnemyDeathExplosion(e);
-          this.net.send_cmd('set_data', { enemyKilled: this.net.me.info.user + '_' + Math.random() });
-          this.waveEnemiesKilled++;
-          if (this.bossActive && e.name === 'BOSS') {
-            const aliveBosses = this.enemies.filter(ex => ex.name === 'BOSS' && ex.alive);
-            if (aliveBosses.length === 0) {
-              this.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
-              this.waveTransitionTimer = 120;
-            }
-          } else if (!this.bossActive && this.waveEnemiesKilled >= this.waveTotalEnemies) {
-            this.waveTransitionTimer = 120;
-          }
-        }
-      }
-    }
-  }
-
-  applyKnockback(enemy, dirAngle, distance) {
-    if (!enemy.alive) return;
-    enemy.x += Math.cos(dirAngle) * distance;
-    enemy.y += Math.sin(dirAngle) * distance * 0.4;
-    const groundY = getGroundY(this.selectedEnv);
-    enemy.x = Math.max(enemy.size, Math.min(this.gameW - enemy.size, enemy.x));
-    enemy.y = Math.max(enemy.size, Math.min(groundY - enemy.size, enemy.y));
-    if (enemy.attackTimer !== undefined) enemy.attackTimer = Math.max(enemy.attackTimer, 30);
-  }
-
-
-  spawnProjectile(props, broadcast = true) {
-    if (!props.ownerId && this.net && this.net.me && this.net.me.info) {
-      props.ownerId = this.net.me.info.user;
-    }
-    if (!props.id) {
-      props.id = (props.ownerId || 'sys') + '_' + Math.random().toString(36).substr(2, 9);
-    }
-    this.projectiles.push(new Projectile(props));
-    if (broadcast && this.net) {
-      // Need to clean trailPositions out of the broadcasted props so we don't send garbage over network
-      let cleanProps = { ...props };
-      if (cleanProps.trailPositions) cleanProps.trailPositions = [];
-      this.net.send_cmd('set_data', { spawnedProjectile: cleanProps });
-    }
-  }
-
-  spawnDamageParticles(x, y) {
-    for (let i = 0; i < 2; i++) {
-      this.particles.push({
-        x: x, y: y - 5,
-        vx: (Math.random() - 0.5) * 3,
-        vy: -Math.random() * 3,
-        life: 20, maxLife: 20,
-        color: '#8b0000',
-        size: 8
-      });
-    }
-  }
-
-  spawnParticles(x, y, color, count = 20, speed = 5, sizeScale = 1.0) {
-    const finalCount = Math.floor(count * (this.settings ? this.settings.particles : 1.0));
-    for (let i = 0; i < finalCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spd = (0.5 + Math.random()) * speed;
-      this.particles.push({
-        x, y, vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd - 1,
-        life: 20 + Math.floor(Math.random() * 20), maxLife: 40, color,
-        size: (1.5 + Math.random() * 3) * sizeScale
-      });
-    }
-  }
-
-  spawnEnemyDeathExplosion(e) {
-    const size = e.size || 30;
-    const pCount = Math.floor(45 * (this.settings ? this.settings.particles : 1.0));
-
-    // 1. Shatter/dissolve starting positions all across the monster's visual area
-    for (let i = 0; i < pCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spd = (0.3 + Math.random() * 0.7) * 4.5;
-      const r = Math.random() * (size * 0.45);
-      const startAngle = Math.random() * Math.PI * 2;
-      const px = e.x + Math.cos(startAngle) * r;
-      const py = (e.y - size * 0.4) + Math.sin(startAngle) * r;
-
-      this.particles.push({
-        x: px, y: py,
-        vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd - 0.5,
-        life: 25 + Math.floor(Math.random() * 25),
-        maxLife: 50,
-        color: e.color || '#e74c3c',
-        size: (2.0 + Math.random() * 4.5) * (size / 30)
-      });
-    }
-
-    // 2. Extra sparks/smoke for dense texture
-    const sparksCount = Math.floor(20 * (this.settings ? this.settings.particles : 1.0));
-    for (let i = 0; i < sparksCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spd = (0.2 + Math.random() * 0.5) * 2.5;
-      this.particles.push({
-        x: e.x + (Math.random() - 0.5) * size * 0.6,
-        y: e.y - size * 0.4 + (Math.random() - 0.5) * size * 0.6,
-        vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd - 1.2,
-        life: 30 + Math.floor(Math.random() * 30),
-        maxLife: 60,
-        color: '#ff7979',
-        size: (3.0 + Math.random() * 5) * (size / 30)
-      });
-    }
-
-
-  }
-
-  triggerLevelUpAnimation(p) {
-    const size = p.level ? Math.max(24, 24 * (0.5 + 0.5 * (p.level / 10))) : 28;
-
-    // 1. Moderate Expanding Golden Halo (Sun crown wave) at player's feet
-    this.particles.push({
-      x: p.x, y: p.y + 10,
-      vx: 0, vy: -0.6,
-      life: 30, maxLife: 30,
-      color: 'rgba(255, 215, 0, 0.7)',
-      size: size * 1.3, // Scaled down halo
-      isHalo: true
-    });
-
-    // 2. Rising sunburst rays radiating 360 degrees outward (optimized count)
-    const rayCount = 12; // Reduced from 36 to 12
-    for (let i = 0; i < rayCount; i++) {
-      const angle = (i / rayCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.1;
-      const spd = 1.2 + Math.random() * 2.0;
-      const length = size * 1.5 + Math.random() * size * 0.5; // Scaled down ray lengths
-
-      this.particles.push({
-        x: p.x,
-        y: p.y - size * 0.4, // radiate from player's chest center
-        vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd,
-        life: 25 + Math.floor(Math.random() * 15),
-        maxLife: 40,
-        color: i % 2 === 0 ? '#ffd700' : '#fffae0',
-        size: 1.2 + Math.random() * 1.2, // thinner rays
-        length: length,
-        isRay: true
-      });
-    }
-
-    // 3. Dense rising sparkling light stars all over the character's body (optimized count)
-    const sparkleCount = 18; // Reduced from 50 to 18
-    for (let i = 0; i < sparkleCount; i++) {
-      this.particles.push({
-        x: p.x + (Math.random() - 0.5) * 24,
-        y: p.y + (Math.random() - 0.5) * 35 - 15,
-        vx: (Math.random() - 0.5) * 0.8,
-        vy: -1.8 - Math.random() * 2.5,
-        life: 20 + Math.floor(Math.random() * 15),
-        maxLife: 35,
-        color: '#fffbe0',
-        size: 1.0 + Math.random() * 1.5, // smaller sparkles
-        isSparkle: true
-      });
-    }
-  }
-
-  initBgParticles() {
-    this.bgParticles = [];
-    const groundY = getGroundY(this.selectedEnv);
-    for (let i = 0; i < 40; i++) {
-      this.bgParticles.push({
-        x: Math.random() * this.gameW, y: 10 + Math.random() * (groundY - 30),
-        vx: (Math.random() - 0.5) * 0.5, vy: -Math.random() * 0.8 - 0.2,
-        size: Math.random() * 2 + 1, alpha: Math.random() * 0.5 + 0.2
-      });
-    }
-  }
-
-  generateScenery() {
-    this.scenery = [];
-    this.horizonFoliage = [];
-    this.groundFoliage = [];
-    const env = ENV_CONFIG[this.selectedEnv] || ENV_CONFIG.forest;
-    const currentDay = Math.floor(this.globalTime / ConfigModule.DAY_CYCLE_DURATION);
-    let localPrng = new PRNG((currentDay + 1) * 9999);
-
-    const sceneryCount = Math.floor(15 * (this.settings ? this.settings.bgElements : 1.0));
-    for (let i = 0; i < sceneryCount; i++) {
-      const w = 40 + localPrng.nextFloat() * 60;
-      const h = 50 + localPrng.nextFloat() * 120;
-      this.scenery.push({
-        x: localPrng.nextFloat() * this.gameW, w, h,
-        color: darkenColor(env.ground, 0.2 + localPrng.nextFloat() * 0.3)
-      });
-    }
-
-    const horizonCount = Math.floor(25 * (this.settings ? this.settings.bgElements : 1.0));
-    for (let i = 0; i < horizonCount; i++) {
-      this.horizonFoliage.push({
-        x: localPrng.nextFloat() * this.gameW,
-        h: 20 + localPrng.nextFloat() * 50,
-        w: 15 + localPrng.nextFloat() * 30,
-        phase: localPrng.nextFloat() * Math.PI * 2,
-        speed: 0.5 + localPrng.nextFloat() * 1.5,
-        color: env.horizonColor || darkenColor(env.ground, 0.4),
-        type: env.horizonType || 'trees'
-      });
-    }
-
-    const groundY = this.gameH * env.groundY;
-    const groundCount = Math.floor(60 * (this.settings ? this.settings.groundElements : 1.0));
-    for (let i = 0; i < groundCount; i++) {
-      this.groundFoliage.push({
-        x: localPrng.nextFloat() * this.gameW,
-        y: groundY + 5 + localPrng.nextFloat() * (this.gameH - groundY - 10),
-        size: 4 + localPrng.nextFloat() * 12,
-        phase: localPrng.nextFloat() * Math.PI * 2,
-        color: env.groundColor || darkenColor(env.ground, 0.1),
-        type: env.groundType || 'grass'
-      });
-    }
-  }
-
-  drawMenuBackground() {
-    const env = ENV_CONFIG[this.ui.selectedClass ? ENV_LIST[0] : 'forest'];
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.save();
-    this.applyViewport();
-
-    const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.gameH);
-    skyGrad.addColorStop(0, env.skyTop);
-    skyGrad.addColorStop(0.5, env.skyMid);
-    skyGrad.addColorStop(1, env.skyBot);
-    this.ctx.fillStyle = skyGrad;
-    this.ctx.fillRect(0, 0, this.gameW, this.gameH);
-
-    const gY = this.gameH * env.groundY;
-    this.ctx.fillStyle = env.ground;
-    this.ctx.fillRect(0, gY, this.gameW, this.gameH - gY);
-
-    this.ctx.fillStyle = 'rgba(255,215,0,0.2)';
-    this.ctx.font = 'bold 24px sans-serif';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('🎮 SELECT CLASS & PRESS START', this.gameW / 2, this.gameH / 2);
-
-    this.ctx.restore();
-  }
-
-  drawEnvironment() {
-    const env = ENV_CONFIG[this.selectedEnv];
-    const gY = this.gameH * env.groundY;
-
-    const skyGrad = this.ctx.createLinearGradient(0, 0, 0, gY);
-    skyGrad.addColorStop(0, env.skyTop);
-    skyGrad.addColorStop(0.5, env.skyMid);
-    skyGrad.addColorStop(1, env.skyBot);
-    this.ctx.fillStyle = skyGrad;
-    this.ctx.fillRect(-2000, 0, this.gameW + 4000, gY);
-
-    const nightAlpha = this.nightAlpha || 0;
-    const dayAlpha = this.dayAlpha || 0;
-    const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
-    const dayFraction = 14 / 24;
-    let mappedCycle = cycle;
-    if (cycle <= dayFraction) {
-      mappedCycle = (cycle / dayFraction) * 0.5;
-    } else {
-      mappedCycle = 0.5 + ((cycle - dayFraction) / (1 - dayFraction)) * 0.5;
-    }
-
-    const cx = this.gameW / 2, cy = gY;
-    // Shift angle so mappedCycle=0 is sunrise (angle = PI)
-    const angle = mappedCycle * Math.PI * 2 + Math.PI;
-    const sunX = cx - Math.cos(angle) * 350;
-    const sunY = cy + Math.sin(angle) * 250;
-    if (sunY < gY + 40) {
-      this.ctx.fillStyle = '#f1c40f'; this.ctx.beginPath(); this.ctx.arc(sunX, sunY, 35, 0, Math.PI * 2); this.ctx.fill();
-      this.ctx.fillStyle = 'rgba(241, 196, 15, 0.3)'; this.ctx.beginPath(); this.ctx.arc(sunX, sunY, 50, 0, Math.PI * 2); this.ctx.fill();
-    }
-    const moonAngle = angle + Math.PI;
-    const moonX = cx - Math.cos(moonAngle) * 350;
-    const moonY = cy + Math.sin(moonAngle) * 250;
-    if (moonY < gY + 40) {
-      const moonGlow = this.ctx.createRadialGradient(moonX, moonY, 20, moonX, moonY, 250);
-      moonGlow.addColorStop(0, `rgba(220, 230, 255, ${nightAlpha * 0.4})`);
-      moonGlow.addColorStop(1, `rgba(220, 230, 255, 0)`);
-      this.ctx.fillStyle = moonGlow;
-      this.ctx.beginPath(); this.ctx.arc(moonX, moonY, 250, 0, Math.PI * 2); this.ctx.fill();
-
-      this.ctx.fillStyle = '#ecf0f1'; this.ctx.beginPath(); this.ctx.arc(moonX, moonY, 28, 0, Math.PI * 2); this.ctx.fill();
-    }
-
-    if (nightAlpha > 0) {
-      this.ctx.fillStyle = `rgba(5, 5, 20, ${nightAlpha * 0.75})`;
-      this.ctx.fillRect(-2000, 0, this.gameW + 4000, gY);
-    }
-
-    this.ctx.save();
-    const sepiaAmt = dayAlpha * 45;
-    const grayscaleAmt = nightAlpha * 95;
-    const brightnessAmt = 100 + (dayAlpha * 50) - (nightAlpha * 75);
-    this.ctx.filter = `sepia(${sepiaAmt}%) grayscale(${grayscaleAmt}%) brightness(${brightnessAmt}%)`;
-
-    // Draw background clouds affected by biome atmospheric filters
-    if (this.atmosEffects && this.atmosEffects.length > 0) {
-      for (let ef of this.atmosEffects) {
-        if (ef.type === 'cloud') {
-          this.ctx.fillStyle = ef.color;
-          this.ctx.beginPath();
-          this.ctx.arc(ef.x, ef.y, ef.size * 0.6, 0, Math.PI * 2);
-          this.ctx.arc(ef.x + ef.size * 0.5, ef.y - ef.size * 0.2, ef.size * 0.5, 0, Math.PI * 2);
-          this.ctx.arc(ef.x - ef.size * 0.5, ef.y - ef.size * 0.1, ef.size * 0.4, 0, Math.PI * 2);
-          this.ctx.arc(ef.x + ef.size * 0.8, ef.y + ef.size * 0.2, ef.size * 0.35, 0, Math.PI * 2);
-          this.ctx.arc(ef.x - ef.size * 0.8, ef.y + ef.size * 0.2, ef.size * 0.3, 0, Math.PI * 2);
-          this.ctx.fill();
-        }
-      }
-    }
-
-    if (!this.scenery) this.generateScenery();
-    for (let s of this.scenery) {
-      if (s.x > this.cullMaxX || s.x + s.w < this.cullMinX) continue;
-      this.ctx.fillStyle = s.color;
-      this.ctx.beginPath();
-      this.ctx.moveTo(s.x, gY);
-      this.ctx.lineTo(s.x + s.w / 2, gY - s.h);
-      this.ctx.lineTo(s.x + s.w, gY);
-      this.ctx.fill();
-    }
-
-    if (this.horizonFoliage) {
-      for (let h of this.horizonFoliage) {
-        if (h.x > this.cullMaxX || h.x + (h.w||0) < this.cullMinX) continue;
-        this.ctx.fillStyle = h.color;
-        const sway = Math.sin(this.globalTime * h.speed + h.phase) * (h.h * 0.1);
-        this.ctx.beginPath();
-        if (h.type === 'trees' || h.type === 'pines' || h.type === 'deadtrees') {
-          this.ctx.moveTo(h.x + sway, gY - h.h);
-          this.ctx.lineTo(h.x - h.w / 2, gY);
-          this.ctx.lineTo(h.x + h.w / 2, gY);
-        } else if (h.type === 'walls') {
-          this.ctx.fillRect(h.x - h.w / 2, gY - h.h, h.w, h.h);
-        } else {
-          this.ctx.ellipse(h.x + sway, gY - h.h / 2, h.w / 2, h.h / 2, 0, 0, Math.PI * 2);
-        }
-        this.ctx.fill();
-      }
-    }
-    this.ctx.restore();
-
-    this.ctx.fillStyle = env.ground;
-    this.ctx.fillRect(-2000, gY, this.gameW + 4000, this.gameH - gY);
+    if (this.ui) { this.ui.buildClassesTab?.(); this.ui.buildMonstersTab?.(); this.ui.updateClassCarousel?.(); }
   }
 
   loop(time) {
-    if (this.state === 'PLAYING') {
-      const dt = this.lastTime ? Math.min((time - this.lastTime) / 16.67, 3) : 1;
-      this.lastTime = time;
-      const effectiveStartTime = this.hostGameStartTime || this.gameStartTime;
-      if (effectiveStartTime > 0) {
-        this.globalTime = (Date.now() - effectiveStartTime) / 1000;
-      } else {
-        this.globalTime += dt * 0.016;
-      }
-
-      this.frameCount = (this.frameCount || 0) + 1;
-      const now = Date.now();
-      if (!this.lastFpsTime) this.lastFpsTime = now;
-      if (now - this.lastFpsTime >= 2000) {
-        this.fps = this.frameCount / 2;
-        this.frameCount = 0;
-        this.lastFpsTime = now;
-
-        if (this.settings && this.settings.autoGraphics && !document.hidden && document.hasFocus()) {
-          let changed = false;
-          const minLim = this.settings.autoLimit ? 0.5 : 0.0;
-
-          if (this.settings.particles < minLim) { this.settings.particles = minLim; changed = true; }
-          if (this.settings.bgElements < minLim) { this.settings.bgElements = minLim; changed = true; }
-          if (this.settings.groundElements < minLim) { this.settings.groundElements = minLim; changed = true; }
-          if (this.settings.atmos < minLim) { this.settings.atmos = minLim; changed = true; }
-
-          if (this.fps < 40) {
-            this.settings.particles = Math.max(minLim, this.settings.particles - 0.10);
-            this.settings.bgElements = Math.max(minLim, this.settings.bgElements - 0.10);
-            this.settings.groundElements = Math.max(minLim, this.settings.groundElements - 0.10);
-            this.settings.atmos = Math.max(minLim, this.settings.atmos - 0.10);
-            changed = true;
-          } else if (this.fps >= 55 && (this.settings.particles < 2.0 || this.settings.bgElements < 2.0 || this.settings.groundElements < 2.0 || this.settings.atmos < 2.0)) {
-            this.settings.particles = Math.min(2.0, this.settings.particles + 0.05);
-            this.settings.bgElements = Math.min(2.0, this.settings.bgElements + 0.05);
-            this.settings.groundElements = Math.min(2.0, this.settings.groundElements + 0.05);
-            this.settings.atmos = Math.min(2.0, this.settings.atmos + 0.05);
-            changed = true;
-          }
-          if (changed) {
-            document.getElementById('particles-slider').value = Math.round(this.settings.particles * 100);
-            document.getElementById('particles-val').textContent = `${Math.round(this.settings.particles * 100)}%`;
-            document.getElementById('bg-slider').value = Math.round(this.settings.bgElements * 100);
-            document.getElementById('bg-val').textContent = `${Math.round(this.settings.bgElements * 100)}%`;
-            document.getElementById('ground-slider').value = Math.round(this.settings.groundElements * 100);
-            document.getElementById('ground-val').textContent = `${Math.round(this.settings.groundElements * 100)}%`;
-            document.getElementById('atmos-slider').value = Math.round(this.settings.atmos * 100);
-            document.getElementById('atmos-val').textContent = `${Math.round(this.settings.atmos * 100)}%`;
-            localStorage.setItem('nightvibe-settings', JSON.stringify(this.settings));
-            this.generateScenery();
-          }
-        }
-      }
-
-      const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
-      const dayFraction = 14 / 24;
-      let mappedCycle = cycle;
-      if (cycle <= dayFraction) {
-        mappedCycle = (cycle / dayFraction) * 0.5;
-      } else {
-        mappedCycle = 0.5 + ((cycle - dayFraction) / (1 - dayFraction)) * 0.5;
-      }
-
-      // Calculate altitude curve (1 at noon, 0 at sunrise/sunset, -1 at midnight)
-      const sunAltitude = Math.sin(mappedCycle * 2 * Math.PI);
-
-      this.dayAlpha = Math.max(0, sunAltitude);
-
-      // Night darkness curve: 0 at noon, 0.4 at twilight, 0.85 at midnight
-      let targetNightAlpha = 0;
-      if (sunAltitude > 0.2) {
-         targetNightAlpha = 0;
-      } else if (sunAltitude > 0) {
-         targetNightAlpha = (0.2 - sunAltitude) * 2.0; // Fades from 0 to 0.4
-      } else {
-         targetNightAlpha = 0.4 + (-sunAltitude) * 0.45; // Fades from 0.4 to 0.85
-      }
-      this.nightAlpha = targetNightAlpha;
-
-      if (this.isHost) {
-        const currentDay = Math.floor(this.globalTime / ConfigModule.DAY_CYCLE_DURATION);
-        const newEnv = ENV_LIST[currentDay % ENV_LIST.length];
-        if (this.selectedEnv !== newEnv) {
-          this.selectedEnv = newEnv;
-          this.generateScenery();
-          this.ui.updateEnvironment(this.selectedEnv);
-          this.initBgParticles();
-        }
-      } else {
-        // Periodically check if host is idle while we are a client
-        this.hostCheckTimer = (this.hostCheckTimer || 0) + dt * 16.67;
-        if (this.hostCheckTimer > 1000) {
-          this.hostCheckTimer = 0;
-          this.checkHost();
-        }
-      }
-
-      // Atmospheric effects processing
-      if (this.settings.atmos > 0) {
-        const isNight = this.nightAlpha > 0.3;
-        const rainColorsNight = ['rgba(255,255,255,0.4)', 'rgba(255,50,50,0.4)', 'rgba(50,255,50,0.4)'];
-        const rainColorsDay = ['rgba(0,0,0,0.4)', 'rgba(100,0,0,0.4)'];
-        const rColors = isNight ? rainColorsNight : rainColorsDay;
-
-        const rainDensity = Math.floor(3 * this.settings.atmos * dt);
-        for (let i = 0; i < rainDensity; i++) {
-          if (Math.random() < 0.2) {
-            this.atmosEffects.push({
-              type: 'rain',
-              x: Math.random() * this.gameW,
-              y: -10,
-              vx: -1 + Math.random() * 2,
-              vy: 10 + Math.random() * 5,
-              color: rColors[Math.floor(Math.random() * rColors.length)],
-              size: 1 + Math.random() * 1.5,
-              life: 1.0
-            });
-          }
-        }
-
-        if (Math.random() < 0.005 * this.settings.atmos * dt) {
-          const clouds = this.atmosEffects.filter(ef => ef.type === 'cloud');
-          const maxClouds = Math.max(1, Math.floor(4 * this.settings.atmos));
-
-          if (clouds.length < maxClouds) {
-            const groundY = getGroundY(this.selectedEnv);
-            const size = 60 + Math.random() * 80;
-            const maxCloudY = groundY - size * 0.6 - 20;
-
-            // Divide the sky into 3 horizontal lanes to prevent overlaps
-            const laneHeight = maxCloudY / 3;
-            const laneCounts = [0, 0, 0];
-            for (let c of clouds) {
-              const laneIndex = Math.min(2, Math.floor(c.y / laneHeight));
-              laneCounts[laneIndex]++;
-            }
-
-            // Choose the lane with the fewest clouds
-            let minLane = 0;
-            let minVal = Infinity;
-            for (let i = 0; i < 3; i++) {
-              if (laneCounts[i] < minVal) {
-                minVal = laneCounts[i];
-                minLane = i;
-              }
-            }
-
-            // Calculate vertical position inside the chosen lane with random offset
-            const spawnedY = minLane * laneHeight + Math.random() * (laneHeight - 10) + 5;
-
-            // Align cloud spawn side and vx vector to cross the screen without immediate deletion
-            const spawnLeft = Math.random() < 0.5;
-            const x = spawnLeft ? -150 : this.gameW + 150;
-            const vx = (spawnLeft ? 1 : -1) * (0.1 + Math.random() * 0.3);
-
-            this.atmosEffects.push({
-              type: 'cloud',
-              x: x,
-              y: spawnedY,
-              vx: vx,
-              vy: 0,
-              color: isNight ? `rgba(255,255,255,${0.03 + Math.random() * 0.05})` : `rgba(0,0,0,${0.03 + Math.random() * 0.05})`,
-              size: size,
-              life: 1.0
-            });
-          }
-        }
-
-        if (Math.random() < 0.02 * this.settings.atmos * dt) {
-          const groundY = getGroundY(this.selectedEnv);
-          this.atmosEffects.push({
-            type: 'smoke',
-            x: Math.random() * this.gameW,
-            y: groundY + (Math.random() * (this.gameH - groundY)),
-            vx: -0.5 + Math.random(),
-            vy: -0.5 - Math.random() * 0.5,
-            color: isNight ? `rgba(150,255,150,${0.05 + Math.random() * 0.1})` : `rgba(50,50,50,${0.05 + Math.random() * 0.1})`,
-            size: 10 + Math.random() * 15,
-            life: 1.0
-          });
-        }
-      }
-
-      for (let i = this.atmosEffects.length - 1; i >= 0; i--) {
-        let ef = this.atmosEffects[i];
-        ef.x += ef.vx * dt;
-        ef.y += ef.vy * dt;
-        let dead = false;
-        if (ef.type === 'rain' && ef.y > this.gameH) dead = true;
-        if (ef.type === 'cloud' && (ef.x < -200 || ef.x > this.gameW + 200)) dead = true;
-        if (ef.type === 'smoke') {
-          ef.life -= 0.005 * dt;
-          ef.size += 0.2 * dt;
-          if (ef.life <= 0) dead = true;
-        }
-        if (dead) this.atmosEffects.splice(i, 1);
-      }
-
-      const dpr = this.pixelRatio || 1;
-      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
-
-      this.ctx.save();
-      this.applyViewport(dt);
-
-      // Background
-      this.drawEnvironment();
-
-      for (let p of this.bgParticles) {
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        const groundY = getGroundY(this.selectedEnv);
-        if (p.y > groundY - 5) {
-          p.y = 10 + Math.random() * (groundY - 30);
-          p.x = Math.random() * this.gameW;
-        }
-        if (p.x < -10) p.x = this.gameW + 10;
-        if (p.x > this.gameW + 10) p.x = -10;
-        if (p.x < this.cullMinX || p.x > this.cullMaxX || p.y < this.cullMinY || p.y > this.cullMaxY) continue;
-        this.ctx.fillStyle = `rgba(255,255,255,${p.alpha * 0.3})`;
-        this.ctx.beginPath(); this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); this.ctx.fill();
-      }
-
-      if (this.moveMarker && this.moveMarker.life > 0) {
-        const progress = this.moveMarker.life / this.moveMarker.maxLife;
-        this.ctx.globalAlpha = progress * 0.8;
-
-        const isGreen = this.moveMarker.color === 'green';
-        if (isGreen) {
-          // Green expanding star/crosshair splash for item collection!
-          this.ctx.strokeStyle = '#2ecc71';
-          this.ctx.shadowColor = '#2ecc71';
-          this.ctx.shadowBlur = 10;
-          this.ctx.lineWidth = 2.5;
-          const cx = this.moveMarker.x;
-          const cy = this.moveMarker.y;
-          const r = 15 * progress;
-
-          this.ctx.beginPath();
-          // Star cross lines
-          this.ctx.moveTo(cx - r, cy); this.ctx.lineTo(cx + r, cy);
-          this.ctx.moveTo(cx, cy - r); this.ctx.lineTo(cx, cy + r);
-          this.ctx.stroke();
-
-          // Outer pulsing ring
-          this.ctx.beginPath();
-          this.ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
-          this.ctx.stroke();
-        } else {
-          // Standard walk click splash: glowing transparent yellow expanding dashed ring
-          this.ctx.strokeStyle = 'rgba(241, 196, 15, 0.8)';
-          this.ctx.shadowColor = '#f1c40f';
-          this.ctx.shadowBlur = 10;
-          this.ctx.lineWidth = 2.5;
-          this.ctx.setLineDash([4, 4]);
-          this.ctx.beginPath();
-          this.ctx.arc(this.moveMarker.x, this.moveMarker.y, 14 * progress, 0, Math.PI * 2);
-          this.ctx.stroke();
-          this.ctx.setLineDash([]);
-        }
-
-        this.ctx.shadowBlur = 0;
-        this.moveMarker.life -= dt;
-      }
-      this.ctx.globalAlpha = 1;
-
-      // Entities
-      let activePlayers = [];
-      if (this.player && this.player.alive) activePlayers.push(this.player);
-      for (let key in this.otherPlayers) {
-        let p = this.otherPlayers[key];
-        if (p.inGame && p.hp > 0 && p.alive) activePlayers.push(p);
-      }
-
-      if (this.isHost && activePlayers.length === 0 && this.state === 'PLAYING') {
-        this.state = 'GAME_OVER';
-        this.net.send_cmd('set_data', { gameOver: Date.now(), state: 'MENU', inGame: false });
-        this.quitToMenu();
-      }
-
-      for (let e of this.enemies) {
-        e.update(dt, activePlayers);
-
-        if (this.isHost && !e.alive && !e.deadProcessed) {
-          e.deadProcessed = true;
-          const groundY = getGroundY(this.selectedEnv);
-
-          if (e.name !== 'MISSILE' && e.name !== 'BOMB') {
-            if (this.dropPrng.nextFloat() < ConfigModule.POTION_RED_DROP_CHANCE) {
-              const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'red', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
-            }
-
-            if (this.dropPrng.nextFloat() < ConfigModule.POTION_BLUE_DROP_CHANCE) {
-              const lifeTime = 15000 + this.wave * 2000;
-              const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-              this.items.push({ id: this.dropPrng.nextFloat().toString(36).substr(2, 9), type: 'blue', x: e.x, y: e.y, life: lifeTime, vy: 0, falling: true, targetY: dropY });
-            }
-          }
-
-          if (e.name === 'MISSILE' || e.name === 'BOMB') {
-            // boss projectiles don't drop gear
-          } else if (ConfigModule.GEAR_DROP_ONLY_BOSS && e.name !== 'BOSS') {
-            // do nothing
-          } else if (this.dropPrng.nextFloat() < ConfigModule.GEAR_DROP_RATE) {
-            let rarity = 'normal'; let color = '#ecf0f1'; let numAffixes = 1;
-            let randRarity = this.dropPrng.nextFloat();
-            const totalWeight = ConfigModule.GEAR_RARITY_NORMAL + ConfigModule.GEAR_RARITY_MAGIC + ConfigModule.GEAR_RARITY_RARE;
-            const rareThreshold = ConfigModule.GEAR_RARITY_RARE / totalWeight;
-            const magicThreshold = rareThreshold + (ConfigModule.GEAR_RARITY_MAGIC / totalWeight);
-
-            if (randRarity < rareThreshold) { rarity = 'rare'; color = '#f1c40f'; numAffixes = 3; }
-            else if (randRarity < magicThreshold) { rarity = 'magic'; color = '#3498db'; numAffixes = 2; }
-
-
-            const lvl = e.isBoss ? (e.level || this.wave) * 1.5 : (e.level || this.wave);
-            const baseStat = lvl * ConfigModule.GEAR_STAT_MULTIPLIER;
-            const variance = ConfigModule.GEAR_STAT_VARIANCE;
-            const finalStat = Math.floor(baseStat * (1 - variance + this.dropPrng.nextFloat() * variance * 2));
-
-            let stats = {}; let icon = '💎';
-            let category = 'Ring'; let itemName = 'Unknown Item';
-
-            const useCustom = (ConfigModule.ITEMS_DB && ConfigModule.ITEMS_DB.length > 0);
-            if (useCustom) {
-              const matchingItems = ConfigModule.ITEMS_DB.filter(item => (item.rarity || 'normal') === rarity);
-              const templateList = matchingItems.length > 0 ? matchingItems : ConfigModule.ITEMS_DB;
-              const template = templateList[Math.floor(this.dropPrng.nextFloat() * templateList.length)];
-              category = template.gearType;
-              itemName = template.name;
-              icon = template.icon;
-              rarity = template.rarity || rarity;
-              color = template.color || color;
-              // Scale custom base stats by finalStat/10 (so an atk:10 item scales up linearly)
-              let scale = finalStat / 10;
-              if (template.stats) {
-                if (template.stats.atk) stats.atk = Math.max(1, Math.floor(template.stats.atk * scale));
-                if (template.stats.hp) stats.hp = Math.max(1, Math.floor(template.stats.hp * scale));
-                if (template.stats.spd) stats.spd = Math.max(1, Math.ceil(template.stats.spd * scale));
-              }
-              // Safeguard to ensure every item has at least one stat populated
-              if (Object.keys(stats).length === 0) {
-                if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); }
-                else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); } else { stats.spd = Math.max(1, Math.ceil(finalStat * 0.1)); }
-              }
-            } else {
-              const categories = ['Weapon', 'Armor', 'Ring'];
-              category = categories[Math.floor(this.dropPrng.nextFloat() * categories.length)];
-              if (category === 'Weapon') { stats.atk = Math.max(1, finalStat); icon = '🗡️'; }
-              else if (category === 'Armor') { stats.hp = Math.max(5, finalStat * 10); icon = '🛡️'; }
-              else { stats.spd = Math.max(1, Math.ceil(finalStat * 0.1)); icon = '💍'; }
-
-              const possibleAffixes = ['atk', 'hp', 'spd'];
-              let affixesAdded = 1; let sanity = 0;
-              while (affixesAdded < numAffixes && sanity < 10) {
-                sanity++;
-                let randAffix = possibleAffixes[Math.floor(this.dropPrng.nextFloat() * possibleAffixes.length)];
-                if (!stats[randAffix]) {
-                  if (randAffix === 'atk') stats.atk = Math.max(1, Math.floor(finalStat * 0.5));
-                  if (randAffix === 'hp') stats.hp = Math.max(2, Math.floor(finalStat * 5));
-                  if (randAffix === 'spd') stats.spd = Math.max(1, Math.ceil(finalStat * 0.05));
-                  affixesAdded++;
-                }
-              }
-              const prefixes = rarity === 'rare' ? ['Epic', 'Legendary', 'Godly'] : (rarity === 'magic' ? ['Glowing', 'Mystic', 'Enchanted'] : ['Rusty', 'Common', 'Basic']);
-              itemName = `${prefixes[Math.floor(this.dropPrng.nextFloat() * prefixes.length)]} ${category}`;
-            }
-
-
-            const dropY = groundY + 20 + this.dropPrng.nextFloat() * Math.min(250, this.gameH - groundY - 40);
-            this.items.push({
-              id: this.dropPrng.nextFloat().toString(36).substr(2, 9),
-              type: 'gear', gearType: category, rarity: rarity, color: color,
-              name: itemName, stats: stats, icon: icon,
-              x: e.x, y: e.y, life: 30000, vy: 0, falling: true, targetY: dropY
-            });
-          }
-        }
-
-        if (!this.isHost) {
-          // Soft sync towards host position if they drift too far
-          if (e.alive && e.serverX !== undefined) {
-            e.x += (e.serverX - e.x) * 0.1 * dt;
-            e.y += (e.serverY - e.y) * 0.1 * dt;
-          }
-        }
-      }
-
-      if (this.player) {
-        this.player.updateMovement(dt, this);
-
-        if (this.player.isChargingS2) {
-          let chargeSpeed = (this.player.buffManaTimer && this.player.buffManaTimer > 0) ? ConfigModule.POTION_BLUE_CD_MULTIPLIER : 1;
-          const cd = CLASS_DATA[this.player.classType] || CLASS_DATA.warrior;
-          const spdDiff = Math.max(0, this.player.spd - cd.spd);
-          chargeSpeed *= (1 + spdDiff * 0.05); // SPD speeds up charge
-          if (this.player.classType === 'archer') chargeSpeed *= 1.35;
-          this.player.s2ChargeTime = (this.player.s2ChargeTime || 0) + dt * 16.67 * chargeSpeed;
-          const maxCharges = 3 + (this.player.resets || 0);
-          const newCount = Math.min(maxCharges, Math.floor(this.player.s2ChargeTime / 1000));
-          if (newCount > (this.player.s2ChargeCount || 0)) {
-            this.player.s2ChargeCount = newCount;
-            // Removed charge-up particles for warrior as requested
-            if (this.player.classType !== 'warrior') {
-              this.spawnParticles(this.player.x, this.player.y - 40, '#ffd700', 15, 4);
-            }
-            this.broadcastState();
-          }
-
-          // Magic Gladiator charge: spawn floating purple spirit particles
-          if (this.player.classType === 'magicgladiator' && Math.random() < 0.15 * dt) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 20 + Math.random() * 25;
-            this.particles.push({
-              x: this.player.x + Math.cos(angle) * dist,
-              y: this.player.y - 40 + Math.sin(angle) * dist,
-              vx: Math.cos(angle) * 0.3,
-              vy: -0.5 - Math.random() * 0.5,
-              life: 15 + Math.floor(Math.random() * 15),
-              maxLife: 30,
-              color: cd.s2Color || '#9b4dff',
-              size: 1.5 + Math.random() * 2,
-              isSparkle: true
-            });
-          }
-
-          if (this.player.s2ChargeCount >= maxCharges && this.player.s2ChargeTime >= maxCharges * 1000 + 150) {
-            this.releaseSkill2();
-          }
-        }
-
-        if (this.player.action === 'attack' && this.player.animTimer <= 0 && !this.player.isChargingS2) {
-          this.player.action = 'idle';
-          this.broadcastState();
-        } else if (this.player.action === 'walk' && !this.player.isMoving) {
-          this.player.action = 'idle';
-          this.broadcastState();
-        }
-      }
-
-      for (const key in this.otherPlayers) {
-        this.otherPlayers[key].updateMovement(dt, this);
-      }
-
-      // Z-Sorting (Y-Sorting) for perspective rendering
-      let renderables = [];
-
-      // Persistent movement marker on the ground
-      if (this.player && this.player.isMoving && !this.player.autoAttackTarget) {
-        renderables.push({
-          y: this.player.moveTargetY - 1, draw: (ctx) => {
-            ctx.save();
-            ctx.globalAlpha = 0.6 + Math.sin(Date.now() / 150) * 0.2;
-
-            const isCollecting = !!this.player.targetedItemId;
-            if (isCollecting) {
-              // Draw a beautiful rotating star/diamond for item collection!
-              ctx.fillStyle = '#2ecc71';
-              ctx.shadowColor = '#2ecc71';
-              ctx.shadowBlur = 10;
-
-              const size = 10;
-              ctx.translate(this.player.moveTargetX, this.player.moveTargetY);
-              ctx.rotate(Date.now() / 200);
-
-              ctx.beginPath();
-              for (let j = 0; j < 4; j++) {
-                ctx.rotate(Math.PI / 2);
-                ctx.lineTo(size, 0);
-                ctx.lineTo(size / 3, size / 3);
-              }
-              ctx.closePath();
-              ctx.fill();
-            } else {
-              // Draw standard walk transparent yellow ellipse
-              ctx.fillStyle = 'rgba(241, 196, 15, 0.6)';
-              ctx.shadowColor = '#f1c40f';
-              ctx.shadowBlur = 10;
-              ctx.beginPath();
-              ctx.ellipse(this.player.moveTargetX, this.player.moveTargetY, 15, 7.5, 0, 0, Math.PI * 2);
-              ctx.fill();
-            }
-
-            ctx.restore();
-          }
-        });
-      }
-
-      for (let e of this.enemies) {
-        if (e.x < this.cullMinX || e.x > this.cullMaxX || e.y < this.cullMinY || e.y > this.cullMaxY) continue;
-        renderables.push({
-          y: e.y, draw: (ctx) => {
-            if (this.player && this.player.autoAttackTarget === e) {
-              ctx.save();
-              ctx.shadowColor = '#e74c3c';
-              ctx.shadowBlur = 15;
-              ctx.strokeStyle = '#e74c3c';
-              ctx.lineWidth = 2;
-              ctx.beginPath();
-              ctx.ellipse(e.x, e.y, e.size * 1.2, e.size * 0.6, 0, 0, Math.PI * 2);
-              ctx.stroke();
-              ctx.restore();
-            }
-            e.draw(ctx, getGroundY(this.selectedEnv));
-          }
-        });
-      }
-
-      if (this.player) {
-        renderables.push({ y: this.player.y, draw: (ctx) => this.player.draw(ctx, dt, this) });
-      }
-
-      for (const key in this.otherPlayers) {
-        const p = this.otherPlayers[key];
-        if (p.inGame) {
-          if (p.x < this.cullMinX || p.x > this.cullMaxX || p.y < this.cullMinY || p.y > this.cullMaxY) continue;
-          renderables.push({
-            y: p.y, draw: (ctx) => {
-              p.draw(ctx, dt, this);
-
-            }
-          });
-        }
-      }
-
-      if (this.items) {
-        if (this.player && this.player.targetedItemId) {
-          const exists = this.items.some(item => item.id === this.player.targetedItemId);
-          if (!exists) {
-            this.player.targetedItemId = null;
-          }
-        }
-
-        for (let i = 0; i < this.items.length; i++) {
-          let item = this.items[i];
-          item.life -= dt * 16.67;
-          if (item.life <= 0) {
-            if (this.player && this.player.targetedItemId === item.id) {
-              this.player.targetedItemId = null;
-            }
-            this.items.splice(i, 1); i--; continue;
-          }
-
-          // Fall to target position if still falling
-          if (item.falling) {
-            item.vy += 1.0 * dt;
-            item.y += item.vy * dt;
-            if (item.y >= item.targetY) {
-              item.y = item.targetY;
-              item.falling = false;
-              item.vy = 0;
-            }
-          }
-
-          // Each client checks for local player item pickup
-          if (this.player && this.player.alive && this.player.hp > 0) {
-            if (Math.hypot(this.player.x - item.x, this.player.y - item.y) < 40) {
-              // Don't auto-pickup gear that hasn't been targeted — let it render
-              if (item.type === 'gear' && this.player.targetedItemId !== item.id) {
-                // skip auto-pickup, let it render on ground
-              } else {
-                // Local player picks up the item
-                if (item.type === 'gear') {
-                  this.player.inventory.push(item);
-                  let statsStr = '';
-                  if (item.stats) {
-                    let parts = [];
-                    if (item.stats.atk) parts.push(`+${item.stats.atk} ATK`);
-                    if (item.stats.hp) parts.push(`+${item.stats.hp} HP`);
-                    if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
-                    if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
-                  }
-                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🎒 Looted: ${item.name}${statsStr}!`, color: item.color, life: 60, maxLife: 60, isCrit: false });
-                  this.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
-                  if (this.ui) this.ui.renderInventory();
-                  this.saveLocalProgression();
-                  if (this.player.isLocal) {
-                    this.net.send_cmd("item_pickup", item.id);
-                  }
-                } else if (item.type === 'red') {
-                  this.player.buffHpTimer = POTION_BUFF_DURATION;
-                  this.spawnParticles(this.player.x, this.player.y - 20, '#e74c3c', 30, 6);
-                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `🩸 Vampirism ${Math.round(POTION_BUFF_DURATION / 1000)}s!`, color: '#e74c3c', life: 60, maxLife: 60, isCrit: false });
-                  this.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(POTION_BUFF_DURATION / 1000)}s`, 'reward');
-                  if (this.player.isLocal) {
-                    this.net.send_cmd("item_pickup", item.id);
-                  }
-                } else if (item.type === 'blue') {
-                  this.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
-                  this.spawnParticles(this.player.x, this.player.y - 20, '#3498db', 30, 6);
-                  this.floatingTexts.push({ x: this.player.x, y: this.player.y - 50, text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, color: '#3498db', life: 60, maxLife: 60, isCrit: false });
-                  this.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
-                  if (this.player.isLocal) {
-                    this.net.send_cmd("item_pickup", item.id);
-                  }
-                }
-                if (this.player.targetedItemId === item.id) {
-                  this.player.targetedItemId = null;
-                }
-                this.items.splice(i, 1); i--; continue;
-              }
-            }
-          }
-
-          if (item.x < this.cullMinX || item.x > this.cullMaxX || item.y < this.cullMinY || item.y > this.cullMaxY) continue;
-
-          renderables.push({
-            y: item.y, draw: (ctx) => {
-              if (this.player && this.player.targetedItemId === item.id) {
-                // Ground selector circle
-                ctx.save();
-                ctx.shadowColor = '#2ecc71';
-                ctx.shadowBlur = 15;
-                ctx.strokeStyle = '#2ecc71';
-                ctx.lineWidth = 2.5;
-                ctx.beginPath();
-                ctx.ellipse(item.x, item.y, 22, 11, 0, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-
-                // Animated dotted connection line from player to item
-                ctx.save();
-                ctx.strokeStyle = 'rgba(46, 204, 113, 0.7)';
-                ctx.lineWidth = 2.5;
-                ctx.setLineDash([5, 5]);
-                ctx.lineDashOffset = -this.globalTime / 15; // Moving dashes flow effect
-                ctx.beginPath();
-                ctx.moveTo(this.player.x, this.player.y);
-                ctx.lineTo(item.x, item.y);
-                ctx.stroke();
-                ctx.restore();
-              }
-
-              ctx.save();
-              const floatOffset = Math.sin(this.globalTime / 200) * 5;
-              const pulse = Math.abs(Math.sin(this.globalTime / 150));
-              ctx.translate(item.x, item.y - 10 + floatOffset);
-              ctx.globalAlpha = Math.min(1, item.life / 1000);
-
-              if (item.type === 'gear') {
-                // Gear Aura - oval base shadow for perspective
-                ctx.beginPath();
-                ctx.ellipse(0, 8, (14 + pulse * 6) * 1.3, (14 + pulse * 6) * 0.5, 0, 0, Math.PI * 2);
-                ctx.fillStyle = item.color || '#ecf0f1';
-                ctx.globalAlpha = (0.0125 + pulse * 0.01875) * Math.min(1, item.life / 1000);
-                ctx.fill();
-
-                ctx.globalAlpha = Math.min(1, item.life / 1000);
-                ctx.shadowColor = item.color || '#ecf0f1';
-                ctx.shadowBlur = 10 + pulse * 10;
-
-                let resolvedIcon = item.icon || '💎';
-                if (resolvedIcon === '📦') {
-                  const template = ConfigModule.ITEMS_DB.find(t => t.name === item.name);
-                  if (template && template.icon) resolvedIcon = template.icon;
-                }
-
-                if (resolvedIcon && typeof resolvedIcon === 'string' && (resolvedIcon.startsWith('data:image/') || resolvedIcon.startsWith('http'))) {
-                  const img = getCachedImage(resolvedIcon);
-                  if (img) {
-                    ctx.drawImage(img, -15, -15, 30, 30);
-                  } else {
-                    ctx.font = '22px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('📦', 0, 0);
-                  }
-                } else {
-                  ctx.font = '22px sans-serif';
-                  ctx.textAlign = 'center';
-                  ctx.textBaseline = 'middle';
-                  ctx.fillText(resolvedIcon || '💎', 0, 0);
-                }
-
-                // Gear Stats Hover
-                ctx.shadowBlur = 4;
-                ctx.font = 'bold 10px sans-serif';
-                ctx.fillStyle = item.color || '#ecf0f1';
-                ctx.fillText(item.name || 'Gear', 0, -28 - pulse * 2);
-
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '9px sans-serif';
-                let statStr = item.stats ? Object.entries(item.stats).map(([k, v]) => `+${Math.floor(v)} ${k.toUpperCase()}`).join('  ') : '';
-                ctx.fillText(statStr, 0, -16 - pulse * 2);
-              } else {
-                // Pulsating Aura for Potions - oval base shadow for perspective
-                ctx.beginPath();
-                ctx.ellipse(0, 8, (10 + pulse * 6) * 1.3, (10 + pulse * 6) * 0.5, 0, 0, Math.PI * 2);
-                ctx.fillStyle = item.type === 'red' ? `rgba(231, 76, 60, ${0.3 + pulse * 0.3})` : `rgba(52, 152, 219, ${0.3 + pulse * 0.3})`;
-                ctx.fill();
-
-                // Core Orb
-                ctx.fillStyle = item.type === 'red' ? '#e74c3c' : '#3498db';
-                ctx.shadowColor = item.type === 'red' ? '#ff7979' : '#7ed6df';
-                ctx.shadowBlur = 10 + pulse * 15;
-                ctx.beginPath();
-                ctx.arc(0, 0, 7 + pulse * 2, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Icon
-                ctx.fillStyle = 'white';
-                ctx.shadowBlur = 0;
-                ctx.font = 'bold 12px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(item.type === 'red' ? '❤️' : '⚡', 0, -18 - pulse * 2);
-              }
-
-              // Bobbing green downward arrow indicator above the targeted item
-              if (this.player && this.player.targetedItemId === item.id) {
-                ctx.save();
-                ctx.fillStyle = '#2ecc71';
-                ctx.shadowColor = '#2ecc71';
-                ctx.shadowBlur = 8;
-                const arrowY = -36 + Math.sin(this.globalTime / 100) * 3;
-                ctx.beginPath();
-                ctx.moveTo(0, arrowY);
-                ctx.lineTo(-5, arrowY - 8);
-                ctx.lineTo(5, arrowY - 8);
-                ctx.closePath();
-                ctx.fill();
-                ctx.restore();
-              }
-
-              ctx.restore();
-            }
-          });
-        }
-      }
-
-      if (this.groundFoliage) {
-        for (let gf of this.groundFoliage) {
-          if (gf.x < this.cullMinX || gf.x > this.cullMaxX || gf.y < this.cullMinY || gf.y > this.cullMaxY) continue;
-          renderables.push({
-            y: gf.y, draw: (ctx) => {
-              ctx.save();
-              let filter = 'none';
-              if (this.nightAlpha > 0) {
-                filter = `grayscale(${this.nightAlpha * 95}%) brightness(${100 - this.nightAlpha * 25}%)`;
-              } else if (this.dayAlpha > 0) {
-                filter = `sepia(${this.dayAlpha * 60}%) brightness(${100 + this.dayAlpha * 25}%)`;
-              }
-              ctx.filter = filter;
-              ctx.fillStyle = gf.color;
-              ctx.beginPath();
-              if (gf.type === 'grass') {
-                const sway = Math.sin(this.globalTime * 2 + gf.phase) * 3;
-                ctx.moveTo(gf.x + sway, gf.y - gf.size);
-                ctx.lineTo(gf.x - gf.size / 3, gf.y);
-                ctx.lineTo(gf.x + gf.size / 3, gf.y);
-              } else if (gf.type === 'mud' || gf.type === 'cracks') {
-                ctx.ellipse(gf.x, gf.y, gf.size, gf.size * 0.4, 0, 0, Math.PI * 2);
-              } else { // stones, shells, ice
-                ctx.arc(gf.x, gf.y, gf.size / 2, 0, Math.PI * 2);
-              }
-              ctx.fill();
-              ctx.restore();
-            }
-          });
-        }
-      }
-
-      // Sort so entities with higher Y (lower on screen) are drawn last (on top)
-      renderables.sort((a, b) => a.y - b.y);
-      renderables.forEach(r => r.draw(this.ctx));
-
-      for (let p of this.projectiles) {
-        p.update(dt, this);
-        if (p.x >= this.cullMinX && p.x <= this.cullMaxX && p.y >= this.cullMinY && p.y <= this.cullMaxY) p.draw(this.ctx);
-      }
-      this.projectiles = this.projectiles.filter(p => p.life > 0);
-
-      if (this.queuedFireball && this.player) {
-        const qf = this.queuedFireball;
-        const spawnX = qf.x || qf.spawnX;
-        const spawnY = qf.y || qf.spawnY;
-        let canSpawn = true;
-        for (let p of this.projectiles) {
-          if (p.type === 'fireball' && p.life > 0) {
-            const existingRadius = p.radius || (qf.radius || 15);
-            const dist = Math.hypot(p.x - spawnX, p.y - spawnY);
-            if (dist < (qf.radius || 15) + existingRadius + 10) {
-              canSpawn = false;
-              break;
-            }
-          }
-        }
-        if (canSpawn) {
-          const qfLife = qf.fbLife || 80;
-          this.spawnProjectile({ type: 'fireball', x: spawnX, y: spawnY, speed: qf.speed || 5, life: qfLife, maxLife: qfLife, color: qf.color || '#e67e22', damage: qf.damage || 1, critChance: 0.2, radius: qf.radius || 15, traveled: 0, trailTimer: 0, trailPositions: [], tx: qf.tx, ty: qf.ty, angle: qf.angle, facing: qf.facing });
-          this.spawnParticles(spawnX, spawnY, qf.color || '#e67e22', 15, 4);
-          this.queuedFireball = null;
-        }
-      }
-
-      // Effects
-      for (let p of this.particles) {
-        if (!p.isShockwave && !p.isHalo && !p.isRay && !p.isSparkle) {
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
-          p.vy += 0.05 * dt;
-        } else if (p.isHalo || p.isRay || p.isSparkle) {
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
-        }
-        p.life -= dt;
-        const progress = Math.max(0, p.life / p.maxLife);
-        if (p.x < this.cullMinX || p.x > this.cullMaxX || p.y < this.cullMinY || p.y > this.cullMaxY) continue;
-        this.ctx.globalAlpha = progress;
-
-        if (p.isShockwave) {
-          const currentSize = p.size * (1 + (1 - progress) * 1.5);
-          const grad = this.ctx.createRadialGradient(p.x, p.y, currentSize * 0.1, p.x, p.y, currentSize);
-          grad.addColorStop(0, p.color);
-          grad.addColorStop(0.3, p.color);
-          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          this.ctx.fillStyle = grad;
-          this.ctx.beginPath();
-          this.ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
-          this.ctx.fill();
-        } else if (p.isHalo) {
-          const currentSize = p.size * (1 + (1 - progress) * 1.85);
-          this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.85)';
-          this.ctx.shadowColor = '#ffd700';
-          this.ctx.shadowBlur = 6; // Reduced from 15 for better mobile/low-end performance
-          this.ctx.lineWidth = 3 * progress;
-          this.ctx.beginPath();
-          this.ctx.ellipse(p.x, p.y, currentSize, currentSize * 0.45, 0, 0, Math.PI * 2);
-          this.ctx.stroke();
-          this.ctx.shadowBlur = 0;
-        } else if (p.isRay) {
-          this.ctx.strokeStyle = p.color;
-          this.ctx.lineWidth = p.size * progress;
-          this.ctx.beginPath();
-          this.ctx.moveTo(p.x, p.y);
-          const len = p.length * progress;
-          const vdist = Math.hypot(p.vx, p.vy) || 1;
-          this.ctx.lineTo(p.x + (p.vx / vdist) * len, p.y + (p.vy / vdist) * len);
-          this.ctx.stroke();
-        } else if (p.isSparkle) {
-          this.ctx.fillStyle = p.color;
-          this.ctx.beginPath();
-          this.ctx.arc(p.x, p.y, p.size * progress, 0, Math.PI * 2);
-          this.ctx.fill();
-
-          if (Math.random() < 0.20) {
-            this.ctx.strokeStyle = '#ffffff';
-            this.ctx.lineWidth = 0.8;
-            this.ctx.beginPath();
-            this.ctx.moveTo(p.x - p.size * 2, p.y); this.ctx.lineTo(p.x + p.size * 2, p.y);
-            this.ctx.moveTo(p.x, p.y - p.size * 2); this.ctx.lineTo(p.x, p.y + p.size * 2);
-            this.ctx.stroke();
-          }
-        } else {
-          this.ctx.fillStyle = p.color;
-          this.ctx.beginPath();
-          this.ctx.arc(p.x, p.y, p.size * progress, 0, Math.PI * 2);
-          this.ctx.fill();
-        }
-      }
-      this.ctx.globalAlpha = 1;
-      this.particles = this.particles.filter(p => p.life > 0);
-
-      // Render atmospheric effects behind UI
-      if (this.atmosEffects && this.atmosEffects.length > 0) {
-        for (let ef of this.atmosEffects) {
-          if (ef.x < this.cullMinX || ef.x > this.cullMaxX || ef.y < this.cullMinY || ef.y > this.cullMaxY) continue;
-          this.ctx.fillStyle = ef.color;
-          this.ctx.beginPath();
-          if (ef.type === 'rain') {
-            this.ctx.fillRect(ef.x, ef.y, ef.size, ef.size * 6);
-          } else if (ef.type === 'smoke') {
-            this.ctx.arc(ef.x, ef.y, ef.size, 0, Math.PI * 2);
-            this.ctx.fill();
-          }
-        }
-      }
-
-      for (let ft of this.floatingTexts) {
-        ft.y -= 0.8 * dt; ft.life -= dt;
-        if (ft.x < this.cullMinX || ft.x > this.cullMaxX || ft.y < this.cullMinY || ft.y > this.cullMaxY) continue;
-        const fadeStart = ft.maxLife * 0.4;
-        this.ctx.globalAlpha = ft.life > fadeStart ? 1 : Math.max(0, ft.life / fadeStart);
-        this.ctx.font = `bold ${ft.isCrit ? 18 : 14}px sans-serif`; this.ctx.textAlign = 'center';
-        this.ctx.fillStyle = '#000'; this.ctx.fillText(ft.text, ft.x + 1, ft.y + 1);
-        this.ctx.fillStyle = ft.color; this.ctx.fillText(ft.text, ft.x, ft.y);
-      }
-      this.ctx.globalAlpha = 1;
-      this.floatingTexts = this.floatingTexts.filter(ft => ft.life > 0);
-
-      // UI
-      this.ui.updatePartyList(this.otherPlayers);
-      if (this.player && this.player.alive && this.state === 'PLAYING') {
-        this.ui.updateBuffs(this.player.buffHpTimer, this.player.buffManaTimer);
-      } else {
-        this.ui.updateBuffs(0, 0);
-      }
-
-      let cdSpeedMultiplier = 1;
-      if (this.player && this.player.alive && this.state === 'PLAYING') {
-        if (this.player.buffHpTimer > 0) {
-          this.player.buffHpTimer -= 16.67 * dt;
-          if (this.player.buffHpTimer <= 0) {
-            this.ui.addLog('💔 Vampirism buff expired!', 'system');
-          }
-          if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#e74c3c', 1, 3);
-        }
-        if (this.player.buffManaTimer > 0) {
-          this.player.buffManaTimer -= 16.67 * dt;
-          if (this.player.buffManaTimer <= 0) {
-            this.ui.addLog('⚡ Skill Cooldown buff expired!', 'system');
-          }
-          cdSpeedMultiplier = ConfigModule.POTION_BLUE_CD_MULTIPLIER; // Configurable cooldown recovery speed
-          if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#3498db', 1, 3);
-        }
-      }
-
-      if (this.s2Cooldown > 0) {
-        this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier);
-        if (this.s2Cooldown <= 0 && this.autoRestartS2 && this.player && !this.player.isMoving) {
-          this.autoRestartS2 = false;
-          this.startChargingSkill2();
-        }
-      }
-      this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
-
-
-
-      if (this.isHost) {
-        this.enemies = this.enemies.filter(e => e.alive || (Date.now() - e.deathTime < 2000));
-
-        const aliveCount = this.enemies.filter(e => e.alive).length;
-        if (aliveCount === 0 && this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn === 0) {
-          this.emptyWaveTimer = (this.emptyWaveTimer || 0) + dt * 16.67;
-          if (this.emptyWaveTimer > 60000) {
-            this.waveTransitionTimer = 120; // Force transition fallback
-            this.emptyWaveTimer = 0;
-          }
-        } else {
-          this.emptyWaveTimer = 0;
-        }
-
-        if (this.waveTransitionTimer > 0) {
-          this.waveTransitionTimer -= dt;
-          if (this.waveTransitionTimer <= 0) {
-            if (this.player && !this.player.alive) this.respawnPlayer();
-            this.wave++;
-            this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
-            this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
-            this.waveEnemiesKilled = 0;
-            this.generateScenery();
-
-            if (this.state === 'MENU') {
-              document.getElementById('main-area').style.display = 'none';
-            }
-            this.initBgParticles();
-            if (this.wave % ConfigModule.BOSS_WAVE_INTERVAL === 0) {
-              this.bossActive = true;
-              let numBosses = 1;
-              if (ConfigModule.BOSS_WAVE_INTERVAL > 0) {
-                const bossWaveNum = Math.floor(this.wave / ConfigModule.BOSS_WAVE_INTERVAL);
-                if (bossWaveNum > 1) {
-                  numBosses = 1 + (bossWaveNum - 1) * ConfigModule.BOSS_SPAWN_INCREMENT;
-                }
-              }
-              this.waveTotalEnemies = numBosses;
-              this.waveEnemiesToSpawn = numBosses;
-              this.ui.showBossWarning();
-            } else {
-              this.bossActive = false;
-              let baseEnemies = 10 + Math.floor(this.wave * 2.5 + Math.pow(this.wave, 1.2));
-              let pCount = activePlayers ? activePlayers.length : 1;
-              this.waveTotalEnemies = Math.floor(baseEnemies * (0.5 + pCount * 0.5));
-              this.waveEnemiesToSpawn = this.waveTotalEnemies;
-            }
-            this.waveEnemiesKilled = 0;
-            this.ui.updateScore(this.player, this.wave, this.waveEnemiesKilled, this.waveTotalEnemies);
-          }
-        }
-      }
-
-      if (this.waveTransitionTimer <= 0 && this.waveEnemiesToSpawn > 0) {
-        this.enemySpawnTimer += 16.67 * dt;
-        if (this.enemySpawnTimer >= this.enemySpawnInterval) {
-          this.enemySpawnTimer = 0;
-          const spawnIndex = this.waveTotalEnemies - this.waveEnemiesToSpawn;
-          const newEnemy = new Enemy(this, this.bossActive, false, spawnIndex);
-          if (!this.enemies.find(e => e.id === newEnemy.id)) {
-            this.enemies.push(newEnemy);
-          }
-          this.waveEnemiesToSpawn--;
-        }
-      }
-
-      this.syncTimer = (this.syncTimer || 0) + 16.67 * dt;
-      if (this.syncTimer >= 100) {
-        this.syncTimer = 0;
-        this.checkHost();
-        this.broadcastState();
-      }
-
-      // Global Day/Night Lighting Overlays
-      const env = ENV_CONFIG[this.selectedEnv];
-      const gY = this.gameH * (env ? env.groundY : 0.5);
-      
-      const celestialArcCenterX = this.gameW / 2;
-      const celestialArcCenterY = gY;
-      const sunAngle = mappedCycle * Math.PI * 2 + Math.PI;
-      const sunX = celestialArcCenterX - Math.cos(sunAngle) * 350;
-      const sunY = celestialArcCenterY + Math.sin(sunAngle) * 250;
-      const moonAngle = sunAngle + Math.PI;
-      const moonX = celestialArcCenterX - Math.cos(moonAngle) * 350;
-      const moonY = celestialArcCenterY + Math.sin(moonAngle) * 250;
-
-      this.lightX = this.dayAlpha > this.nightAlpha ? sunX : moonX;
-      this.lightY = this.dayAlpha > this.nightAlpha ? sunY : moonY;
-      this.lightIntensity = Math.max(this.dayAlpha, this.nightAlpha);
-
-      // Seed-based tinting
-      const lightPrng = new PRNG(this.sessionSeed || 1);
-      const nightR = 5 + Math.floor(lightPrng.nextFloat() * 15);
-      const nightG = 10 + Math.floor(lightPrng.nextFloat() * 15);
-      const nightB = 25 + Math.floor(lightPrng.nextFloat() * 30);
-      const dayR = 255;
-      const dayG = 220 + Math.floor(lightPrng.nextFloat() * 35);
-      const dayB = 100 + Math.floor(lightPrng.nextFloat() * 100);
-
-      if (this.nightAlpha > 0) {
-        // Moon illuminates the sky and background scenery based on its position
-        const nightGrad = this.ctx.createRadialGradient(moonX, Math.max(0, moonY), this.gameH * 0.1, moonX, Math.max(0, moonY), this.gameW * 1.2);
-        nightGrad.addColorStop(0, `rgba(${nightR+10}, ${nightG+10}, ${nightB+15}, ${this.nightAlpha * 0.25})`);
-        nightGrad.addColorStop(gY / this.gameH, `rgba(${nightR}, ${nightG}, ${nightB}, ${this.nightAlpha * 0.45})`);
-        nightGrad.addColorStop(1, `rgba(0, 0, 5, ${this.nightAlpha * 0.7})`);
-
-        this.ctx.fillStyle = nightGrad;
-        this.ctx.fillRect(0, 0, this.gameW, this.gameH);
-      }
-      if (this.dayAlpha > 0) {
-        // Sun glare and terrain highlight based on its position
-        const dayGrad = this.ctx.createRadialGradient(sunX, Math.max(0, sunY), this.gameH * 0.2, sunX, Math.max(0, sunY), this.gameW);
-        dayGrad.addColorStop(0, `rgba(${dayR}, ${dayG}, ${dayB}, ${this.dayAlpha * 0.15})`);
-        dayGrad.addColorStop(1, `rgba(${dayR}, ${dayG}, ${dayB}, 0)`);
-        
-        this.ctx.fillStyle = dayGrad;
-        this.ctx.fillRect(0, 0, this.gameW, this.gameH);
-      }
-
-      // UI Target Info Update
-      if (this.player && this.ui.updateTargetPanel) {
-        let currentTarget = null;
-        let isHover = false;
-        const cx = this.player.mouseX, cy = this.player.mouseY;
-        let hoveredEnemy = null;
-        let hoveredItem = null;
-        for (let e of this.enemies) {
-          if (!e.alive) continue;
-          if (Math.hypot(cx - e.x, cy - e.y) < e.size + 30) { hoveredEnemy = e; break; }
-        }
-        if (!hoveredEnemy && this.items) {
-          for (let item of this.items) {
-            if (Math.hypot(cx - item.x, cy - item.y) < 40) { hoveredItem = item; break; }
-          }
-        }
-
-        if (hoveredEnemy) {
-          currentTarget = hoveredEnemy;
-          isHover = true;
-        } else if (hoveredItem) {
-          currentTarget = hoveredItem;
-          isHover = true;
-        } else if (this.player.autoAttackTarget && this.player.autoAttackTarget.alive) {
-          currentTarget = this.player.autoAttackTarget;
-        } else if (this.player.targetedItemId) {
-          currentTarget = this.items.find(i => i.id === this.player.targetedItemId);
-        }
-
-        this.ui.updateTargetPanel(currentTarget, isHover);
-      }
-
-      // Update Game Time Display
-      const timeContainer = document.getElementById('game-time-container');
-      const timeDisplay = document.getElementById('game-time-display');
-      if (timeContainer && timeDisplay && effectiveStartTime > 0) {
-        const cycleDur = ConfigModule.DAY_CYCLE_DURATION || 60;
-        const totalGameDays = Math.floor(this.globalTime / cycleDur);
-        const gameYears = Math.floor(totalGameDays / 360);
-        const gameMonths = Math.floor((totalGameDays % 360) / 30);
-        const gameDays = totalGameDays % 30;
-
-        const currentCycle = (this.globalTime % cycleDur) / cycleDur;
-        // cycle 0 = Sunrise (06:00 AM)
-        const gameHoursFloat = (currentCycle * 24 + 6) % 24;
-        const h = Math.floor(gameHoursFloat);
-        const gameMinutesFloat = (gameHoursFloat % 1) * 60;
-        const m = Math.floor(gameMinutesFloat);
-        const s = Math.floor((gameMinutesFloat % 1) * 60);
-
-        let timeStr = '';
-        if (gameYears > 0) timeStr += `${gameYears}a `;
-        if (gameMonths > 0) timeStr += `${gameMonths}l `;
-        if (gameDays > 0) timeStr += `${gameDays}z `;
-        
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const displayH = h % 12 || 12;
-        timeStr += `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
-        
-        if (timeDisplay.textContent !== timeStr) {
-          timeDisplay.textContent = timeStr;
-        }
-        timeContainer.style.display = 'flex';
-      } else if (timeContainer) {
-        timeContainer.style.display = 'none';
-      }
-
-      // Update FPS Display
-      const fpsContainer = document.getElementById('fps-container');
-      const fpsDisplay = document.getElementById('fps-display');
-      if (fpsContainer && fpsDisplay && this.state === 'PLAYING') {
-        const roundedFps = Math.round(this.fps);
-        if (fpsDisplay.textContent !== roundedFps.toString()) {
-          fpsDisplay.textContent = roundedFps;
-          if (roundedFps < 30) fpsDisplay.style.color = '#e74c3c';
-          else if (roundedFps < 50) fpsDisplay.style.color = '#f1c40f';
-          else fpsDisplay.style.color = '#2ecc71';
-        }
-        fpsContainer.style.display = 'flex';
-      } else if (fpsContainer) {
-        fpsContainer.style.display = 'none';
-      }
-
-      this.ctx.restore();
+    if (this.state !== 'PLAYING') { this.renderWebGL(); requestAnimationFrame((t) => this.loop(t)); return; }
+    const dt = this.lastTime ? Math.min((time - this.lastTime) / 16.67, 3) : 1;
+    this.lastTime = time;
+    const effectiveStartTime = this.hostGameStartTime || this.gameStartTime;
+    if (effectiveStartTime > 0) this.globalTime = (Date.now() - effectiveStartTime) / 1000;
+    else this.globalTime += dt * 0.016;
+    this.frameCount = (this.frameCount || 0) + 1;
+    if (!this.lastFpsTime) this.lastFpsTime = Date.now();
+    if (Date.now() - this.lastFpsTime >= 2000) { this.fps = this.frameCount / 2; this.frameCount = 0; this.lastFpsTime = Date.now(); this.settingsManager.adjustAutoQuality(); }
+
+    const cycle = (this.globalTime % ConfigModule.DAY_CYCLE_DURATION) / ConfigModule.DAY_CYCLE_DURATION;
+    const dayFraction = 14 / 24;
+    const mappedCycle = cycle <= dayFraction ? (cycle / dayFraction) * 0.5 : 0.5 + ((cycle - dayFraction) / (1 - dayFraction)) * 0.5;
+    const sunAltitude = Math.sin(mappedCycle * 2 * Math.PI);
+    this.dayAlpha = Math.max(0, sunAltitude);
+    this.nightAlpha += ((sunAltitude > 0.2 ? 0 : sunAltitude > 0 ? 0.4 * (1 - sunAltitude / 0.2) : Math.min(0.85, 0.4 + 0.45 * Math.min(1, -sunAltitude / 0.5))) - this.nightAlpha) * Math.min(1, 0.02 * dt);
+
+    if (this.isHost && this.player?.alive) {
+      const envIndex = Math.floor(this.globalTime / (ConfigModule.ENV_CYCLE_DURATION || 300)) % ENV_LIST.length;
+      const newEnv = ENV_LIST[envIndex];
+      if (newEnv && newEnv !== this.selectedEnv) { this.selectedEnv = newEnv; this.generateScenery(); this.ui.updateEnvironment(this.selectedEnv); this.initBgParticles(); }
+    } else {
+      this.hostCheckTimer = (this.hostCheckTimer || 0) + dt * 16.67;
+      if (this.hostCheckTimer > 1000) { this.hostCheckTimer = 0; this.checkHost(); }
     }
+
+    this.atmosphereManager.processAtmosEffects(dt);
+    this.atmosphereManager.updateAtmosEffects(dt);
+    const dpr = this.pixelRatio || 1;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
+    this.ctx.save();
+    this.applyViewport(dt);
+    this.drawEnvironment();
+    this.renderer.renderBgParticles();
+    this.renderer.renderMoveMarker();
+
+    let activePlayers = [];
+    if (this.player?.alive) activePlayers.push(this.player);
+    for (let key in this.otherPlayers) { let p = this.otherPlayers[key]; if (p.inGame && p.hp > 0 && p.alive) activePlayers.push(p); }
+
+    if (this.isHost && activePlayers.length === 0 && this.state === 'PLAYING') {
+      this.state = 'GAME_OVER';
+      this.net.send_cmd('set_data', { gameOver: Date.now(), state: 'MENU', inGame: false });
+      this.quitToMenu();
+      this.ctx.restore();
+      this.renderWebGL();
+      requestAnimationFrame((t) => this.loop(t));
+      return;
+    }
+
+    for (let e of this.enemies) {
+      e.update(dt, activePlayers);
+      this.itemManager.dropItemsOnEnemyDeath(e);
+      if (!this.isHost && e.alive && e.serverX !== undefined) { e.x += (e.serverX - e.x) * 0.1 * dt; e.y += (e.serverY - e.y) * 0.1 * dt; }
+    }
+
+    if (this.player) {
+      this.player.updateMovement(dt, this);
+      if (this.player.isChargingS2) {
+        this.combatManager.updateS2Charge(dt);
+      }
+      if (this.player.action === 'attack' && this.player.animTimer <= 0 && !this.player.isChargingS2) { this.player.action = 'idle'; this.broadcastState(); }
+      else if (this.player.action === 'walk' && !this.player.isMoving) { this.player.action = 'idle'; this.broadcastState(); }
+    }
+    for (const key in this.otherPlayers) { this.otherPlayers[key].updateMovement(dt, this); }
+
+    let renderables = [];
+    if (this.player?.isMoving && !this.player.autoAttackTarget) {
+      renderables.push({ y: this.player.moveTargetY - 1, draw: (ctx) => this.renderer.renderPlayerWalkMarkerRaw(ctx, this.player) });
+    }
+    for (let e of this.enemies) {
+      if (e.x < this.cullMinX || e.x > this.cullMaxX || e.y < this.cullMinY || e.y > this.cullMaxY) continue;
+      renderables.push({ y: e.y, draw: (ctx) => { this.renderer.renderEnemyTargetHighlight(e, ctx); e.draw(ctx, getGroundY(this.selectedEnv)); } });
+    }
+    if (this.player) renderables.push({ y: this.player.y, draw: (ctx) => this.player.draw(ctx, dt, this) });
+    for (const key in this.otherPlayers) {
+      const p = this.otherPlayers[key];
+      if (p.inGame && !(p.x < this.cullMinX || p.x > this.cullMaxX || p.y < this.cullMinY || p.y > this.cullMaxY)) renderables.push({ y: p.y, draw: (ctx) => p.draw(ctx, dt, this) });
+    }
+
+    this.itemManager.updateItems(dt);
+    if (this.items) {
+      for (let item of this.items) {
+        if (item.x >= this.cullMinX && item.x <= this.cullMaxX && item.y >= this.cullMinY && item.y <= this.cullMaxY) renderables.push({ y: item.y, draw: (ctx) => this.renderer.renderItem(item, ctx) });
+      }
+    }
+    this.renderer.renderGroundFoliage();
+    renderables.sort((a, b) => a.y - b.y);
+    renderables.forEach(r => r.draw(this.ctx));
+
+    for (let p of this.projectiles) { p.update(dt, this); if (p.x >= this.cullMinX && p.x <= this.cullMaxX && p.y >= this.cullMinY && p.y <= this.cullMaxY) p.draw(this.ctx); }
+    this.projectiles = this.projectiles.filter(p => p.life > 0);
+
+    if (this.queuedFireball && this.player) {
+      const qf = this.queuedFireball;
+      const spawnX = qf.x || qf.spawnX, spawnY = qf.y || qf.spawnY;
+      let canSpawn = true;
+      for (let p of this.projectiles) {
+        if (p.type === 'fireball' && p.life > 0 && Math.hypot(p.x - spawnX, p.y - spawnY) < (qf.radius || 15) + (p.radius || 15) + 10) { canSpawn = false; break; }
+      }
+      if (canSpawn) {
+        this.spawnProjectile({ type: 'fireball', x: spawnX, y: spawnY, speed: qf.speed || 5, life: qf.fbLife || 80, maxLife: qf.fbLife || 80, color: qf.color || '#e67e22', damage: qf.damage || 1, critChance: 0.2, radius: qf.radius || 15, traveled: 0, trailTimer: 0, trailPositions: [], tx: qf.tx, ty: qf.ty, angle: qf.angle, facing: qf.facing });
+        this.spawnParticles(spawnX, spawnY, qf.color || '#e67e22', 15, 4);
+        this.queuedFireball = null;
+      }
+    }
+
+    this.renderer.renderParticles();
+    this.renderer.renderAtmosEffects();
+    this.renderer.renderFloatingTexts();
+
+    this.ui.updatePartyList(this.otherPlayers);
+    this.ui.updateBuffs(this.player?.alive && this.state === 'PLAYING' ? this.player.buffHpTimer : 0, this.player?.alive && this.state === 'PLAYING' ? this.player.buffManaTimer : 0);
+
+    let cdSpeedMultiplier = 1;
+    if (this.player?.alive && this.state === 'PLAYING') {
+      if (this.player.buffHpTimer > 0) {
+        this.player.buffHpTimer -= 16.67 * dt;
+        if (this.player.buffHpTimer <= 0) this.ui.addLog('💔 Vampirism buff expired!', 'system');
+        if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#e74c3c', 1, 3);
+      }
+      if (this.player.buffManaTimer > 0) {
+        this.player.buffManaTimer -= 16.67 * dt;
+        if (this.player.buffManaTimer <= 0) this.ui.addLog('⚡ Skill Cooldown buff expired!', 'system');
+        cdSpeedMultiplier = ConfigModule.POTION_BLUE_CD_MULTIPLIER;
+        if (Math.random() < 0.1) this.spawnParticles(this.player.x + (Math.random() - 0.5) * 30, this.player.y - Math.random() * 50, '#3498db', 1, 3);
+      }
+    }
+    if (this.s2Cooldown > 0) {
+      this.s2Cooldown = Math.max(0, this.s2Cooldown - 16.67 * dt * cdSpeedMultiplier);
+      if (this.s2Cooldown <= 0 && this.autoRestartS2 && this.player && !this.player.isMoving) { this.autoRestartS2 = false; this.startChargingSkill2(); }
+    }
+    this.ui.updateCooldownRing(this.s2Cooldown, this.s2MaxCooldown);
+    this.waveManager.updateWaveTransitions(dt, activePlayers);
+    this.syncTimer = (this.syncTimer || 0) + 16.67 * dt;
+    if (this.syncTimer >= 100) { this.syncTimer = 0; this.checkHost(); this.broadcastState(); }
+    this.renderer.renderDayNightOverlays();
+    this.hudManager.updateTargetPanel();
+    this.hudManager.updateGameTimeDisplay(effectiveStartTime);
+    this.hudManager.updateFpsDisplay();
+
+    this.ctx.restore();
     this.renderWebGL();
     requestAnimationFrame((t) => this.loop(t));
   }
+
 }
