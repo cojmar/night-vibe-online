@@ -70,10 +70,12 @@ export default class Game {
     this.frameCount = this.lastFpsTime = 0;
     this.isHost = false;
     this.syncTimer = 0;
+    this._gameOverEmitted = false;
     this.sessionSeed = Math.floor(Math.random() * 2000000000);
     this.prng = new PRNG(this.sessionSeed + this.wave * 12345);
     this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
     this.gameStartUTC = 0;
+    this._clockOffset = 0;
     this.hostCheckTimer = this.emptyWaveTimer = 0;
     this._syncRequested = false;
     this._syncRetryTimer = 0;
@@ -166,6 +168,7 @@ export default class Game {
   startGame(selectedClass) {
     if (this.ui?.saveLastGameConfig) this.ui.saveLastGameConfig();
     this._resetSessionData();
+    this._gameOverEmitted = false;
     this.networkSync._lastSentState = {};
     this.selectedEnv = ENV_LIST[0];
     this.kills = GAME_INITIAL_KILLS;
@@ -302,6 +305,7 @@ export default class Game {
     this.state = 'MENU';
     this._syncRequested = false;
     this._syncRetryTimer = 0;
+    this._gameOverEmitted = false;
     document.getElementById('game-btns').style.display = 'none';
     ['hud', 'cd-ring', 'compact-log', 'walk-indicator'].forEach(id => document.getElementById(id).classList.remove('visible'));
     document.getElementById('menu-panel').classList.remove('hidden');
@@ -315,7 +319,7 @@ export default class Game {
     this.ui.addLog('🎮 Returned to character selection!', 'player');
     if (this.net?.me) {
       this._resetSessionData();
-      this.isHost = false; this.gameStartUTC = 0;
+      this.isHost = false; this.gameStartUTC = 0; this._clockOffset = 0;
       this.net.send_cmd('set_data', { inGame: false, state: 'MENU', gameplayConfig: {}, classData: {}, enemyTypes: [], itemsDb: [] });
     }
     this.checkHost();
@@ -334,7 +338,7 @@ export default class Game {
     if (this.state !== 'PLAYING') { this.renderWebGL(); requestAnimationFrame((t) => this.loop(t)); return; }
     const dt = this.lastTime ? Math.min((time - this.lastTime) / 16.67, 3) : 1;
     this.lastTime = time;
-    this.globalTime = (Date.now() - this.gameStartUTC) / 1000;
+    this.globalTime = (Date.now() + this._clockOffset - this.gameStartUTC) / 1000;
     this.frameCount = (this.frameCount || 0) + 1;
     if (!this.lastFpsTime) this.lastFpsTime = Date.now();
     if (Date.now() - this.lastFpsTime >= 2000) { this.fps = this.frameCount / 2; this.frameCount = 0; this.lastFpsTime = Date.now(); this.settingsManager.adjustAutoQuality(); }
@@ -400,7 +404,9 @@ export default class Game {
       drawItems.push({ y: this.player.moveTargetY - 1, t: 0 });
     }
     for (let e of this.enemies) {
-      if (e.x < this.cullMinX || e.x > this.cullMaxX || e.y < this.cullMinY || e.y > this.cullMaxY) continue;
+      if (e.x < this.cullMinX || e.x > this.cullMaxX || e.y < this.cullMinY || e.y > this.cullMaxY) {
+        if (!(e.name === 'BOSS' && (e.bossState === 'CHANNELING_LASER' || e.bossState === 'FIRING_LASER'))) continue;
+      }
       drawItems.push({ y: e.y, t: 1, r: e });
     }
     if (this.player) drawItems.push({ y: this.player.y, t: 2 });

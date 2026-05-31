@@ -214,7 +214,7 @@ export default class Enemy {
         this.missileTimer = 0;
 
         this._bossAction = (this._bossAction || 0) + 1;
-        const gameTimeSec = Math.floor(this.game.globalTime || (Date.now() - this.game.gameStartUTC) / 1000);
+        const gameTimeSec = Math.floor(this.game.globalTime || (Date.now() + (this.game._clockOffset || 0) - this.game.gameStartUTC) / 1000);
         const bossActionPrng = new PRNG(this.spawnIndex * 7777 + gameTimeSec * 1337);
         if (this.game.wave >= 2 && bossActionPrng.nextFloat() < 0.4) {
           this.bossState = 'CHANNELING_LASER';

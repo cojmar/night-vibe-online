@@ -419,7 +419,7 @@ export const CLASS_DATA = JSON.parse(JSON.stringify(FALLBACK_CLASS_DATA));
 
 try {
   const customClasses = JSON.parse(localStorage.getItem('nightvibe-custom-classes'));
-  if (customClasses) {
+  if (customClasses && Object.keys(customClasses).length > 0) {
     for (const key in CLASS_DATA) {
       delete CLASS_DATA[key];
     }
@@ -427,6 +427,9 @@ try {
   }
 } catch (e) {
   console.error("Failed loading custom classes", e);
+}
+if (!CLASS_DATA.warrior) {
+  CLASS_DATA.warrior = { ...FALLBACK_CLASS_DATA.warrior };
 }
 
 export const FALLBACK_ENEMY_TYPES = [

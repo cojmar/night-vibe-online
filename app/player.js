@@ -6,7 +6,7 @@ export default class Player {
     this.id = id;
     this.isLocal = isLocal;
     this.classType = classType;
-    const cd = CLASS_DATA[classType] || CLASS_DATA.warrior;
+    const cd = CLASS_DATA[classType] || CLASS_DATA.warrior || { hp: 170, atk: 22, spd: 8, color: '#c0392b', accent: '#e74c3c' };
 
     this.x = x;
     this.y = y;

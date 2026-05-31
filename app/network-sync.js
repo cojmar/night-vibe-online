@@ -10,6 +10,9 @@ export default class NetworkSync {
     this._lastSentState = {};
     this._lastConfigStr = '';
     this._broadcastThrottle = 0;
+    this._clockSyncInFlight = false;
+    this._pendingClockSyncT1 = 0;
+    this._lastClockSync = 0;
   }
 
   bindEvents() {
@@ -35,11 +38,22 @@ export default class NetworkSync {
     this.game.net.on('game_over', () => this.game.quitToMenu());
     this.game.net.on('wave_transition', (event) => this.applyWaveTransition(event.data));
     this.game.net.on('request_game_sync', (event) => {
-      if (this.game.isHost) this.sendGameSync(event.data);
+      if (this.game.isHost) this.sendGameSync(event);
     });
     this.game.net.on('game_sync', (event) => {
       if (event.data.targetUserId && event.data.targetUserId !== this.game.net.me.info.user) return;
       this.applyGameSync(event.data);
+    });
+    this.game.net.on('clock_sync_req', (event) => {
+      if (this.game.isHost) {
+        this.game.net.send_cmd('clock_sync_resp', {
+          t1: event.data.t1,
+          t2: Date.now()
+        });
+      }
+    });
+    this.game.net.on('clock_sync_resp', (event) => {
+      this.processClockSyncResp(event.data);
     });
   }
 
@@ -52,10 +66,36 @@ export default class NetworkSync {
     });
   }
 
+  requestClockSync() {
+    if (this._clockSyncInFlight) return;
+    this._clockSyncInFlight = true;
+    this._pendingClockSyncT1 = Date.now();
+    this.game.net.send_cmd('clock_sync_req', {
+      t1: this._pendingClockSyncT1
+    });
+  }
+
+  processClockSyncResp(data) {
+    if (!this._clockSyncInFlight) return;
+    this._clockSyncInFlight = false;
+    const t1 = this._pendingClockSyncT1;
+    const t2 = data.t2;
+    const t4 = Date.now();
+    if (!t1 || !t2) return;
+    const offset = t2 - (t1 + t4) / 2;
+    this.game._clockOffset = Math.round(offset);
+    this._lastClockSync = Date.now();
+  }
+
   sendGameSync(event) {
     const g = this.game;
+    const eventData = event.data || event;
+    const t1 = eventData.timestamp || 0;
+    const t2 = Date.now();
     this.emitEvent('game_sync', {
-      targetUserId: event.source,
+      targetUserId: eventData.source || eventData.targetUserId,
+      clientReqTime: t1,
+      hostRecvTime: t2,
       gameStartUTC: g.gameStartUTC || 0,
       sessionSeed: g.sessionSeed,
       seed: g.prng ? g.prng.seed : 0,
@@ -93,7 +133,18 @@ export default class NetworkSync {
     g._syncRequested = false;
     g._syncRetryTimer = 0;
     g.gameStartUTC = event.gameStartUTC;
-    g.globalTime = Date.now() - event.gameStartUTC;
+
+    if (!g.isHost && event.clientReqTime && event.hostRecvTime && event.timestamp) {
+      const t1 = event.clientReqTime;
+      const t2 = event.hostRecvTime;
+      const t3 = event.timestamp;
+      const t4 = Date.now();
+      const offset = ((t2 - t1) + (t3 - t4)) / 2;
+      g._clockOffset = Math.round(offset);
+      this._lastClockSync = Date.now();
+    }
+
+    g.globalTime = (Date.now() + g._clockOffset - event.gameStartUTC) / 1000;
     g.sessionSeed = event.sessionSeed;
     if (!g.prng) g.prng = new PRNG(event.seed);
     else g.prng.seed = event.seed;
@@ -401,6 +452,10 @@ export default class NetworkSync {
     const now = Date.now();
     if (now - this._broadcastThrottle < 50) return;
     this._broadcastThrottle = now;
+
+    if (!this.game.isHost && now - this._lastClockSync > 15000) {
+      this.requestClockSync();
+    }
 
     const last = this._lastSentState;
     const delta = {};
