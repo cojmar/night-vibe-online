@@ -432,7 +432,7 @@ export default class Player {
     ctx.beginPath();
     ctx.ellipse(px, py + feetOffset, 20, 6, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = baseAlpha;
 
 
 

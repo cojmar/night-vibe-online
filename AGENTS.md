@@ -37,6 +37,7 @@
 - **Reticle (crosshair)**: stays in normal depth-sorted `draw()` — under entities with higher Y.
 - **drawLaserOverlay**: separate method in `Enemy` class, uses `Date.now()` for animations, draws targeting beam + crown orb (CHANNELING) and laser beam (FIRING).
 - **Stun**: 50% ATK damage, duration `Math.floor(ATK/300 * 60 * 1.15)`s, post-stun cooldown 75% of duration, knockback pure horizontal 8px, full freeze (no ground Y mod), all enemies except MISSILE/BOMB.
+- **Dead player transparency**: `baseAlpha` (0.2-0.3 for dead) preserved after shadow drawing (`player.js:435`).
 
 ### Relevant Files
 - `app/enemy.js`: stun freeze block (boss state reset), drawLaserOverlay method, reticle-only draw
