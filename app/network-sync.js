@@ -356,7 +356,7 @@ export default class NetworkSync {
     });
     this.game.enemies = this.game.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
     if (hostData.items) {
-      this.game.items = hostData.items.map(item => ({ ...item }));
+      this.game.items = hostData.items.filter(item => !this.game.itemManager.pendingPickupIds.has(item.id)).map(item => ({ ...item }));
     }
   }
 

@@ -392,29 +392,43 @@ export default class Game {
     }
     for (const key in this.otherPlayers) { this.otherPlayers[key].updateMovement(dt, this); }
 
-    let renderables = [];
+    let drawItems = [];
     if (this.player?.isMoving && !this.player.autoAttackTarget) {
-      renderables.push({ y: this.player.moveTargetY - 1, draw: (ctx) => this.renderer.renderPlayerWalkMarkerRaw(ctx, this.player) });
+      drawItems.push({ y: this.player.moveTargetY - 1, t: 0 });
     }
     for (let e of this.enemies) {
       if (e.x < this.cullMinX || e.x > this.cullMaxX || e.y < this.cullMinY || e.y > this.cullMaxY) continue;
-      renderables.push({ y: e.y, draw: (ctx) => { this.renderer.renderEnemyTargetHighlight(e, ctx); e.draw(ctx, getGroundY(this.selectedEnv)); } });
+      drawItems.push({ y: e.y, t: 1, r: e });
     }
-    if (this.player) renderables.push({ y: this.player.y, draw: (ctx) => this.player.draw(ctx, dt, this) });
+    if (this.player) drawItems.push({ y: this.player.y, t: 2 });
     for (const key in this.otherPlayers) {
       const p = this.otherPlayers[key];
-      if (p.inGame && !(p.x < this.cullMinX || p.x > this.cullMaxX || p.y < this.cullMinY || p.y > this.cullMaxY)) renderables.push({ y: p.y, draw: (ctx) => p.draw(ctx, dt, this) });
+      if (p.inGame && !(p.x < this.cullMinX || p.x > this.cullMaxX || p.y < this.cullMinY || p.y > this.cullMaxY)) drawItems.push({ y: p.y, t: 3, r: p });
     }
 
     this.itemManager.updateItems(dt);
     if (this.items) {
       for (let item of this.items) {
-        if (item.x >= this.cullMinX && item.x <= this.cullMaxX && item.y >= this.cullMinY && item.y <= this.cullMaxY) renderables.push({ y: item.y, draw: (ctx) => this.renderer.renderItem(item, ctx) });
+        if (item.x >= this.cullMinX && item.x <= this.cullMaxX && item.y >= this.cullMinY && item.y <= this.cullMaxY) drawItems.push({ y: item.y, t: 4, r: item });
       }
     }
     this.renderer.renderGroundFoliage();
-    renderables.sort((a, b) => a.y - b.y);
-    renderables.forEach(r => r.draw(this.ctx));
+    drawItems.sort((a, b) => a.y - b.y);
+    for (let i = 0, di; i < drawItems.length; i++) {
+      di = drawItems[i];
+      if (di.t === 0) {
+        this.renderer.renderPlayerWalkMarkerRaw(this.ctx, this.player);
+      } else if (di.t === 1) {
+        this.renderer.renderEnemyTargetHighlight(di.r, this.ctx);
+        di.r.draw(this.ctx, getGroundY(this.selectedEnv));
+      } else if (di.t === 2) {
+        this.player.draw(this.ctx, dt, this);
+      } else if (di.t === 3) {
+        di.r.draw(this.ctx, dt, this);
+      } else if (di.t === 4) {
+        this.renderer.renderItem(di.r, this.ctx);
+      }
+    }
 
     for (let p of this.projectiles) { p.update(dt, this); if (p.x >= this.cullMinX && p.x <= this.cullMaxX && p.y >= this.cullMinY && p.y <= this.cullMaxY) p.draw(this.ctx); }
     this.projectiles = this.projectiles.filter(p => p.life > 0);

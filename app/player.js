@@ -404,16 +404,12 @@ export default class Player {
     // Shadow at feet
     const feetOffsets = { warrior: 16, mage: 18, archer: 18, magicgladiator: 16 };
     const feetOffset = feetOffsets[renderType] || 38;
-    const feetY = py + feetOffset;
-    const depthRatio = Math.max(0, (feetY - groundY) / (gameInstance.gameH - groundY));
-    const shadowAlpha = (0.25 + depthRatio * 0.4) * baseAlpha;
-    const shadowWidth = 18 + depthRatio * 6 + ((this.isMoving || this.action === 'walk') ? 2 : 0);
-    const shadowHeight = 5 + depthRatio * 3;
-
-    ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.ellipse(px, feetY, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, py + feetOffset, 20, 6, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = 1;
 
 
 
@@ -435,7 +431,7 @@ export default class Player {
     const unscaledPy = py;
     // Aim calculations based on synced mouse position
     let rawAim;
-    if (this.isLocal || this.action === 'attack' || this.isChargingS2) {
+    if (this.isLocal) {
       rawAim = Math.atan2(this.mouseY - (py - 40), this.mouseX - px);
     } else {
       rawAim = this.aimAngle !== undefined ? this.aimAngle : (this.facing > 0 ? 0 : Math.PI);

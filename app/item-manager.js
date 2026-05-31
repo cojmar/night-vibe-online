@@ -3,9 +3,11 @@ import * as ConfigModule from './config.js';
 export default class ItemManager {
   constructor(game) {
     this.game = game;
+    this.pendingPickupIds = new Set();
   }
 
   handleItemPickup(event) {
+    this.pendingPickupIds.delete(event.itemId);
     const idx = this.game.items.findIndex(i => i.id === event.itemId);
     if (idx >= 0) this.game.items.splice(idx, 1);
   }
@@ -84,6 +86,7 @@ export default class ItemManager {
       this.game.saveLocalProgression();
       if (this.game.player.isLocal) {
         this.game.net.send_cmd("item_pickup", item.id);
+        this.pendingPickupIds.add(item.id);
       }
     } else if (item.type === 'red') {
       this.game.player.buffHpTimer = ConfigModule.POTION_BUFF_DURATION;
@@ -96,6 +99,7 @@ export default class ItemManager {
       this.game.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(ConfigModule.POTION_BUFF_DURATION / 1000)}s`, 'reward');
       if (this.game.player.isLocal) {
         this.game.net.send_cmd("item_pickup", item.id);
+        this.pendingPickupIds.add(item.id);
       }
     } else if (item.type === 'blue') {
       this.game.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
@@ -108,6 +112,7 @@ export default class ItemManager {
       this.game.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
       if (this.game.player.isLocal) {
         this.game.net.send_cmd("item_pickup", item.id);
+        this.pendingPickupIds.add(item.id);
       }
     }
 

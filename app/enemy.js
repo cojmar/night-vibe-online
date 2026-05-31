@@ -302,15 +302,12 @@ export default class Enemy {
     if (this.hitFlash > 0 && this.alive) ctx.globalAlpha *= 0.5 + Math.sin(this.hitFlash * 3) * 0.5;
 
     if (this.y + this.size * 0.5 >= groundY) {
-      const eDepth = Math.max(0, Math.min(1, (this.y - groundY) / (this.game.gameH - groundY)));
-      const eShadowAlpha = 0.4 + eDepth * 0.6;
-      const eShadowW = this.size * 0.65 + eDepth * this.size * 0.2;
-      const eShadowH = this.size * 0.18 + eDepth * this.size * 0.1;
-
-      ctx.fillStyle = `rgba(0,0,0,${eShadowAlpha})`;
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = '#000';
       ctx.beginPath();
-      ctx.ellipse(this.x, this.y + this.size * 0.5 + 3.5, eShadowW, eShadowH, 0, 0, Math.PI * 2);
+      ctx.ellipse(this.x, this.y + this.size * 0.5 + 3.5, this.size * 0.6, this.size * 0.15, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 1;
     }
 
     // Body

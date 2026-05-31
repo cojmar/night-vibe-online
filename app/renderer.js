@@ -4,6 +4,8 @@ import * as ConfigModule from './config.js';
 export default class Renderer {
   constructor(game) {
     this.game = game;
+    this._cachedEnv = null;
+    this._skyGradient = null;
   }
 
   initWebGL() {
@@ -137,11 +139,14 @@ export default class Renderer {
     const gY = this.game.gameH * env.groundY;
     const ctx = this.game.ctx;
 
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, gY);
-    skyGrad.addColorStop(0, env.skyTop);
-    skyGrad.addColorStop(0.5, env.skyMid);
-    skyGrad.addColorStop(1, env.skyBot);
-    ctx.fillStyle = skyGrad;
+    if (this._cachedEnv !== this.game.selectedEnv) {
+      this._cachedEnv = this.game.selectedEnv;
+      this._skyGradient = ctx.createLinearGradient(0, 0, 0, gY);
+      this._skyGradient.addColorStop(0, env.skyTop);
+      this._skyGradient.addColorStop(0.5, env.skyMid);
+      this._skyGradient.addColorStop(1, env.skyBot);
+    }
+    ctx.fillStyle = this._skyGradient;
     ctx.fillRect(-2000, 0, this.game.gameW + 4000, gY);
 
     const nightAlpha = this.game.nightAlpha || 0;
@@ -191,12 +196,6 @@ export default class Renderer {
       ctx.fillRect(-2000, 0, this.game.gameW + 4000, gY);
     }
 
-    ctx.save();
-    const sepiaAmt = dayAlpha * 45;
-    const grayscaleAmt = nightAlpha * 95;
-    const brightnessAmt = 100 + (dayAlpha * 50) - (nightAlpha * 75);
-    ctx.filter = `sepia(${sepiaAmt}%) grayscale(${grayscaleAmt}%) brightness(${brightnessAmt}%)`;
-
     if (this.game.atmosEffects && this.game.atmosEffects.length > 0) {
       for (let ef of this.game.atmosEffects) {
         if (ef.type === 'cloud') {
@@ -241,7 +240,6 @@ export default class Renderer {
         ctx.fill();
       }
     }
-    ctx.restore();
 
     ctx.fillStyle = env.ground;
     ctx.fillRect(-2000, gY, this.game.gameW + 4000, this.game.gameH - gY);
@@ -265,11 +263,8 @@ export default class Renderer {
 
       if (p.isShockwave) {
         const currentSize = p.size * (1 + (1 - progress) * 1.5);
-        const grad = ctx.createRadialGradient(p.x, p.y, currentSize * 0.1, p.x, p.y, currentSize);
-        grad.addColorStop(0, p.color);
-        grad.addColorStop(0.3, p.color);
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = grad;
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = progress * 0.4;
         ctx.beginPath();
         ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
         ctx.fill();
@@ -430,34 +425,18 @@ export default class Renderer {
     const ctx = this.game.ctx;
     if (!this.game.moveMarker) return;
     const progress = Math.max(0, this.game.moveMarker.life / this.game.moveMarker.maxLife);
-    ctx.save();
     ctx.globalAlpha = progress;
-
-    const isCollecting = this.game.moveMarker.color === 'green';
-    if (isCollecting) {
-      ctx.strokeStyle = 'rgba(241, 196, 15, 0.8)';
-      ctx.shadowColor = '#f1c40f';
-      ctx.shadowBlur = 10;
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.arc(this.game.moveMarker.x, this.game.moveMarker.y, 14 * progress, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    } else {
-      ctx.strokeStyle = 'rgba(241, 196, 15, 0.8)';
-      ctx.shadowColor = '#f1c40f';
-      ctx.shadowBlur = 10;
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.arc(this.game.moveMarker.x, this.game.moveMarker.y, 14 * progress, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    ctx.strokeStyle = 'rgba(241, 196, 15, 0.8)';
+    ctx.shadowColor = '#f1c40f';
+    ctx.shadowBlur = 10;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.arc(this.game.moveMarker.x, this.game.moveMarker.y, 14 * progress, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
     ctx.shadowBlur = 0;
     this.game.moveMarker.life -= 1;
-    ctx.restore();
     ctx.globalAlpha = 1;
   }
 
@@ -497,14 +476,6 @@ export default class Renderer {
     if (!this.game.groundFoliage) return;
     for (let gf of this.game.groundFoliage) {
       if (gf.x < this.game.cullMinX || gf.x > this.game.cullMaxX || gf.y < this.game.cullMinY || gf.y > this.game.cullMaxY) continue;
-      ctx.save();
-      let filter = 'none';
-      if (this.game.nightAlpha > 0) {
-        filter = `grayscale(${this.game.nightAlpha * 95}%) brightness(${100 - this.game.nightAlpha * 25}%)`;
-      } else if (this.game.dayAlpha > 0) {
-        filter = `sepia(${this.game.dayAlpha * 60}%) brightness(${100 + this.game.dayAlpha * 25}%)`;
-      }
-      ctx.filter = filter;
       ctx.fillStyle = gf.color;
       ctx.beginPath();
       if (gf.type === 'grass') {
@@ -518,7 +489,6 @@ export default class Renderer {
         ctx.arc(gf.x, gf.y, gf.size / 2, 0, Math.PI * 2);
       }
       ctx.fill();
-      ctx.restore();
     }
   }
 
