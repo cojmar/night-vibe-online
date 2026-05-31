@@ -37,7 +37,7 @@ export default class CombatManager {
       const typeStr = clickedItem.type === 'red' ? '❤️ Potion' : '⚡ Potion';
       document.getElementById('walk-indicator').innerHTML = `🧪 Collecting ${typeStr}...`;
       document.getElementById('walk-indicator').classList.add('visible');
-      this.game.broadcastState();
+      this.game.networkSync.broadcastState();
       return;
     }
 
@@ -74,7 +74,7 @@ export default class CombatManager {
     }
 
     this.game.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30, color: 'yellow' };
-    this.game.broadcastState();
+    this.game.networkSync.broadcastState();
   }
 
   doSkill1(tx, ty) {
@@ -149,7 +149,7 @@ export default class CombatManager {
         this.game.spawnParticles(this.game.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, Math.random() > 0.5 ? '#ffd700' : '#fff', 1, 2 + Math.random() * 3, 2);
       }
     }
-    this.game.broadcastState();
+    this.game.networkSync.broadcastState();
   }
 
   startChargingSkill2() {
@@ -165,7 +165,7 @@ export default class CombatManager {
     this.game.player.action = 'attack';
     this.game.player.animTimer = 9999;
     this.game.player.lastSkill = 2;
-    this.game.broadcastState();
+    this.game.networkSync.broadcastState();
   }
 
   releaseSkill2() {
@@ -306,7 +306,7 @@ export default class CombatManager {
       const singleRadius = 25 * aoeScale * areaMultiRadius * lvlScale;
       this.game.spawnProjectile({ type: 'shockwave', originX: this.game.player.x, originY: weaponY, x: this.game.player.x, y: weaponY, speed: 6.5, life: 50, maxLife: 50, color: cd.s2Color || '#ffd700', damage: singleDamage, critChance: 0.2, maxDistance: waveDistance, radius: singleRadius, traveled: 0, trailTimer: 0, trailPositions: [], ...projProps, angle: aimAngle, charges: charges });
     }
-    this.game.broadcastState();
+    this.game.networkSync.broadcastState();
   }
 
   dealDamageToPlayer(damage) {
@@ -329,45 +329,52 @@ export default class CombatManager {
     if (this.game.player.hp <= 0) {
       this.game.player.hp = 0;
       this.game.player.alive = false;
-      this.game.broadcastState();
+      this.game.networkSync.broadcastState();
       this.game.ui.showDeathScreen(`${this.game.waveEnemiesKilled}/${this.game.waveTotalEnemies}`, this.game.wave);
     } else {
-      this.game.broadcastState();
+      this.game.networkSync.broadcastState();
     }
   }
 
-  dealDamage(enemy, baseDamage, critChance) {
+  emitEnemyHit(enemy, baseDamage, critChance) {
     if (!enemy.alive) return;
-    const isCrit = Math.random() < critChance;
-    const damage = Math.round(baseDamage * (isCrit ? 2.0 : 1.0) * (0.9 + Math.random() * 0.2));
-    this.game.pendingHits.push({ id: enemy.id, damage: damage, isCrit: isCrit, source: this.game.net.me.info.user });
+    if (!this.game.net || !this.game.net.me) return;
+    const prng = this.game.prng;
+    const isCrit = prng ? prng.nextFloat() < critChance : Math.random() < critChance;
+    const dmgRoll = prng ? prng.nextFloat() : Math.random();
+    const damage = Math.round(baseDamage * (isCrit ? 2.0 : 1.0) * (0.9 + dmgRoll * 0.2));
+    this.game.networkSync.emitEvent('enemy_hit', {
+      enemyId: enemy.id,
+      damage: damage,
+      isCrit: isCrit,
+      sourceUserId: this.game.net.me.info.user
+    });
+  }
+
+  applyEnemyHit(event) {
+    const enemy = this.game.enemies.find(e => e.id === event.enemyId);
+    if (!enemy || !enemy.alive) return;
+    enemy.hp -= event.damage;
+    enemy.hitFlash = 8;
+    this.game.floatingTexts.push({
+      x: enemy.x + (Math.random() - 0.5) * 20,
+      y: enemy.y - 30,
+      text: (event.isCrit ? '💥 ' : '') + event.damage,
+      color: event.isCrit ? '#ffd700' : '#fff',
+      life: 40, maxLife: 40, isCrit: event.isCrit
+    });
     if (this.game.player && this.game.player.buffHpTimer > 0 && this.game.player.hp > 0) {
-      const healAmount = Math.floor(damage * POTION_LIFESTEAL_PERCENT);
+      const healAmount = Math.floor(event.damage * POTION_LIFESTEAL_PERCENT);
       this.game.player.hp = Math.min(this.game.player.maxHp, this.game.player.hp + healAmount);
       if (healAmount > 0) {
         this.game.floatingTexts.push({ x: this.game.player.x, y: this.game.player.y - 60, text: '+' + healAmount, color: '#2ecc71', life: 40, maxLife: 40, isCrit: false });
       }
       this.game.ui.updateHUD(this.game.player);
     }
-    if (this.game.isHost) {
-      enemy.hp -= damage;
-      enemy.hitFlash = 8;
-      this.game.floatingTexts.push({ x: enemy.x + (Math.random() - 0.5) * 20, y: enemy.y - 30, text: (isCrit ? '💥 ' : '') + damage, color: isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: isCrit });
-      if (enemy.hp <= 0) {
-        enemy.alive = false; enemy.deathTime = Date.now(); enemy.hp = 0;
-        this.game.spawnEnemyDeathExplosion(enemy);
-        this.game.net.send_cmd('set_data', { enemyKilled: this.game.net.me.info.user + '_' + Math.random() });
-        this.game.waveEnemiesKilled++;
-        if (this.game.bossActive && enemy.name === 'BOSS') {
-          const aliveBosses = this.game.enemies.filter(e => e.name === 'BOSS' && e.alive);
-          if (aliveBosses.length === 0) {
-            this.game.enemies.forEach(e => { if (e.alive) { e.hp = 0; e.alive = false; } });
-            this.game.waveTransitionTimer = 120;
-          }
-        } else if (!this.game.bossActive && this.game.waveEnemiesKilled >= this.game.waveTotalEnemies) {
-          this.game.waveTransitionTimer = 120;
-        }
-      }
+    if (enemy.hp <= 0) {
+      enemy.alive = false; enemy.deathTime = Date.now(); enemy.hp = 0;
+      this.game.spawnEnemyDeathExplosion(enemy);
+      this.game.networkSync.emitEvent('enemy_killed', { enemyId: enemy.id, playerId: event.sourceUserId });
     }
   }
 
@@ -394,7 +401,7 @@ export default class CombatManager {
     if (newCount > (player.s2ChargeCount || 0)) {
       player.s2ChargeCount = newCount;
       if (player.classType !== 'warrior') this.game.particleManager.spawnParticles(player.x, player.y - 40, '#ffd700', 15, 4);
-      this.game.broadcastState();
+      this.game.networkSync.broadcastState();
     }
     if (player.classType === 'magicgladiator' && Math.random() < 0.15 * dt) {
       const angle = Math.random() * Math.PI * 2;
@@ -405,20 +412,13 @@ export default class CombatManager {
   }
 
   spawnProjectile(props, broadcast = true) {
-    const p = new Projectile(props);
-    if (!p.ownerId && this.game.net && this.game.net.me) {
-      p.ownerId = this.game.net.me.info.user;
-    }
-    if (!p.id) {
-      p.id = 'P_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-    }
-    this.game.projectiles.push(p);
-
-    if (broadcast) {
-      const cleanProps = { ...props, id: p.id, ownerId: p.ownerId };
-      delete cleanProps.image;
-      delete cleanProps.flippedImage;
-      this.game.net.send_cmd('set_data', { spawnedProjectile: cleanProps });
-    }
+    if (!broadcast) return;
+    if (!this.game.net || !this.game.net.me) return;
+    const ownerId = props.ownerId || this.game.net.me.info.user;
+    const id = props.id || 'P_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    const cleanProps = { ...props, id, ownerId };
+    delete cleanProps.image;
+    delete cleanProps.flippedImage;
+    this.game.networkSync.emitEvent('projectile_spawn', { projectile: cleanProps });
   }
 }

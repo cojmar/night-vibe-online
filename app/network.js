@@ -1,89 +1,31 @@
 /**
  * # Network Module — Night Vibe Online
  *
- * Thin WebSocket client that communicates with the Pinokio multiplayer server.
+ * Thin WebSocket client for the Pinokio multiplayer server.
  *
- * ── How it works ──────────────────────────────────────────────────────────
- *
- * 1. The client sends a command via `send_cmd(cmd, data)`.
- *    Wire format: `{ cmd: "some_cmd", data: { ... } }`
- *
- * 2. The server receives the command, processes it, and may broadcast
- *    an event to the room. The event payload always follows the shape:
- *    `{ room: "room_id", user: "sender_user_id", data: <original data> }`
- *
- * 3. Other clients receive the broadcast via the WebSocket `onmessage`
- *    handler, which calls `emit_event(cmd, payload)`.
- *
- * 4. `emit_event` first calls `map_room(cmd, payload)` to update local copies
- *    of room metadata (`this.room`, `this.me`), then dispatches registered
- *    callbacks for `"cmd"` (wildcard) and for the specific `cmd` string.
- *
- * ── set_data: deep-merge protocol ─────────────────────────────────────────
- *
- * `send_cmd('set_data', partialState)` is the **primary state-sync mechanism**.
- *
- * The SERVER stores a per-user data blob and applies received data via DEEP MERGE:
- *
- *   serverStoredData = deepMerge(serverStoredData, partialState)
- *
- * **Deep merge rules** (implemented in `do_merge`):
- *   - Primitives (string, number, bool, null) → overwrite
- *   - Objects → recurse into each key; if key exists in target, merge; else assign
- *   - Arrays → treated as objects (merged by array index, NOT by element identity)
- *   - Missing keys → NOT deleted; the merge only ADDS/UPDATES keys present in source
- *
- * Because the merge is additive, the sender MUST NOT rely on sending a partial
- * object to implicitly delete keys. To delete, send the key with a null/empty value
- * (the server must handle this, which the current server does NOT — so deletions
- * are avoided).
- *
- * **Client receives the MERGED result** via `room.user_data` event.
- * The payload `data.data` contains the full merged user state.
- *
- * **Key consequence for hostData.enemies / hostData.items:**
- * Because arrays are merged by INDEX (not by element id), incremental enemy/item
- * updates must NOT use `do_merge` on the array directly. Instead:
- *   - The HOST sends an EMPTY `hostData.enemies` array when there are no changes
- *   - The HOST sends only dirty enemies when there ARE changes
- *   - The client's `syncHostData()` in `network-sync.js` handles ID-based merging
- *     (it does NOT rely on server-side deep merge for the enemies array)
- *
- * ── Custom game events ────────────────────────────────────────────────────
- *
- * For events that need custom routing (not state sync), use:
- *
- *   send_cmd('room.msg', { cmd: 'game.event', data: { type: 'my_type', ... } })
- *
- * Registered via:
- *   network.on('room.msg', (payload) => { ... })
- *     payload = { room: "...", user: "...", data: { cmd: 'game.event', data: { type, source, ... } } }
- *
- * Custom game event types:
- *
- *   'game.event' with data.type:
- *     'start_game'     → payload.data = { type:'start_game', source: userId }
- *     'player_death'   → payload.data = { type:'player_death', source: userId }
- *     'skill1'         → payload.data = { type:'skill1', classType, x, y, targetX, targetY, ... }
- *     'respawn'        → payload.data = { type:'respawn', source: userId }
- *
- * ── Events emitted by the network module ──────────────────────────────────
- *
- * `connect`       → { server: "ws://..." }
- * `disconnect`    → CloseEvent (native WebSocket event)
- * `room.info`     → room object { name, me, users, ... }
- * `my.info`       → user info object { user, token, ... }
- * `room.user_join` → { user: "id", data: { ... }, room: "name" }
- * `room.user_leave` → { user: "id", room: "name" }
- * `room.user_data` → { user: "id", room: "name", data: { ... } }
- *                   data = the merged user-state blob (contains set_data results)
- * `room.msg`      → { user: "id", room: "name", data: { cmd, data } }
- *                   data.data = custom payload (see Custom game events above)
- *
- * ── Wire format ───────────────────────────────────────────────────────────
- *
+ * ── Wire format ──────────────────────────────────────────────────
  * BSON (binary) if the BSON library is loaded, otherwise JSON.
  * Auto-detected: if `typeof BSON !== 'undefined'`, binaryType = 'arraybuffer'.
+ *
+ * ── Sending commands ─────────────────────────────────────────────
+ * `send_cmd(cmd, data)` sends `{ cmd, data }` to the server.
+ *
+ *   set_data — deep-merges `data` into the sender's user-data blob
+ *   on the server, then broadcasts the MERGED blob to all clients
+ *   via `room.user_data`. Arrays are merged by INDEX.
+ *
+ *   Custom events (cmd name WITHOUT a dot, e.g. `item_pickup`) —
+ *   the server relays the data to all room members. The listener
+ *   receives `{ room, user, data }` where `data` is exactly what
+ *   was passed to `send_cmd`.
+ *
+ *   Built-in events (cmd name WITH a dot, e.g. `room.info`,
+ *   `room.user_data`) — handled internally by `map_room()`; clients
+ *   should listen but never send them.
+ *
+ * ── Receiving events ─────────────────────────────────────────────
+ * `on(eventName, callback)` — for custom events, access the payload
+ * via `event.data`. For built-in events, see `map_room()`.
  */
 export default class {
 	constructor() {
@@ -319,19 +261,13 @@ export default class {
 	/**
 	 * Send a command to the server.
 	 *
-	 * Wire format: { cmd: <cmd>, data: <data> }
+	 * Wire format: { cmd, data }
 	 *
-	 * For state sync, use `send_cmd('set_data', partialState)`.
-	 * The server deep-merges `partialState` into the sender's user-data blob,
-	 * then broadcasts the MERGED blob to other room members via `room.user_data`.
+	 * Custom events (no dot in name) are relayed to all room members.
+	 * Built-in commands like `set_data` are processed by the server.
 	 *
-	 * Because `do_merge` treats arrays as plain objects (merged by index),
-	 * **array fields like `hostData.enemies` are NOT safely mergeable by the server**.
-	 * The client (`network-sync.js`) handles enemy-array updates manually via
-	 * `syncHostData()`, which merges by enemy ID.
-	 *
-	 * @param {string} cmd  - Command name (e.g. "set_data", "room.msg")
-	 * @param {*}      data - Payload (object, string, etc.)
+	 * @param {string} cmd  - Command name
+	 * @param {*}      data - Payload
 	 */
 	send_cmd(cmd, data) {
 		return this.send({

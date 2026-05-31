@@ -161,9 +161,8 @@ export default class Enemy {
       } else if (this.bossState === 'FIRING_LASER') {
         this.bossLaserTimer -= dt;
 
-        // Deal damage continuously every frame while player is standing inside the laser path
         const lx = this.x;
-        const ly = this.y - this.size * 0.75; // Laser originates from the boss's crown
+        const ly = this.y - this.size * 0.75;
         const tx = this.targetLaserPos.x - lx;
         const ty = this.targetLaserPos.y - ly;
         const len = Math.hypot(tx, ty) || 1;
@@ -173,8 +172,11 @@ export default class Enemy {
         const dps = BOSS_LASER_DAMAGE_PER_SEC + ((this.level || Math.ceil(this.game.wave) || 1) * BOSS_LASER_DAMAGE_LEVEL_SCALE);
         const damageThisFrame = dps * (dt * 16.67) / 1000;
 
+        // Accumulate laser damage and emit player_hit in ticks (every attackCooldown frames)
+        this.laserAccum = (this.laserAccum || 0) + damageThisFrame;
         for (let p of players) {
           if (p.invulnerable || !p.alive) continue;
+          if (p.id !== this.game.net?.me?.info?.user) continue;
           const dx2 = endX - lx;
           const dy2 = endY - ly;
           const lenSq = dx2 * dx2 + dy2 * dy2;
@@ -182,14 +184,23 @@ export default class Enemy {
           const projX = lx + t * dx2;
           const projY = ly + t * dy2;
 
-          // Collision radius is now exactly this.size * 0.125 + player radius
           if (Math.hypot(p.x - projX, p.y - projY) < this.size * 0.125 + (p.size || 15)) {
-            if (this.game.isHost) {
-              p.hp -= damageThisFrame;
-              if (p.hp <= 0) { p.hp = 0; p.alive = false; }
-            }
+            this.laserPlayerInBeam = true;
           }
         }
+
+        if (this.laserTimer === undefined) this.laserTimer = 0;
+        this.laserTimer += dt;
+        if (this.laserTimer >= this.attackCooldown && this.laserAccum > 0 && this.laserPlayerInBeam) {
+          this.laserTimer = 0;
+          const totalDmg = Math.round(this.laserAccum);
+          this.laserAccum = 0;
+          this.laserPlayerInBeam = false;
+          if (this.game.net?.me?.info?.user) {
+            this.game.networkSync.emitEvent('enemy_hit_player', { targetId: this.game.net.me.info.user, damage: totalDmg });
+          }
+        }
+        if (!this.laserPlayerInBeam) this.laserAccum = 0;
 
         if (this.bossLaserTimer <= 0) {
           this.bossState = 'IDLE';
@@ -201,7 +212,9 @@ export default class Enemy {
       if (this.missileTimer > 150) {
         this.missileTimer = 0;
 
-        if (this.game.wave >= 2 && Math.random() < 0.4) {
+        this._bossAction = (this._bossAction || 0) + 1;
+        const bossActionPrng = new PRNG((this.game.prng ? this.game.prng.seed : 1) + this._bossAction * 7777);
+        if (this.game.wave >= 2 && bossActionPrng.nextFloat() < 0.4) {
           this.bossState = 'CHANNELING_LASER';
           this.bossChannelTimer = BOSS_LASER_CHANNEL_TIME;
           this.targetLaserPos = { x: targetPlayer.x, y: targetPlayer.y };
@@ -277,10 +290,8 @@ export default class Enemy {
       if (this.attackTimer >= this.attackCooldown) {
         this.attackTimer = 0;
 
-        if (targetPlayer.isLocal) {
-          this.game.dealDamageToPlayer(this.atk);
-        } else {
-          this.game.net.send_cmd('set_data', { enemyHitPlayer: { id: targetPlayer.id, dmg: this.atk } });
+        if (targetPlayer.id === this.game.net.me.info.user) {
+          this.game.networkSync.emitEvent('enemy_hit_player', { targetId: targetPlayer.id, damage: this.atk });
         }
 
         if (this.name === 'MISSILE' || this.name === 'BOMB') {

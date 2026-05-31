@@ -7,24 +7,63 @@ export default class ItemManager {
   }
 
   handleItemPickup(event) {
-    const itemId = typeof event === 'string' ? event : (event.data || event.itemId);
+    const data = event.data || event;
+    const itemId = data.itemId || data;
     if (!itemId) return;
     this.pendingPickupIds.delete(itemId);
-    const idx = this.game.items.findIndex(i => i.id === itemId);
+    const item = this.game.items.find(i => i.id === itemId);
+    if (!item) return;
+    const playerId = data.playerId || data.source || '';
+    if (playerId === this.game.net?.me?.info?.user) {
+      this.applyPickupEffect(item);
+    }
+    const idx = this.game.items.indexOf(item);
     if (idx >= 0) this.game.items.splice(idx, 1);
+  }
+
+  applyPickupEffect(item) {
+    if (item.type === 'gear') {
+      this.game.player.inventory.push(item);
+      let statsStr = '';
+      if (item.stats) {
+        const parts = [];
+        if (item.stats.atk) parts.push(`+${item.stats.atk} ATK`);
+        if (item.stats.hp) parts.push(`+${item.stats.hp} HP`);
+        if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
+        if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
+      }
+      this.game.floatingTexts.push({
+        x: this.game.player.x, y: this.game.player.y - 50,
+        text: `🎒 Looted: ${item.name}${statsStr}!`,
+        color: item.color, life: 60, maxLife: 60, isCrit: false
+      });
+      this.game.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
+      if (this.game.ui) this.game.ui.renderInventory();
+      this.game.saveLocalProgression();
+    } else if (item.type === 'red') {
+      this.game.player.buffHpTimer = ConfigModule.POTION_BUFF_DURATION;
+      this.game.particleManager.spawnParticles(this.game.player.x, this.game.player.y - 20, '#e74c3c', 30, 6);
+      this.game.floatingTexts.push({
+        x: this.game.player.x, y: this.game.player.y - 50,
+        text: `🩸 Vampirism ${Math.round(ConfigModule.POTION_BUFF_DURATION / 1000)}s!`,
+        color: '#e74c3c', life: 60, maxLife: 60, isCrit: false
+      });
+      this.game.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(ConfigModule.POTION_BUFF_DURATION / 1000)}s`, 'reward');
+    } else if (item.type === 'blue') {
+      this.game.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
+      this.game.particleManager.spawnParticles(this.game.player.x, this.game.player.y - 20, '#3498db', 30, 6);
+      this.game.floatingTexts.push({
+        x: this.game.player.x, y: this.game.player.y - 50,
+        text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`,
+        color: '#3498db', life: 60, maxLife: 60, isCrit: false
+      });
+      this.game.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
+    }
   }
 
   handleItemDrop(event) {
     if (!this.game.items.find(i => i.id === event.item.id)) {
       this.game.items.push(event.item);
-    }
-  }
-
-  handleGameEvent(event) {
-    if (event.type === 'item_spawn') {
-      if (!this.game.items.find(i => i.id === event.id)) {
-        this.game.items.push(event.item);
-      }
     }
   }
 
@@ -65,67 +104,21 @@ export default class ItemManager {
   checkLocalPickup(item, i) {
     if (!this.game.player || !this.game.player.alive || this.game.player.hp <= 0) return;
     if (Math.hypot(this.game.player.x - item.x, this.game.player.y - item.y) >= 40) return;
-
     if (item.type === 'gear' && this.game.player.targetedItemId !== item.id) return;
+    if (this.pendingPickupIds.has(item.id)) return;
 
-    if (item.type === 'gear') {
-      this.game.player.inventory.push(item);
-      let statsStr = '';
-      if (item.stats) {
-        const parts = [];
-        if (item.stats.atk) parts.push(`+${item.stats.atk} ATK`);
-        if (item.stats.hp) parts.push(`+${item.stats.hp} HP`);
-        if (item.stats.spd) parts.push(`+${Number(item.stats.spd).toFixed(1)} SPD`);
-        if (parts.length > 0) statsStr = ` (${parts.join(', ')})`;
-      }
-      this.game.floatingTexts.push({
-        x: this.game.player.x, y: this.game.player.y - 50,
-        text: `🎒 Looted: ${item.name}${statsStr}!`,
-        color: item.color, life: 60, maxLife: 60, isCrit: false
-      });
-      this.game.ui.addLog(`🎒 You picked up a ${item.name}${statsStr}!`, 'reward');
-      if (this.game.ui) this.game.ui.renderInventory();
-      this.game.saveLocalProgression();
-      if (this.game.player.isLocal) {
-        this.game.net.send_cmd("item_pickup", item.id);
-        this.pendingPickupIds.add(item.id);
-      }
-    } else if (item.type === 'red') {
-      this.game.player.buffHpTimer = ConfigModule.POTION_BUFF_DURATION;
-      this.game.particleManager.spawnParticles(this.game.player.x, this.game.player.y - 20, '#e74c3c', 30, 6);
-      this.game.floatingTexts.push({
-        x: this.game.player.x, y: this.game.player.y - 50,
-        text: `🩸 Vampirism ${Math.round(ConfigModule.POTION_BUFF_DURATION / 1000)}s!`,
-        color: '#e74c3c', life: 60, maxLife: 60, isCrit: false
-      });
-      this.game.ui.addLog(`🩸 Vampirism! Heal on hit for ${Math.round(ConfigModule.POTION_BUFF_DURATION / 1000)}s`, 'reward');
-      if (this.game.player.isLocal) {
-        this.game.net.send_cmd("item_pickup", item.id);
-        this.pendingPickupIds.add(item.id);
-      }
-    } else if (item.type === 'blue') {
-      this.game.player.buffManaTimer = ConfigModule.POTION_BLUE_BUFF_DURATION;
-      this.game.particleManager.spawnParticles(this.game.player.x, this.game.player.y - 20, '#3498db', 30, 6);
-      this.game.floatingTexts.push({
-        x: this.game.player.x, y: this.game.player.y - 50,
-        text: `⚡ Mana Buff ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`,
-        color: '#3498db', life: 60, maxLife: 60, isCrit: false
-      });
-      this.game.ui.addLog(`⚡ Skill Cooldown Buff for ${Math.round(ConfigModule.POTION_BLUE_BUFF_DURATION / 1000)}s!`, 'reward');
-      if (this.game.player.isLocal) {
-        this.game.net.send_cmd("item_pickup", item.id);
-        this.pendingPickupIds.add(item.id);
-      }
-    }
-
+    this.pendingPickupIds.add(item.id);
+    this.game.networkSync.emitEvent('item_pickup', {
+      itemId: item.id,
+      playerId: this.game.net.me.info.user
+    });
     if (this.game.player.targetedItemId === item.id) {
       this.game.player.targetedItemId = null;
     }
-    this.game.items.splice(i, 1);
   }
 
   dropItemsOnEnemyDeath(e) {
-    if (!this.game.isHost || e.alive || e.deadProcessed) return;
+    if (e.alive || e.deadProcessed) return;
     e.deadProcessed = true;
 
     const groundY = this.game.getGroundY();

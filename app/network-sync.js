@@ -7,44 +7,16 @@ import Projectile from './projectile.js';
 export default class NetworkSync {
   constructor(game) {
     this.game = game;
-    /** @type {Map<string,{x:number,y:number,hp:number,alive:boolean}>} */
-    this._lastEnemyStates = new Map();
-    this._enemyBroadcastCount = 0;
-    /** @type {Object<string,string>} Cache of last-sent host scalar fields. */
-    this._lastHostStr = {};
-    /** @type {string|null} Cache of last-sent items (comma-joined sorted IDs). */
-    this._lastItemsIdStr = null;
+    this._lastSentState = {};
+    this._lastConfigStr = '';
+    this._broadcastThrottle = 0;
   }
 
   bindEvents() {
     this.game.net.on('room.info', () => this.game.checkHost());
-    this.game.net.on('room.user_join', () => {
-      this.game.checkHost();
-      if (this.game.isHost) {
-        this.game.net.send_cmd('set_data', {
-          syncProjectiles: this.game.projectiles.map(p => ({
-            type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
-            angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
-            originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
-            ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
-            critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
-            casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
-            trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
-          }))
-        });
-      }
-    });
-    this.game.net.on('room.msg', (data) => {
-      if (data.cmd === 'game.event' && data.data && data.data.type) {
-        this.game.handleGameEvent(data.data);
-      }
-    });
-    this.game.net.on('item_pickup', (event) => {
-      this.game.itemManager.handleItemPickup(event);
-    });
-    this.game.net.on('item_drop', (event) => {
-      this.game.itemManager.handleItemDrop(event);
-    });
+    this.game.net.on('room.user_join', () => { this.game.checkHost(); });
+    this.game.net.on('item_pickup', (event) => { this.game.itemManager.handleItemPickup(event); });
+    this.game.net.on('item_drop', (event) => { this.game.itemManager.handleItemDrop(event); });
     this.game.net.on('room.user_leave', (data) => {
       if (this.game.otherPlayers[data.user]) {
         delete this.game.otherPlayers[data.user];
@@ -52,186 +24,313 @@ export default class NetworkSync {
       this.game.checkHost();
     });
     this.game.net.on('room.user_data', (data) => this.handleUserData(data));
+
+    // Custom events (server relays as { room, user, data })
+    this.game.net.on('enemy_spawn', (event) => this.applyEnemySpawn(event.data));
+    this.game.net.on('enemy_hit', (event) => this.game.applyEnemyHit(event.data));
+    this.game.net.on('enemy_hit_player', (event) => this.applyPlayerHit(event.data));
+    this.game.net.on('enemy_killed', (event) => this.applyEnemyKilled(event.data));
+    this.game.net.on('projectile_spawn', (event) => this.applyProjectileSpawn(event.data));
+    this.game.net.on('player_hit', (event) => this.applyPlayerHit(event.data));
+    this.game.net.on('game_over', () => this.game.quitToMenu());
+    this.game.net.on('wave_transition', (event) => this.applyWaveTransition(event.data));
+    this.game.net.on('request_game_sync', (event) => {
+      if (this.game.isHost) this.sendGameSync(event.data);
+    });
+    this.game.net.on('game_sync', (event) => {
+      if (event.data.targetUserId && event.data.targetUserId !== this.game.net.me.info.user) return;
+      this.applyGameSync(event.data);
+    });
   }
 
-  handleUserData(data) {
-    if (data.data && data.data.enemyKilled && this.game.player && typeof data.data.enemyKilled === 'string') {
-      if (data.data.enemyKilled !== this.game.lastProcessedKill && data.data.enemyKilled.split('_')[0] === this.game.net.me.info.user) {
-        this.game.lastProcessedKill = data.data.enemyKilled;
-        if (this.game.player.addKill()) {
-          this.game.s2Cooldown = 0;
-          this.game.ui.addLog(`🌟 Level Up! Level ${this.game.player.level}`, 'reward');
-          this.game.ui.updateHUD(this.game.player);
-          this.game.particleManager.triggerLevelUpAnimation(this.game.player);
-          this.game.broadcastState();
-          this.game.saveLocalProgression();
+  emitEvent(type, data) {
+    if (!this.game.net || !this.game.net.me || !this.game.net.me.info || !this.game.net.me.info.user) return;
+    this.game.net.send_cmd(type, {
+      source: this.game.net.me.info.user,
+      timestamp: Date.now(),
+      ...data
+    });
+  }
+
+  sendGameSync(event) {
+    const g = this.game;
+    this.emitEvent('game_sync', {
+      targetUserId: event.source,
+      gameStartUTC: g.gameStartUTC || 0,
+      sessionSeed: g.sessionSeed,
+      seed: g.prng ? g.prng.seed : 0,
+      dropSeed: g.dropPrng ? g.dropPrng.seed : 0,
+      env: g.selectedEnv,
+      wave: g.wave,
+      waveTotal: g.waveTotalEnemies,
+      waveKilled: g.waveEnemiesKilled,
+      waveSpawn: g.waveEnemiesToSpawn,
+      bossActive: g.bossActive,
+      enemies: g.enemies.filter(e => e.alive).map(e => ({
+        id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp,
+        name: e.name, icon: e.icon, color: e.color, size: e.size,
+        atk: e.atk, spd: e.spd, atkRange: e.atkRange, atkSpeed: e.atkSpeed,
+        moveSpeed: e.moveSpeed, isBoss: e.isBoss, missile: e.missile,
+        bossState: e.bossState, bossChannelTimer: e.bossChannelTimer,
+        bossLaserTimer: e.bossLaserTimer, targetLaserPos: e.targetLaserPos,
+        _bossAction: e._bossAction, spawnIndex: e.spawnIndex
+      })),
+      items: g.items.map(item => ({ ...item })),
+      projectiles: g.projectiles.map(p => ({
+        type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
+        angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
+        originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
+        ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
+        critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
+        casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
+        trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
+      }))
+    });
+  }
+
+  applyGameSync(event) {
+    const g = this.game;
+    g._syncRequested = false;
+    g._syncRetryTimer = 0;
+    g.gameStartUTC = event.gameStartUTC;
+    g.globalTime = Date.now() - event.gameStartUTC;
+    g.sessionSeed = event.sessionSeed;
+    if (!g.prng) g.prng = new PRNG(event.seed);
+    else g.prng.seed = event.seed;
+    if (!g.dropPrng) g.dropPrng = new PRNG(event.dropSeed);
+    else g.dropPrng.seed = event.dropSeed;
+    g.selectedEnv = event.env || 'forest';
+    g.wave = event.wave || 1;
+    g.waveTotalEnemies = event.waveTotal || 0;
+    g.waveEnemiesKilled = event.waveKilled || 0;
+    g.waveEnemiesToSpawn = event.waveSpawn || 0;
+    g.bossActive = event.bossActive || false;
+
+    g.enemies = [];
+    if (event.enemies) {
+      for (const eData of event.enemies) {
+        const e = new Enemy(g, false, false, eData.spawnIndex || 0);
+        e.id = eData.id;
+        e.x = eData.x; e.y = eData.y; e.hp = eData.hp; e.maxHp = eData.maxHp;
+        e.name = eData.name; e.icon = eData.icon; e.color = eData.color; e.size = eData.size;
+        e.atk = eData.atk; e.spd = eData.spd; e.atkRange = eData.atkRange;
+        e.atkSpeed = eData.atkSpeed; e.moveSpeed = eData.moveSpeed;
+        e.alive = true;
+        e.isBoss = eData.isBoss;
+        e.missile = eData.missile;
+        if (eData.isBoss) {
+          e.bossState = eData.bossState;
+          e.bossChannelTimer = eData.bossChannelTimer;
+          e.bossLaserTimer = eData.bossLaserTimer;
+          e.targetLaserPos = eData.targetLaserPos;
+          e._bossAction = eData._bossAction;
         }
-        if (this.game.state === 'PLAYING') {
-          this.game.ui.updateScore(this.game.player, this.game.wave, this.game.waveEnemiesKilled, this.game.waveTotalEnemies);
-        }
+        g.enemies.push(e);
       }
     }
 
-    if (this.game.net.me && data.user !== this.game.net.me.info.user) {
-      const fullData = (this.game.net.room.users[data.user] && this.game.net.room.users[data.user].data) ? this.game.net.room.users[data.user].data : data.data;
-      if (!this.game.otherPlayers[data.user]) {
-        this.game.otherPlayers[data.user] = new Player(data.user, false, fullData.classType || 'warrior', fullData.x || this.game.gameW / 2, fullData.y || (getGroundY(this.game.selectedEnv) + this.game.gameH) / 2);
+    g.items = event.items ? event.items.map(item => ({ ...item })) : [];
+    g.projectiles = [];
+    if (event.projectiles) {
+      for (const pData of event.projectiles) {
+        g.projectiles.push(new Projectile(pData));
       }
+    }
 
-      if (this.game.isHost && data.data.requestSync) {
-        this.game.net.send_cmd('set_data', {
-          syncProjectiles: this.game.projectiles.map(p => ({
-            type: p.type, x: p.x, y: p.y, vx: p.vx, vy: p.vy, tx: p.tx, ty: p.ty,
-            angle: p.angle, life: p.life, maxLife: p.maxLife, radius: p.radius, color: p.color,
-            originX: p.originX, originY: p.originY, traveled: p.traveled, damage: p.damage,
-            ownerId: p.ownerId, id: p.id, bodyScale: p.bodyScale, charges: p.charges,
-            critChance: p.critChance, explodeRadius: p.explodeRadius, explodeDamage: p.explodeDamage,
-            casterSpd: p.casterSpd, retargetTimer: p.retargetTimer, wobble: p.wobble,
-            trailTimer: p.trailTimer, trailPositions: p.trailPositions || []
-          }))
-        });
+    if (g.selectedEnv) {
+      g.generateScenery();
+      if (g.state === 'PLAYING' && g.ui) g.ui.updateEnvironment(g.selectedEnv);
+      g.initBgParticles();
+    }
+
+    if (g.state === 'SYNCING' && g._pendingGameStart) {
+      const pending = g._pendingGameStart;
+      g._pendingGameStart = null;
+      g._finalizeGameStart(pending);
+    }
+  }
+
+  applyEnemySpawn(event) {
+    if (this.game.enemies.find(e => e.id === event.id)) return;
+    const g = this.game;
+    const isBoss = event.isBoss || event.name === 'BOSS';
+    const e = new Enemy(g, false, false, event.spawnIndex || 0);
+    e.id = event.id;
+    e.x = event.x; e.y = event.y; e.hp = event.hp; e.maxHp = event.maxHp;
+    e.name = event.name; e.icon = event.icon; e.color = event.color; e.size = event.size;
+    e.atk = event.atk; e.spd = event.spd; e.atkRange = event.atkRange;
+    e.atkSpeed = event.atkSpeed; e.moveSpeed = event.moveSpeed;
+    e.alive = true;
+    e.isBoss = isBoss;
+    if (isBoss) {
+      e.bossState = event.bossState;
+      e.bossChannelTimer = event.bossChannelTimer;
+      e.bossLaserTimer = event.bossLaserTimer;
+      e.targetLaserPos = event.targetLaserPos;
+      e._bossAction = event._bossAction;
+    }
+    g.enemies.push(e);
+  }
+
+  applyEnemyKilled(event) {
+    const e = this.game.enemies.find(x => x.id === event.enemyId);
+    if (e && e.alive) {
+      e.alive = false;
+      e.deathTime = Date.now();
+      e.hp = 0;
+      this.game.particleManager.spawnEnemyDeathExplosion(e);
+    }
+
+    if (e) {
+      this.game.waveEnemiesKilled++;
+    }
+
+    if (this.game.isHost && e) {
+      if (this.game.bossActive && e.name === 'BOSS') {
+        const aliveBosses = this.game.enemies.filter(ex => ex.name === 'BOSS' && ex.alive);
+        if (aliveBosses.length === 0) {
+          this.game.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
+          this.game.waveTransitionTimer = 120;
+        }
+      } else if (!this.game.bossActive && this.game.waveEnemiesKilled >= this.game.waveTotalEnemies) {
+        this.game.waveTransitionTimer = 120;
       }
+    }
 
-      if (this.game.state === 'PLAYING' && data.data.spawnedProjectile) {
-        if (!this.game.projectiles.find(p => p.id === data.data.spawnedProjectile.id)) {
-          this.game.projectiles.push(new Projectile(data.data.spawnedProjectile));
-          if (this.game.otherPlayers[data.user]) {
-            this.game.otherPlayers[data.user].animTimer = 15;
-            this.game.otherPlayers[data.user].action = 'attack';
+    if (event.playerId === this.game.net.me.info.user) {
+      if (this.game.player && this.game.player.addKill()) {
+        this.game.s2Cooldown = 0;
+        this.game.ui.addLog(`🌟 Level Up! Level ${this.game.player.level}`, 'reward');
+        this.game.ui.updateHUD(this.game.player);
+        this.game.saveLocalProgression();
+      }
+    }
+
+    if (this.game.state === 'PLAYING') {
+      this.game.ui.updateScore(this.game.player, this.game.wave, this.game.waveEnemiesKilled, this.game.waveTotalEnemies);
+    }
+  }
+
+  applyProjectileSpawn(event) {
+    if (!event.projectile) return;
+    this.game.projectiles.push(new Projectile(event.projectile));
+    if (this.game.otherPlayers[event.source]) {
+      this.game.otherPlayers[event.source].animTimer = 15;
+      this.game.otherPlayers[event.source].action = 'attack';
+    }
+  }
+
+  applyPlayerHit(event) {
+    if (event.targetId === this.game.net.me.info.user) {
+      this.game.dealDamageToPlayer(event.damage);
+    }
+  }
+
+  applyWaveTransition(event) {
+    this.game.wave = event.wave;
+    this.game.waveTotalEnemies = event.waveTotal;
+    this.game.waveEnemiesKilled = 0;
+    this.game.waveEnemiesToSpawn = event.waveTotal;
+    this.game.bossActive = event.bossActive || false;
+    this.game.prng = new PRNG(this.game.sessionSeed + this.game.wave * 12345);
+    this.game.dropPrng = new PRNG(this.game.sessionSeed + this.game.wave * 54321);
+
+    if (this.game.player && !this.game.player.alive) {
+      this.game.respawnPlayer();
+    }
+    this.game.generateScenery();
+    this.game.initBgParticles();
+    this.game.enemySpawnTimer = 0;
+    if (this.game.bossActive) {
+      this.game.ui.showBossWarning?.();
+    }
+    if (this.game.state === 'PLAYING') {
+      this.game.ui.updateEnvironment(this.game.selectedEnv);
+      this.game.ui.updateScore(this.game.player, this.game.wave, this.game.waveEnemiesKilled, this.game.waveTotalEnemies);
+    }
+  }
+
+  handleUserData(data) {
+    const userId = data.user;
+    if (userId === this.game.net.me.info.user) return;
+
+    // Read merged full state from room.users (always complete, not just delta)
+    const roomEntry = this.game.net?.room?.users?.[userId];
+    const fullData = roomEntry?.data || data.data;
+
+    if (fullData.inGame === false || fullData.state === 'MENU') {
+      if (this.game.otherPlayers[userId]) {
+        delete this.game.otherPlayers[userId];
+      }
+      return;
+    }
+
+    if (fullData.state === 'PLAYING' && !this.game.otherPlayers[userId]) {
+      this.game.otherPlayers[userId] = new Player(
+        userId, false,
+        fullData.classType || 'warrior',
+        fullData.x || this.game.gameW / 2,
+        fullData.y || (getGroundY(this.game.selectedEnv) + this.game.gameH) / 2
+      );
+      this.game.otherPlayers[userId].state = 'PLAYING';
+      this.game.otherPlayers[userId].inGame = true;
+    }
+
+    const p = this.game.otherPlayers[userId];
+    if (p) {
+      p.state = fullData.state || 'PLAYING';
+      p.inGame = fullData.inGame !== false;
+      p.x = fullData.x;
+      p.y = fullData.y;
+      p.hp = fullData.hp;
+      p._maxHp = fullData.maxHp;
+      p.level = fullData.level;
+      p.kills = fullData.kills || 0;
+      p.facing = fullData.facing;
+      p.aimAngle = fullData.aimAngle;
+      p.action = fullData.action;
+      p.classType = fullData.classType;
+      p.alive = fullData.alive !== false;
+      p.nick = fullData.nick || '';
+      p.hitFlash = fullData.hitFlash || 0;
+      p.chatMsg = fullData.chatMsg || null;
+      p.lastDataTime = Date.now();
+    }
+
+    // Copy host config
+    if (!this.game.isHost && fullData.gameplayConfig) {
+      const hostId = this.getDeterministicHost();
+      const isSenderHost = hostId === userId;
+      if (isSenderHost) {
+        ConfigModule.updateConfig(fullData.gameplayConfig);
+        if (fullData.gameplayConfigName) {
+          ConfigModule.setActivePresetName(fullData.gameplayConfigName);
+        }
+        if (fullData.classData) ConfigModule.updateClassData(fullData.classData);
+        if (fullData.enemyTypes) ConfigModule.updateEnemyTypes(fullData.enemyTypes);
+        if (fullData.itemsDb) ConfigModule.updateItemsDb(fullData.itemsDb);
+        if (fullData.classData) {
+          for (const k in fullData.classData) {
+            const ic = fullData.classData[k].icon;
+            if (ic && typeof ic === 'string') preloadFlippedImagesForAsset(ic);
           }
         }
-      }
-      if (this.game.state === 'PLAYING' && data.data.syncProjectiles) {
-        for (let sp of data.data.syncProjectiles) {
-          if (!this.game.projectiles.find(p => p.id === sp.id)) {
-            this.game.projectiles.push(new Projectile(sp));
+        if (fullData.enemyTypes) {
+          for (const e of fullData.enemyTypes) {
+            if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
           }
         }
-      }
-
-      const oldInGame = this.game.otherPlayers[data.user].inGame;
-      const oldState = this.game.otherPlayers[data.user].state;
-      const oldIsHost = this.game.otherPlayers[data.user].isHost;
-      const oldHitFlash = this.game.otherPlayers[data.user].hitFlash || 0;
-
-      this.game.otherPlayers[data.user].set(fullData);
-
-      if (data.data.hitFlash !== undefined && data.data.hitFlash > oldHitFlash) {
-        this.game.particleManager.spawnDamageParticles(this.game.otherPlayers[data.user].x, this.game.otherPlayers[data.user].y);
-      }
-
-      if (data.data.state === 'MENU' || data.data.inGame === false) {
-        this.game.otherPlayers[data.user].projectiles = [];
-        this.game.otherPlayers[data.user].hp = 0;
-      }
-
-      this.game.otherPlayers[data.user].lastDataTime = Date.now();
-      if (data.data.lastInputTime !== undefined) {
-        this.game.otherPlayers[data.user].lastInputTime = data.data.lastInputTime;
-      }
-      if (data.data.inGame !== undefined) {
-        this.game.otherPlayers[data.user].inGame = data.data.inGame;
-      }
-      if (data.data.state !== undefined) {
-        this.game.otherPlayers[data.user].state = data.data.state;
-      }
-
-      if (data.data.level !== undefined) {
-        const oldLevel = this.game.otherPlayers[data.user].level || 1;
-        if (data.data.level > oldLevel) {
-          this.game.particleManager.triggerLevelUpAnimation(this.game.otherPlayers[data.user]);
+        if (fullData.itemsDb) {
+          for (const item of fullData.itemsDb) {
+            if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
+          }
         }
-      }
-
-      if (this.game.otherPlayers[data.user].inGame !== oldInGame || this.game.otherPlayers[data.user].state !== oldState || this.game.otherPlayers[data.user].isHost !== oldIsHost) {
-        this.game.checkHost();
-      }
-
-      if (this.game.state === 'PLAYING' && data.data.hits) {
-        data.data.hits.forEach(hit => {
-          let e = this.game.enemies.find(ex => ex.id === hit.id);
-          if (e && e.alive) {
-            e.hp -= hit.damage;
-            e.hitFlash = 8;
-            this.game.floatingTexts.push({ x: e.x + (Math.random() - 0.5) * 20, y: e.y - 30, text: (hit.isCrit ? '💥 ' : '') + hit.damage, color: hit.isCrit ? '#ffd700' : '#fff', life: 40, maxLife: 40, isCrit: hit.isCrit });
-            if (e.hp <= 0) {
-              e.alive = false; e.deathTime = Date.now(); e.hp = 0;
-              this.game.particleManager.spawnEnemyDeathExplosion(e);
-              if (this.game.isHost) {
-                if (hit.source) {
-                  this.game.net.send_cmd('set_data', { enemyKilled: hit.source + '_' + Math.random() });
-                }
-                this.game.waveEnemiesKilled++;
-                if (this.game.bossActive && e.name === 'BOSS') {
-                  const aliveBosses = this.game.enemies.filter(ex => ex.name === 'BOSS' && ex.alive);
-                  if (aliveBosses.length === 0) {
-                    this.game.enemies.forEach(ex => { if (ex.alive) { ex.hp = 0; ex.alive = false; } });
-                    this.game.waveTransitionTimer = 120;
-                  }
-                } else if (!this.game.bossActive && this.game.waveEnemiesKilled >= this.game.waveTotalEnemies) {
-                  this.game.waveTransitionTimer = 120;
-                }
-              }
-            }
-          }
-        });
-      }
-
-      if (data.data.enemyHitPlayer) {
-        if (data.data.enemyHitPlayer.id === this.game.net.me.info.user) {
-          this.game.dealDamageToPlayer(data.data.enemyHitPlayer.dmg);
-        }
-      }
-
-      if (data.data.gameOver) {
-        this.game.quitToMenu();
-      }
-
-      if (this.game.isHost && data.data.spawnItem) {
-        this.game.items.push(data.data.spawnItem);
-      }
-
-      if (this.game.state === 'PLAYING' && data.data.hostData && !this.game.isHost) {
-        const currentBestHost = this.game.getDeterministicHost();
-        if (data.user === currentBestHost) {
-          this.game.syncHostData(data.data.hostData);
-        }
-      }
-
-      if (data.data.gameplayConfig && !this.game.isHost) {
-        const op = this.game.otherPlayers[data.user];
-        const isSenderHost = (data.data.isHost || (op && op.isHost)) && op && op.state !== 'MENU';
-        if (isSenderHost) {
-          ConfigModule.updateConfig(data.data.gameplayConfig);
-          if (data.data.gameplayConfigName) {
-            ConfigModule.setActivePresetName(data.data.gameplayConfigName);
-          }
-          if (data.data.classData) ConfigModule.updateClassData(data.data.classData);
-          if (data.data.enemyTypes) ConfigModule.updateEnemyTypes(data.data.enemyTypes);
-          if (data.data.itemsDb) ConfigModule.updateItemsDb(data.data.itemsDb);
-          if (data.data.classData) {
-            for (const k in data.data.classData) {
-              const ic = data.data.classData[k].icon;
-              if (ic && typeof ic === 'string') preloadFlippedImagesForAsset(ic);
-            }
-          }
-          if (data.data.enemyTypes) {
-            for (const e of data.data.enemyTypes) {
-              if (e.icon && typeof e.icon === 'string') preloadFlippedImagesForAsset(e.icon);
-            }
-          }
-          if (data.data.itemsDb) {
-            for (const item of data.data.itemsDb) {
-              if (item.icon && typeof item.icon === 'string') preloadFlippedImagesForAsset(item.icon);
-            }
-          }
-          if (this.game.updateLayout) this.game.updateLayout();
-          if (this.game.ui) {
-            if (this.game.ui.buildClassesTab) this.game.ui.buildClassesTab();
-            if (this.game.ui.buildMonstersTab) this.game.ui.buildMonstersTab();
-            if (this.game.ui.buildItemsTab) this.game.ui.buildItemsTab();
-            if (this.game.ui.updateClassCarousel) this.game.ui.updateClassCarousel();
-          }
+        if (this.game.updateLayout) this.game.updateLayout();
+        if (this.game.ui) {
+          if (this.game.ui.buildClassesTab) this.game.ui.buildClassesTab();
+          if (this.game.ui.buildMonstersTab) this.game.ui.buildMonstersTab();
+          if (this.game.ui.buildItemsTab) this.game.ui.buildItemsTab();
+          if (this.game.ui.updateClassCarousel) this.game.ui.updateClassCarousel();
         }
       }
     }
@@ -259,10 +358,10 @@ export default class NetworkSync {
     if (activeUsers.length === 0) return null;
     const hostCandidates = activeUsers.sort((a, b) => {
       let timeA = 0, timeB = 0;
-      if (this.game.net.me && this.game.net.me.info && a === this.game.net.me.info.user) timeA = this.game.gameStartTime || 0;
-      else if (this.game.net.room && this.game.net.room.users && this.game.net.room.users[a] && this.game.net.room.users[a].data) timeA = this.game.net.room.users[a].data.gameStartTime || 0;
-      if (this.game.net.me && this.game.net.me.info && b === this.game.net.me.info.user) timeB = this.game.gameStartTime || 0;
-      else if (this.game.net.room && this.game.net.room.users && this.game.net.room.users[b] && this.game.net.room.users[b].data) timeB = this.game.net.room.users[b].data.gameStartTime || 0;
+      if (this.game.net.me && this.game.net.me.info && a === this.game.net.me.info.user) timeA = this.game.playerJoinedAt || 0;
+      else if (this.game.net.room && this.game.net.room.users && this.game.net.room.users[a] && this.game.net.room.users[a].data) timeA = this.game.net.room.users[a].data.playerJoinedAt || 0;
+      if (this.game.net.me && this.game.net.me.info && b === this.game.net.me.info.user) timeB = this.game.playerJoinedAt || 0;
+      else if (this.game.net.room && this.game.net.room.users && this.game.net.room.users[b] && this.game.net.room.users[b].data) timeB = this.game.net.room.users[b].data.playerJoinedAt || 0;
       if (timeA !== timeB) return timeA - timeB;
       return a.localeCompare(b);
     });
@@ -285,221 +384,81 @@ export default class NetworkSync {
       this.game.ui.addLog(this.game.isHost ? '👑 You are the Host!' : '👥 You are a Client', 'reward');
       if (this.game.isHost) {
         this.game.net.send_cmd('set_data', {
-          isHost: true,
           gameplayConfig: ConfigModule.activeConfig,
+          gameplayConfigName: ConfigModule.activePresetName || 'Default',
           classData: ConfigModule.CLASS_DATA,
           enemyTypes: ConfigModule.ENEMY_TYPES,
           itemsDb: ConfigModule.ITEMS_DB
         });
-      } else {
-        this.game.net.send_cmd('set_data', { isHost: false });
       }
     }
   }
 
-  /**
-   * Receive hostData from the host client and apply it locally.
-   *
-   * Handles both full syncs (`_fullEnemySync === true`) and incremental enemy
-   * updates (merge by ID without removing untracked enemies).
-   */
-  syncHostData(hostData) {
-    if (hostData.gameStartTime !== undefined) this.game.hostGameStartTime = hostData.gameStartTime;
-    if (hostData.time !== undefined) this.game.globalTime = hostData.time;
-    if (hostData.sessionSeed !== undefined) this.game.sessionSeed = hostData.sessionSeed;
-    if (hostData.seed !== undefined) {
-      if (!this.game.prng) this.game.prng = new PRNG(hostData.seed);
-      else this.game.prng.seed = hostData.seed;
-    }
-    if (hostData.dropSeed !== undefined) {
-      if (!this.game.dropPrng) this.game.dropPrng = new PRNG(hostData.dropSeed);
-      else this.game.dropPrng.seed = hostData.dropSeed;
-    }
-    if (hostData.wave !== undefined && this.game.wave !== hostData.wave) {
-      if (this.game.player && !this.game.player.alive) this.game.respawnPlayer();
-      this.game.wave = hostData.wave;
-    }
-    if (hostData.waveTotal !== undefined) this.game.waveTotalEnemies = hostData.waveTotal;
-    if (hostData.waveSpawn !== undefined) this.game.waveEnemiesToSpawn = hostData.waveSpawn;
-    if (hostData.kills !== undefined) this.game.kills = hostData.kills;
-    if (hostData.waveKilled !== undefined) this.game.waveEnemiesKilled = hostData.waveKilled;
-    if (hostData.bossActive !== undefined) this.game.bossActive = hostData.bossActive;
-    if (this.game.state === 'PLAYING') {
-      this.game.ui.updateScore(this.game.player, this.game.wave, this.game.waveEnemiesKilled, this.game.waveTotalEnemies);
-    }
-    if (hostData.env !== undefined && this.game.selectedEnv !== hostData.env) {
-      this.game.selectedEnv = hostData.env || 'forest';
-      this.game.generateScenery();
-      if (this.game.state === 'PLAYING') this.game.ui.updateEnvironment(this.game.selectedEnv);
-      this.game.initBgParticles();
-    }
-    if (hostData.enemies) {
-      if (hostData._fullEnemySync) {
-        // Full replacement: remove enemies not in the list
-        const hostEnemyIds = hostData.enemies.map(e => e.id);
-        this.game.enemies = this.game.enemies.filter(e => hostEnemyIds.includes(e.id));
-      }
-      hostData.enemies.forEach(eData => {
-        let e = this.game.enemies.find(ex => ex.id === eData.id);
-        if (!e) {
-          let isBoss = eData.name === 'BOSS';
-          let spawnIndex = 0;
-          if (eData.id && eData.id.startsWith('E_')) {
-            const parts = eData.id.split('_');
-            if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
-          }
-          e = new Enemy(this.game, isBoss, false, spawnIndex);
-          e.id = eData.id;
-          if (eData.id && eData.id.startsWith('M_')) { e.name = 'MISSILE'; e.icon = '🚀'; e.size = 20; e.color = '#e74c3c'; }
-          e.x = eData.x || e.x;
-          e.y = eData.y || e.y;
-          this.game.enemies.push(e);
-        }
-        if (eData.x !== undefined) e.serverX = eData.x;
-        if (eData.y !== undefined) e.serverY = eData.y;
-        if (eData.hp !== undefined) e.hp = eData.hp;
-        if (eData.maxHp !== undefined) e.maxHp = eData.maxHp;
-        if (eData.alive !== undefined) {
-          if (e.alive && !eData.alive) this.game.particleManager.spawnEnemyDeathExplosion(e);
-          e.alive = eData.alive;
-        }
-        if (eData.name !== undefined) e.name = eData.name;
-        if (eData.size !== undefined) e.size = eData.size;
-        if (eData.bossState !== undefined) e.bossState = eData.bossState;
-        if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
-        if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
-        if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
-        if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
-      });
-      // Clean up fully-expired dead bodies (always, regardless of full/incremental)
-      this.game.enemies = this.game.enemies.filter(e => e.alive || (e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
-    }
-    if (hostData.items) {
-      this.game.items = hostData.items.filter(item => !this.game.itemManager.pendingPickupIds.has(item.id)).map(item => ({ ...item }));
-    }
-  }
-
-  /**
-   * Build and send the delta of changed player state + host data.
-   *
-   * DESIGN:
-   * - Top-level player fields (x, y, hp, action, etc.) are compared via
-   *   JSON.stringify against `lastBroadcastStr` — only changed keys are sent.
-   * - `hostData` sub-keys (wave, kills, enemies, items) are tracked
-   *   independently via `_lastHostStr` so that a change in one sub-key does
-   *   not force a resend of all others.
-   * - Enemies use per-instance dirty tracking (`_lastEnemyStates`). Only
-   *   enemies whose x/y/hp/alive changed since the last broadcast are included.
-   *   Every 10th broadcast does a full sync (`_fullEnemySync = true`) to
-   *   reconcile any desyncs.
-   * - Items are tracked by a sorted-ID checksum — sent only when the bag changes.
-   */
   broadcastState() {
-    if (!this.game.player) return;
-    const reqLevel = 4 + (this.game.player.resets || 0) * 5;
-    const lvlScale = 0.5 + 0.5 * ((this.game.player.level - 1) / Math.max(1, reqLevel - 1));
-    const weaponY = this.game.player.y - 40 * lvlScale;
-    const computedAimAngle = parseFloat(Math.atan2(this.game.player.mouseY - weaponY, this.game.player.mouseX - this.game.player.x).toFixed(1));
-    const p = this.game.player;
-    const data = {
-      inGame: true, gameStartTime: this.game.gameStartTime || 0, state: this.game.state,
-      nick: p.nick, alive: p.alive,
-      x: p.x, y: p.y, hp: p.hp,
-      maxHp: p._maxHp, atk: p._atk, spd: p._spd,
-      level: p.level, resets: p.resets,
-      kills: p.kills, reqKills: p.reqKills,
-      facing: p.facing, aimAngle: computedAimAngle,
-      action: p.action, classType: p.classType,
-      hitFlash: p.hitFlash, lastInputTime: p.lastInputTime || 0,
-      lastSkill: p.lastSkill || 1, isChargingS2: p.isChargingS2,
-      s2ChargeCount: p.s2ChargeCount, chatMsg: p.chatMsg,
-      targetedItemId: p.targetedItemId,
-    };
-    if (this.game.pendingHits && this.game.pendingHits.length > 0) {
-      data.hits = this.game.pendingHits;
-      this.game.pendingHits = [];
-    }
-
-    // ── Build hostData delta ──────────────────────────────────────────────
-    if (this.game.isHost) {
-      const g = this.game;
-      const hostSub = {};
-
-      // Scalar sub-keys — compare against _lastHostStr
-      const scalars = {
-        gameStartTime: g.hostGameStartTime || g.gameStartTime,
-        wave: g.wave, kills: g.kills, seed: g.prng ? g.prng.seed : 0,
-        dropSeed: g.dropPrng ? g.dropPrng.seed : 0,
-        sessionSeed: g.sessionSeed, env: g.selectedEnv,
-        waveTotal: g.waveTotalEnemies, waveKilled: g.waveEnemiesKilled,
-        waveSpawn: g.waveEnemiesToSpawn, bossActive: g.bossActive,
-      };
-      for (const key in scalars) {
-        const valStr = JSON.stringify(scalars[key]);
-        if (valStr !== this._lastHostStr[key]) {
-          this._lastHostStr[key] = valStr;
-          hostSub[key] = scalars[key];
-        }
-      }
-
-      // Enemies — dirty tracking
-      this._enemyBroadcastCount++;
-      const doFullSync = this._enemyBroadcastCount % 10 === 1;
-      const dirtyEnemies = [];
-      const relevant = g.enemies.filter(e => e.alive || (e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
-      for (const e of relevant) {
-        const last = this._lastEnemyStates.get(e.id);
-        const currX = e.x, currY = e.y, currHp = e.hp, currAlive = e.alive, currDeath = e.deathTime || 0;
-        if (doFullSync || !last || last.x !== currX || last.y !== currY || last.hp !== currHp || last.alive !== currAlive || last.deathTime !== currDeath) {
-          dirtyEnemies.push({
-            id: e.id, x: currX, y: currY, hp: currHp, maxHp: e.maxHp,
-            alive: currAlive, name: e.name, size: e.size, deathTime: currDeath
-          });
-          this._lastEnemyStates.set(e.id, { x: currX, y: currY, hp: currHp, alive: currAlive, deathTime: currDeath });
-        }
-      }
-      if (doFullSync) hostSub._fullEnemySync = true;
-      if (dirtyEnemies.length > 0) hostSub.enemies = dirtyEnemies;
-
-      // Items — sent only when the bag composition changes
-      const itemIdsStr = g.items.map(i => i.id).sort().join(',');
-      if (itemIdsStr !== this._lastItemsIdStr) {
-        this._lastItemsIdStr = itemIdsStr;
-        hostSub.items = g.items.map(i => ({
-          ...i,
-          icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
-        }));
-      }
-
-      if (Object.keys(hostSub).length > 0) data.hostData = hostSub;
-    }
-
-    // ── Serialise top-level delta ─────────────────────────────────────────
-    if (!this.game.lastBroadcastStr) this.game.lastBroadcastStr = {};
-    const delta = {};
-    let hasChanges = false;
-    for (const key in data) {
-      const valStr = JSON.stringify(data[key]);
-      if (valStr !== this.game.lastBroadcastStr[key]) {
-        this.game.lastBroadcastStr[key] = valStr;
-        if (data[key] !== undefined) { delta[key] = data[key]; hasChanges = true; }
-      }
-    }
-    if (hasChanges && this.game.net && this.game.net.me) {
-      this.game.net.send_cmd('set_data', delta);
-      delete this.game.lastBroadcastStr['hits'];
-      delete this.game.lastBroadcastStr['enemyHitPlayer'];
-      delete this.game.lastBroadcastStr['spawnedProjectile'];
-      delete this.game.lastBroadcastStr['enemyKilled'];
-      delete this.game.lastBroadcastStr['spawnItem'];
-    }
-  }
-
-  emitEvent(type, data) {
     if (!this.game.net || !this.game.net.me) return;
-    this.game.net.send_cmd('room.msg', {
-      cmd: 'game.event',
-      data: { type, source: this.game.net.me.info.user, timestamp: Date.now(), ...data }
-    });
+    const p = this.game.player;
+    if (!p) return;
+    const now = Date.now();
+    if (now - this._broadcastThrottle < 50) return;
+    this._broadcastThrottle = now;
+
+    const last = this._lastSentState;
+    const delta = {};
+
+    const inGame = this.game.state === 'PLAYING';
+    if (inGame !== last.inGame) delta.inGame = inGame;
+    const state = this.game.state;
+    if (state !== last.state) delta.state = state;
+    if (p.x !== last.x) delta.x = p.x;
+    if (p.y !== last.y) delta.y = p.y;
+    if (p.hp !== last.hp) delta.hp = p.hp;
+
+    const maxHp = p._maxHp || p.maxHp;
+    if (maxHp !== last.maxHp) delta.maxHp = maxHp;
+    if (p.level !== last.level) delta.level = p.level;
+    if (p.kills !== last.kills) delta.kills = p.kills;
+    if (p.facing !== last.facing) delta.facing = p.facing;
+    if (p.aimAngle !== last.aimAngle) delta.aimAngle = p.aimAngle;
+    if (p.action !== last.action) delta.action = p.action;
+    if (p.classType !== last.classType) delta.classType = p.classType;
+
+    const alive = p.alive !== false;
+    if (alive !== last.alive) delta.alive = alive;
+    const nick = p.nick || '';
+    if (nick !== last.nick) delta.nick = nick;
+    const hitFlash = p.hitFlash || 0;
+    if (hitFlash !== last.hitFlash) delta.hitFlash = hitFlash;
+    const chatMsg = p.chatMsg || null;
+    if (chatMsg !== last.chatMsg) delta.chatMsg = chatMsg;
+
+    const playerJoinedAt = this.game.playerJoinedAt || 0;
+    if (playerJoinedAt !== last.playerJoinedAt) delta.playerJoinedAt = playerJoinedAt;
+
+    if (this.game.isHost) {
+      const gameStartUTC = this.game.gameStartUTC || 0;
+      if (gameStartUTC !== last.gameStartUTC) delta.gameStartUTC = gameStartUTC;
+      const selectedEnv = this.game.selectedEnv;
+      if (selectedEnv !== last.selectedEnv) delta.selectedEnv = selectedEnv;
+
+      const configStr = JSON.stringify({
+        c: ConfigModule.activeConfig,
+        n: ConfigModule.activePresetName,
+        cl: ConfigModule.CLASS_DATA,
+        et: ConfigModule.ENEMY_TYPES,
+        id: ConfigModule.ITEMS_DB
+      });
+      if (configStr !== this._lastConfigStr) {
+        this._lastConfigStr = configStr;
+        delta.gameplayConfig = ConfigModule.activeConfig;
+        delta.gameplayConfigName = ConfigModule.activePresetName || 'Default';
+        delta.classData = ConfigModule.CLASS_DATA;
+        delta.enemyTypes = ConfigModule.ENEMY_TYPES;
+        delta.itemsDb = ConfigModule.ITEMS_DB;
+      }
+    }
+
+    if (Object.keys(delta).length === 0) return;
+    Object.assign(last, delta);
+    this.game.net.send_cmd('set_data', delta);
   }
 }
