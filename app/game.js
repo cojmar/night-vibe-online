@@ -76,6 +76,7 @@ export default class Game {
     this.dropPrng = new PRNG(this.sessionSeed + this.wave * 54321);
     this.gameStartUTC = 0;
     this._clockOffset = 0;
+    this._gameWFromHost = false;
     this.hostCheckTimer = this.emptyWaveTimer = 0;
     this._syncRequested = false;
     this._syncRetryTimer = 0;
@@ -319,7 +320,7 @@ export default class Game {
     this.ui.addLog('🎮 Returned to character selection!', 'player');
     if (this.net?.me) {
       this._resetSessionData();
-      this.isHost = false; this.gameStartUTC = 0; this._clockOffset = 0;
+      this.isHost = false; this.gameStartUTC = 0; this._clockOffset = 0; this._gameWFromHost = false;
       this.net.send_cmd('set_data', { inGame: false, state: 'MENU', gameplayConfig: {}, classData: {}, enemyTypes: [], itemsDb: [] });
     }
     this.checkHost();

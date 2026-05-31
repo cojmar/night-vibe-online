@@ -39,10 +39,9 @@ export default class ViewportManager {
     this.game.viewScale = ch / this.game.gameH;
 
     const requiredGameW = Math.ceil(cw / this.game.viewScale);
-    const baseConfigW = (this.game.configModule || {}).activeConfig?.GAME_W || 2560;
-    const targetW = Math.max(baseConfigW, requiredGameW);
+    const targetW = Math.max(this.game.gameW, requiredGameW);
 
-    if (targetW !== this.game.gameW) {
+    if (targetW !== this.game.gameW && !this.game._gameWFromHost) {
       this.game.gameW = targetW;
       if (this.game.player && this.game.player.isLocal) {
         this.game.player.x = Math.max(20, Math.min(targetW - 20, this.game.player.x));

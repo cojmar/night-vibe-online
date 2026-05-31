@@ -97,6 +97,7 @@ export default class NetworkSync {
       clientReqTime: t1,
       hostRecvTime: t2,
       gameStartUTC: g.gameStartUTC || 0,
+      gameW: g.gameW || 2560,
       sessionSeed: g.sessionSeed,
       seed: g.prng ? g.prng.seed : 0,
       dropSeed: g.dropPrng ? g.dropPrng.seed : 0,
@@ -144,6 +145,11 @@ export default class NetworkSync {
       this._lastClockSync = Date.now();
     }
 
+    if (event.gameW) {
+      g.gameW = event.gameW;
+      g._gameWFromHost = true;
+      if (g.player) g.player.x = Math.max(20, Math.min(event.gameW - 20, g.player.x));
+    }
     g.globalTime = (Date.now() + g._clockOffset - event.gameStartUTC) / 1000;
     g.sessionSeed = event.sessionSeed;
     if (!g.prng) g.prng = new PRNG(event.seed);
@@ -385,6 +391,20 @@ export default class NetworkSync {
         }
       }
     }
+
+    if (!this.game.isHost && fullData.gameW && fullData.gameW !== this.game.gameW) {
+      const hostId = this.getDeterministicHost();
+      if (hostId === userId) {
+        this.game.gameW = fullData.gameW;
+        this.game._gameWFromHost = true;
+        if (this.game.player && this.game.player.isLocal) {
+          this.game.player.x = Math.max(20, Math.min(fullData.gameW - 20, this.game.player.x));
+        }
+        this.game.generateScenery();
+        this.game.initBgParticles();
+        if (this.game.updateLayout) this.game.updateLayout();
+      }
+    }
   }
 
   getDeterministicHost() {
@@ -492,6 +512,8 @@ export default class NetworkSync {
     if (this.game.isHost) {
       const gameStartUTC = this.game.gameStartUTC || 0;
       if (gameStartUTC !== last.gameStartUTC) delta.gameStartUTC = gameStartUTC;
+      const gameW = this.game.gameW || 0;
+      if (gameW !== last.gameW) delta.gameW = gameW;
       const selectedEnv = this.game.selectedEnv;
       if (selectedEnv !== last.selectedEnv) delta.selectedEnv = selectedEnv;
 
