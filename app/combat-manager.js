@@ -37,6 +37,14 @@ export default class CombatManager {
       const typeStr = clickedItem.type === 'red' ? '❤️ Potion' : '⚡ Potion';
       document.getElementById('walk-indicator').innerHTML = `🧪 Collecting ${typeStr}...`;
       document.getElementById('walk-indicator').classList.add('visible');
+      this.game.networkSync.emitEvent('player_move', {
+        fromX: this.game.player.x,
+        fromY: this.game.player.y,
+        toX: this.game.player.moveTargetX,
+        toY: this.game.player.moveTargetY,
+        moveSpeed: this.game.player.moveSpeed,
+        facing: this.game.player.facing
+      });
       this.game.networkSync.broadcastState();
       return;
     }
@@ -56,6 +64,12 @@ export default class CombatManager {
 
     if (!onGround || clickedEnemy) {
       if (clickedEnemy) {
+        if (this.game.player.isMoving) {
+          this.game.networkSync.emitEvent('player_move_cancel', {
+            toX: this.game.player.x,
+            toY: this.game.player.y
+          });
+        }
         this.game.player.autoAttackTarget = clickedEnemy;
         document.getElementById('walk-indicator').innerHTML = '⚔️ Attacking...';
         document.getElementById('walk-indicator').classList.add('visible');
@@ -74,6 +88,14 @@ export default class CombatManager {
     }
 
     this.game.moveMarker = { x: cx, y: cy, life: 30, maxLife: 30, color: 'yellow' };
+    this.game.networkSync.emitEvent('player_move', {
+      fromX: this.game.player.x,
+      fromY: this.game.player.y,
+      toX: this.game.player.moveTargetX,
+      toY: this.game.player.moveTargetY,
+      moveSpeed: this.game.player.moveSpeed,
+      facing: this.game.player.facing
+    });
     this.game.networkSync.broadcastState();
   }
 
@@ -329,6 +351,7 @@ export default class CombatManager {
     if (this.game.player.hp <= 0) {
       this.game.player.hp = 0;
       this.game.player.alive = false;
+      this.game.player.stopWalking(this.game);
       this.game.networkSync.broadcastState();
       this.game.ui.showDeathScreen(`${this.game.waveEnemiesKilled}/${this.game.waveTotalEnemies}`, this.game.wave);
     } else {

@@ -55,6 +55,8 @@ export default class NetworkSync {
     this.game.net.on('clock_sync_resp', (event) => {
       this.processClockSyncResp(event.data);
     });
+    this.game.net.on('player_move', (event) => this.handlePlayerMove(event.data));
+    this.game.net.on('player_move_cancel', (event) => this.handlePlayerMoveCancel(event.data));
   }
 
   emitEvent(type, data) {
@@ -85,6 +87,34 @@ export default class NetworkSync {
     const offset = t2 - (t1 + t4) / 2;
     this.game._clockOffset = Math.round(offset);
     this._lastClockSync = Date.now();
+  }
+
+  handlePlayerMove(data) {
+    const userId = data.source;
+    if (userId === this.game.net.me.info.user) return;
+    const p = this.game.otherPlayers[userId];
+    if (!p) return;
+    p.isMoving = true;
+    p.x = data.fromX;
+    p.y = data.fromY;
+    p.moveTargetX = data.toX;
+    p.moveTargetY = data.toY;
+    p.moveSpeed = data.moveSpeed || p.moveSpeed;
+    if (data.facing !== undefined) p.facing = data.facing;
+    p.action = 'walk';
+  }
+
+  handlePlayerMoveCancel(data) {
+    const userId = data.source;
+    if (userId === this.game.net.me.info.user) return;
+    const p = this.game.otherPlayers[userId];
+    if (!p) return;
+    p.isMoving = false;
+    p.x = data.toX;
+    p.y = data.toY;
+    p.moveTargetX = 0;
+    p.moveTargetY = 0;
+    p.action = 'idle';
   }
 
   sendGameSync(event) {
@@ -337,8 +367,10 @@ export default class NetworkSync {
     if (p) {
       p.state = fullData.state || 'PLAYING';
       p.inGame = fullData.inGame !== false;
-      p.x = fullData.x;
-      p.y = fullData.y;
+      if (!p.isMoving) {
+        p.x = fullData.x;
+        p.y = fullData.y;
+      }
       p.hp = fullData.hp;
       p._maxHp = fullData.maxHp;
       p.level = fullData.level;
@@ -484,8 +516,10 @@ export default class NetworkSync {
     if (inGame !== last.inGame) delta.inGame = inGame;
     const state = this.game.state;
     if (state !== last.state) delta.state = state;
-    if (p.x !== last.x) delta.x = p.x;
-    if (p.y !== last.y) delta.y = p.y;
+    if (!p.isMoving || p.autoAttackTarget) {
+      if (p.x !== last.x) delta.x = p.x;
+      if (p.y !== last.y) delta.y = p.y;
+    }
     if (p.hp !== last.hp) delta.hp = p.hp;
 
     const maxHp = p._maxHp || p.maxHp;

@@ -262,34 +262,48 @@ export default class Player {
     }
 
     if (!this.isLocal) {
-      this.updateFromNetwork();
-      // Smooth lerp toward network target position based on moveSpeed
-      if (this.hasTarget) {
-        const dx = this.targetX - this.x;
-        const dy = this.targetY - this.y;
+      if (this.isMoving && (this.moveTargetX !== 0 || this.moveTargetY !== 0)) {
+        const dx = this.moveTargetX - this.x;
+        const dy = this.moveTargetY - this.y;
         const dist = Math.hypot(dx, dy);
-        
-        if (dist > 300) {
-          this.x = this.targetX;
-          this.y = this.targetY;
-          this.hasTarget = false;
-        } else if (dist > 0.5) {
-          // moveSpeed units per 16.67ms (1 frame at 60fps)
-          // Scale dt to match this: dt is in frame units (dt=1 = 16.67ms)
-          const speedPerFrame = this.moveSpeed || 2.5;
-          const moveAmount = speedPerFrame * dt;
-          if (moveAmount >= dist) {
+        if (dist <= 3) {
+          this.x = this.moveTargetX;
+          this.y = this.moveTargetY;
+          this.isMoving = false;
+          this.moveTargetX = 0;
+          this.moveTargetY = 0;
+          this.action = 'idle';
+        } else {
+          const moveAmt = this.moveSpeed * dt;
+          this.x += (dx / dist) * moveAmt;
+          this.y += (dy / dist) * moveAmt;
+        }
+      } else {
+        this.updateFromNetwork();
+        if (this.hasTarget) {
+          const dx = this.targetX - this.x;
+          const dy = this.targetY - this.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 300) {
             this.x = this.targetX;
             this.y = this.targetY;
             this.hasTarget = false;
+          } else if (dist > 0.5) {
+            const speedPerFrame = this.moveSpeed || 2.5;
+            const moveAmount = speedPerFrame * dt;
+            if (moveAmount >= dist) {
+              this.x = this.targetX;
+              this.y = this.targetY;
+              this.hasTarget = false;
+            } else {
+              this.x += (dx / dist) * moveAmount;
+              this.y += (dy / dist) * moveAmount;
+            }
           } else {
-            this.x += (dx / dist) * moveAmount;
-            this.y += (dy / dist) * moveAmount;
+            this.x = this.targetX;
+            this.y = this.targetY;
+            this.hasTarget = false;
           }
-        } else {
-          this.x = this.targetX;
-          this.y = this.targetY;
-          this.hasTarget = false;
         }
       }
       return;
@@ -374,6 +388,12 @@ export default class Player {
   stopWalking(gameInstance) {
     if (this.isMoving) {
       this.isMoving = false;
+      if (this.isLocal && gameInstance.networkSync) {
+        gameInstance.networkSync.emitEvent('player_move_cancel', {
+          toX: this.x,
+          toY: this.y
+        });
+      }
       this.moveTargetX = 0;
       this.moveTargetY = 0;
       this.targetedItemId = null;
