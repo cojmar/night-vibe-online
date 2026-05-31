@@ -7,6 +7,13 @@ import Projectile from './projectile.js';
 export default class NetworkSync {
   constructor(game) {
     this.game = game;
+    /** @type {Map<string,{x:number,y:number,hp:number,alive:boolean}>} */
+    this._lastEnemyStates = new Map();
+    this._enemyBroadcastCount = 0;
+    /** @type {Object<string,string>} Cache of last-sent host scalar fields. */
+    this._lastHostStr = {};
+    /** @type {string|null} Cache of last-sent items (comma-joined sorted IDs). */
+    this._lastItemsIdStr = null;
   }
 
   bindEvents() {
@@ -290,6 +297,12 @@ export default class NetworkSync {
     }
   }
 
+  /**
+   * Receive hostData from the host client and apply it locally.
+   *
+   * Handles both full syncs (`_fullEnemySync === true`) and incremental enemy
+   * updates (merge by ID without removing untracked enemies).
+   */
   syncHostData(hostData) {
     if (hostData.gameStartTime !== undefined) this.game.hostGameStartTime = hostData.gameStartTime;
     if (hostData.time !== undefined) this.game.globalTime = hostData.time;
@@ -302,107 +315,166 @@ export default class NetworkSync {
       if (!this.game.dropPrng) this.game.dropPrng = new PRNG(hostData.dropSeed);
       else this.game.dropPrng.seed = hostData.dropSeed;
     }
-    if (this.game.wave !== hostData.wave && hostData.wave) {
+    if (hostData.wave !== undefined && this.game.wave !== hostData.wave) {
       if (this.game.player && !this.game.player.alive) this.game.respawnPlayer();
       this.game.wave = hostData.wave;
     }
     if (hostData.waveTotal !== undefined) this.game.waveTotalEnemies = hostData.waveTotal;
     if (hostData.waveSpawn !== undefined) this.game.waveEnemiesToSpawn = hostData.waveSpawn;
-    this.game.kills = hostData.kills;
-    this.game.waveEnemiesKilled = hostData.waveKilled || 0;
-    this.game.bossActive = hostData.bossActive || false;
+    if (hostData.kills !== undefined) this.game.kills = hostData.kills;
+    if (hostData.waveKilled !== undefined) this.game.waveEnemiesKilled = hostData.waveKilled;
+    if (hostData.bossActive !== undefined) this.game.bossActive = hostData.bossActive;
     if (this.game.state === 'PLAYING') {
       this.game.ui.updateScore(this.game.player, this.game.wave, this.game.waveEnemiesKilled, this.game.waveTotalEnemies);
     }
-    if (this.game.selectedEnv !== hostData.env) {
+    if (hostData.env !== undefined && this.game.selectedEnv !== hostData.env) {
       this.game.selectedEnv = hostData.env || 'forest';
       this.game.generateScenery();
       if (this.game.state === 'PLAYING') this.game.ui.updateEnvironment(this.game.selectedEnv);
       this.game.initBgParticles();
     }
-    const hostEnemyIds = hostData.enemies.map(e => e.id);
-    this.game.enemies = this.game.enemies.filter(e => hostEnemyIds.includes(e.id));
-    hostData.enemies.forEach(eData => {
-      let e = this.game.enemies.find(ex => ex.id === eData.id);
-      if (!e) {
-        let isBoss = eData.name === 'BOSS';
-        let spawnIndex = 0;
-        if (eData.id && eData.id.startsWith('E_')) {
-          const parts = eData.id.split('_');
-          if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+    if (hostData.enemies) {
+      if (hostData._fullEnemySync) {
+        // Full replacement: remove enemies not in the list
+        const hostEnemyIds = hostData.enemies.map(e => e.id);
+        this.game.enemies = this.game.enemies.filter(e => hostEnemyIds.includes(e.id));
+      }
+      hostData.enemies.forEach(eData => {
+        let e = this.game.enemies.find(ex => ex.id === eData.id);
+        if (!e) {
+          let isBoss = eData.name === 'BOSS';
+          let spawnIndex = 0;
+          if (eData.id && eData.id.startsWith('E_')) {
+            const parts = eData.id.split('_');
+            if (parts.length === 3) spawnIndex = parseInt(parts[2]) || 0;
+          }
+          e = new Enemy(this.game, isBoss, false, spawnIndex);
+          e.id = eData.id;
+          if (eData.id && eData.id.startsWith('M_')) { e.name = 'MISSILE'; e.icon = '🚀'; e.size = 20; e.color = '#e74c3c'; }
+          e.x = eData.x || e.x;
+          e.y = eData.y || e.y;
+          this.game.enemies.push(e);
         }
-        e = new Enemy(this.game, isBoss, false, spawnIndex);
-        e.id = eData.id;
-        if (eData.id && eData.id.startsWith('M_')) { e.name = 'MISSILE'; e.icon = '🚀'; e.size = 20; e.color = '#e74c3c'; }
-        e.x = eData.x || e.x;
-        e.y = eData.y || e.y;
-        this.game.enemies.push(e);
-      }
-      if (eData.x !== undefined) e.serverX = eData.x;
-      if (eData.y !== undefined) e.serverY = eData.y;
-      if (eData.hp !== undefined) e.hp = eData.hp;
-      if (eData.maxHp !== undefined) e.maxHp = eData.maxHp;
-      if (eData.alive !== undefined) {
-        if (e.alive && !eData.alive) this.game.particleManager.spawnEnemyDeathExplosion(e);
-        e.alive = eData.alive;
-      }
-      if (eData.name !== undefined) e.name = eData.name;
-      if (eData.size !== undefined) e.size = eData.size;
-      if (eData.bossState !== undefined) e.bossState = eData.bossState;
-      if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
-      if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
-      if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
-      if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
-    });
-    this.game.enemies = this.game.enemies.filter(e => hostData.enemies.find(ex => ex.id === e.id) || (!e.alive && e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
+        if (eData.x !== undefined) e.serverX = eData.x;
+        if (eData.y !== undefined) e.serverY = eData.y;
+        if (eData.hp !== undefined) e.hp = eData.hp;
+        if (eData.maxHp !== undefined) e.maxHp = eData.maxHp;
+        if (eData.alive !== undefined) {
+          if (e.alive && !eData.alive) this.game.particleManager.spawnEnemyDeathExplosion(e);
+          e.alive = eData.alive;
+        }
+        if (eData.name !== undefined) e.name = eData.name;
+        if (eData.size !== undefined) e.size = eData.size;
+        if (eData.bossState !== undefined) e.bossState = eData.bossState;
+        if (eData.bossChannelTimer !== undefined) e.bossChannelTimer = eData.bossChannelTimer;
+        if (eData.targetLaserPos !== undefined) e.targetLaserPos = eData.targetLaserPos;
+        if (eData.bossLaserTimer !== undefined) e.bossLaserTimer = eData.bossLaserTimer;
+        if (eData.deathTime && eData.deathTime > 0) e.deathTime = eData.deathTime;
+      });
+      // Clean up fully-expired dead bodies (always, regardless of full/incremental)
+      this.game.enemies = this.game.enemies.filter(e => e.alive || (e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
+    }
     if (hostData.items) {
       this.game.items = hostData.items.filter(item => !this.game.itemManager.pendingPickupIds.has(item.id)).map(item => ({ ...item }));
     }
   }
 
+  /**
+   * Build and send the delta of changed player state + host data.
+   *
+   * DESIGN:
+   * - Top-level player fields (x, y, hp, action, etc.) are compared via
+   *   JSON.stringify against `lastBroadcastStr` — only changed keys are sent.
+   * - `hostData` sub-keys (wave, kills, enemies, items) are tracked
+   *   independently via `_lastHostStr` so that a change in one sub-key does
+   *   not force a resend of all others.
+   * - Enemies use per-instance dirty tracking (`_lastEnemyStates`). Only
+   *   enemies whose x/y/hp/alive changed since the last broadcast are included.
+   *   Every 10th broadcast does a full sync (`_fullEnemySync = true`) to
+   *   reconcile any desyncs.
+   * - Items are tracked by a sorted-ID checksum — sent only when the bag changes.
+   */
   broadcastState() {
     if (!this.game.player) return;
-    const activeConfig = {};
-    for (const key in CONFIG_METADATA) activeConfig[key] = ConfigModule[key];
     const reqLevel = 4 + (this.game.player.resets || 0) * 5;
     const lvlScale = 0.5 + 0.5 * ((this.game.player.level - 1) / Math.max(1, reqLevel - 1));
     const weaponY = this.game.player.y - 40 * lvlScale;
     const computedAimAngle = parseFloat(Math.atan2(this.game.player.mouseY - weaponY, this.game.player.mouseX - this.game.player.x).toFixed(1));
+    const p = this.game.player;
     const data = {
       inGame: true, gameStartTime: this.game.gameStartTime || 0, state: this.game.state,
-      nick: this.game.player.nick, alive: this.game.player.alive,
-      x: this.game.player.x, y: this.game.player.y, hp: this.game.player.hp,
-      maxHp: this.game.player._maxHp, atk: this.game.player._atk, spd: this.game.player._spd,
-      level: this.game.player.level, resets: this.game.player.resets,
-      kills: this.game.player.kills, reqKills: this.game.player.reqKills,
-      facing: this.game.player.facing, aimAngle: computedAimAngle,
-      action: this.game.player.action, classType: this.game.player.classType,
-      hitFlash: this.game.player.hitFlash, lastInputTime: this.game.player.lastInputTime || 0,
-      lastSkill: this.game.player.lastSkill || 1, isChargingS2: this.game.player.isChargingS2,
-      s2ChargeCount: this.game.player.s2ChargeCount, chatMsg: this.game.player.chatMsg,
-      targetedItemId: this.game.player.targetedItemId,
+      nick: p.nick, alive: p.alive,
+      x: p.x, y: p.y, hp: p.hp,
+      maxHp: p._maxHp, atk: p._atk, spd: p._spd,
+      level: p.level, resets: p.resets,
+      kills: p.kills, reqKills: p.reqKills,
+      facing: p.facing, aimAngle: computedAimAngle,
+      action: p.action, classType: p.classType,
+      hitFlash: p.hitFlash, lastInputTime: p.lastInputTime || 0,
+      lastSkill: p.lastSkill || 1, isChargingS2: p.isChargingS2,
+      s2ChargeCount: p.s2ChargeCount, chatMsg: p.chatMsg,
+      targetedItemId: p.targetedItemId,
     };
     if (this.game.pendingHits && this.game.pendingHits.length > 0) {
       data.hits = this.game.pendingHits;
       this.game.pendingHits = [];
     }
+
+    // ── Build hostData delta ──────────────────────────────────────────────
     if (this.game.isHost) {
-      data.hostData = {
-        gameStartTime: this.game.hostGameStartTime || this.game.gameStartTime,
-        wave: this.game.wave, kills: this.game.kills, seed: this.game.prng.seed,
-        dropSeed: this.game.dropPrng ? this.game.dropPrng.seed : 0,
-        sessionSeed: this.game.sessionSeed, env: this.game.selectedEnv,
-        waveTotal: this.game.waveTotalEnemies, waveKilled: this.game.waveEnemiesKilled,
-        waveSpawn: this.game.waveEnemiesToSpawn, bossActive: this.game.bossActive,
-        enemies: this.game.enemies.filter(e => e.alive || (Date.now() - e.deathTime < DEAD_BODY_LIFETIME)).map(e => ({
-          id: e.id, x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, alive: e.alive, name: e.name, size: e.size, deathTime: e.deathTime
-        })),
-        items: this.game.items.map(i => ({
+      const g = this.game;
+      const hostSub = {};
+
+      // Scalar sub-keys — compare against _lastHostStr
+      const scalars = {
+        gameStartTime: g.hostGameStartTime || g.gameStartTime,
+        wave: g.wave, kills: g.kills, seed: g.prng ? g.prng.seed : 0,
+        dropSeed: g.dropPrng ? g.dropPrng.seed : 0,
+        sessionSeed: g.sessionSeed, env: g.selectedEnv,
+        waveTotal: g.waveTotalEnemies, waveKilled: g.waveEnemiesKilled,
+        waveSpawn: g.waveEnemiesToSpawn, bossActive: g.bossActive,
+      };
+      for (const key in scalars) {
+        const valStr = JSON.stringify(scalars[key]);
+        if (valStr !== this._lastHostStr[key]) {
+          this._lastHostStr[key] = valStr;
+          hostSub[key] = scalars[key];
+        }
+      }
+
+      // Enemies — dirty tracking
+      this._enemyBroadcastCount++;
+      const doFullSync = this._enemyBroadcastCount % 10 === 1;
+      const dirtyEnemies = [];
+      const relevant = g.enemies.filter(e => e.alive || (e.deathTime && Date.now() - e.deathTime < DEAD_BODY_LIFETIME));
+      for (const e of relevant) {
+        const last = this._lastEnemyStates.get(e.id);
+        const currX = e.x, currY = e.y, currHp = e.hp, currAlive = e.alive, currDeath = e.deathTime || 0;
+        if (doFullSync || !last || last.x !== currX || last.y !== currY || last.hp !== currHp || last.alive !== currAlive || last.deathTime !== currDeath) {
+          dirtyEnemies.push({
+            id: e.id, x: currX, y: currY, hp: currHp, maxHp: e.maxHp,
+            alive: currAlive, name: e.name, size: e.size, deathTime: currDeath
+          });
+          this._lastEnemyStates.set(e.id, { x: currX, y: currY, hp: currHp, alive: currAlive, deathTime: currDeath });
+        }
+      }
+      if (doFullSync) hostSub._fullEnemySync = true;
+      if (dirtyEnemies.length > 0) hostSub.enemies = dirtyEnemies;
+
+      // Items — sent only when the bag composition changes
+      const itemIdsStr = g.items.map(i => i.id).sort().join(',');
+      if (itemIdsStr !== this._lastItemsIdStr) {
+        this._lastItemsIdStr = itemIdsStr;
+        hostSub.items = g.items.map(i => ({
           ...i,
           icon: (i.icon && typeof i.icon === 'string' && i.icon.startsWith('data:image/')) ? '📦' : i.icon
-        }))
-      };
+        }));
+      }
+
+      if (Object.keys(hostSub).length > 0) data.hostData = hostSub;
     }
+
+    // ── Serialise top-level delta ─────────────────────────────────────────
     if (!this.game.lastBroadcastStr) this.game.lastBroadcastStr = {};
     const delta = {};
     let hasChanges = false;
