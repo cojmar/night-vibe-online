@@ -3,6 +3,7 @@ import { ENEMY_TYPES, ENV_CONFIG, getGroundY, DEAD_BODY_LIFETIME, PRNG, ENEMY_SC
 export default class Enemy {
   constructor(gameInstance, isBoss = false, isClient = false, spawnIndex = 0) {
     this.game = gameInstance;
+    this.spawnIndex = spawnIndex;
     if (isClient) {
       this.id = ''; this.serverX = 0; this.serverY = 0;
       this.alive = true; this.hitFlash = 0; this.stunTimer = 0;
@@ -213,7 +214,8 @@ export default class Enemy {
         this.missileTimer = 0;
 
         this._bossAction = (this._bossAction || 0) + 1;
-        const bossActionPrng = new PRNG((this.game.prng ? this.game.prng.seed : 1) + this._bossAction * 7777);
+        const gameTimeSec = Math.floor(this.game.globalTime || (Date.now() - this.game.gameStartUTC) / 1000);
+        const bossActionPrng = new PRNG(this.spawnIndex * 7777 + gameTimeSec * 1337);
         if (this.game.wave >= 2 && bossActionPrng.nextFloat() < 0.4) {
           this.bossState = 'CHANNELING_LASER';
           this.bossChannelTimer = BOSS_LASER_CHANNEL_TIME;
