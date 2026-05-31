@@ -6,6 +6,15 @@ export default class Renderer {
     this.game = game;
     this._cachedEnv = null;
     this._skyGradient = null;
+    this._nightGradKey = null;
+    this._nightGradient = null;
+    this._dayGradKey = null;
+    this._dayGradient = null;
+    this._moonGlowKey = null;
+    this._moonGlowGradient = null;
+    this._nightColorsKey = null;
+    this._nightColors = null;
+    this._dayColors = null;
   }
 
   initWebGL() {
@@ -178,10 +187,14 @@ export default class Renderer {
     const moonX = cx - Math.cos(moonAngle) * 350;
     const moonY = cy + Math.sin(moonAngle) * 250;
     if (moonY < gY + 40) {
-      const moonGlow = ctx.createRadialGradient(moonX, moonY, 20, moonX, moonY, 250);
-      moonGlow.addColorStop(0, `rgba(220, 230, 255, ${nightAlpha * 0.4})`);
-      moonGlow.addColorStop(1, `rgba(220, 230, 255, 0)`);
-      ctx.fillStyle = moonGlow;
+      const moonKey = `${moonX.toFixed(0)},${moonY.toFixed(0)},${nightAlpha.toFixed(2)}`;
+      if (moonKey !== this._moonGlowKey) {
+        this._moonGlowKey = moonKey;
+        this._moonGlowGradient = ctx.createRadialGradient(moonX, moonY, 20, moonX, moonY, 250);
+        this._moonGlowGradient.addColorStop(0, `rgba(220, 230, 255, ${nightAlpha * 0.4})`);
+        this._moonGlowGradient.addColorStop(1, `rgba(220, 230, 255, 0)`);
+      }
+      ctx.fillStyle = this._moonGlowGradient;
       ctx.beginPath();
       ctx.arc(moonX, moonY, 250, 0, Math.PI * 2);
       ctx.fill();
@@ -310,7 +323,8 @@ export default class Renderer {
       }
     }
     ctx.globalAlpha = 1;
-    this.game.particles = this.game.particles.filter(p => p.life > 0);
+    const parts = this.game.particles;
+    for (let i = parts.length - 1; i >= 0; i--) { if (parts[i].life <= 0) parts.splice(i, 1); }
   }
 
   renderAtmosEffects() {
@@ -345,7 +359,8 @@ export default class Renderer {
       ctx.fillText(ft.text, ft.x, ft.y);
     }
     ctx.globalAlpha = 1;
-    this.game.floatingTexts = this.game.floatingTexts.filter(ft => ft.life > 0);
+    const fts = this.game.floatingTexts;
+    for (let i = fts.length - 1; i >= 0; i--) { if (fts[i].life <= 0) fts.splice(i, 1); }
   }
 
   renderDayNightOverlays() {
@@ -375,27 +390,44 @@ export default class Renderer {
     this.game.lightY = this.game.dayAlpha > this.game.nightAlpha ? sunY : moonY;
     this.game.lightIntensity = Math.max(this.game.dayAlpha, this.game.nightAlpha);
 
-    const lightPrng = new PRNG(this.game.sessionSeed || 1);
-    const nightR = 5 + Math.floor(lightPrng.nextFloat() * 15);
-    const nightG = 10 + Math.floor(lightPrng.nextFloat() * 15);
-    const nightB = 25 + Math.floor(lightPrng.nextFloat() * 30);
-    const dayR = 255;
-    const dayG = 220 + Math.floor(lightPrng.nextFloat() * 35);
-    const dayB = 100 + Math.floor(lightPrng.nextFloat() * 100);
+    let nightR, nightG, nightB, dayR, dayG, dayB;
+    if (this._nightColorsKey !== this.game.selectedEnv) {
+      this._nightColorsKey = this.game.selectedEnv;
+      const lightPrng = new PRNG(this.game.sessionSeed || 1);
+      nightR = 5 + Math.floor(lightPrng.nextFloat() * 15);
+      nightG = 10 + Math.floor(lightPrng.nextFloat() * 15);
+      nightB = 25 + Math.floor(lightPrng.nextFloat() * 30);
+      dayR = 255;
+      dayG = 220 + Math.floor(lightPrng.nextFloat() * 35);
+      dayB = 100 + Math.floor(lightPrng.nextFloat() * 100);
+      this._nightColors = [nightR, nightG, nightB];
+      this._dayColors = [dayR, dayG, dayB];
+    } else {
+      [nightR, nightG, nightB] = this._nightColors;
+      [dayR, dayG, dayB] = this._dayColors;
+    }
 
     if (this.game.nightAlpha > 0) {
-      const nightGrad = ctx.createRadialGradient(moonX, Math.max(0, moonY), this.game.gameH * 0.1, moonX, Math.max(0, moonY), this.game.gameW * 1.2);
-      nightGrad.addColorStop(0, `rgba(${nightR + 10}, ${nightG + 10}, ${nightB + 15}, ${this.game.nightAlpha * 0.25})`);
-      nightGrad.addColorStop(gY / this.game.gameH, `rgba(${nightR}, ${nightG}, ${nightB}, ${this.game.nightAlpha * 0.45})`);
-      nightGrad.addColorStop(1, `rgba(0, 0, 5, ${this.game.nightAlpha * 0.7})`);
-      ctx.fillStyle = nightGrad;
+      const nightKey = `${moonX.toFixed(0)},${moonY.toFixed(0)},${this.game.nightAlpha.toFixed(2)}`;
+      if (nightKey !== this._nightGradKey) {
+        this._nightGradKey = nightKey;
+        this._nightGradient = ctx.createRadialGradient(moonX, Math.max(0, moonY), this.game.gameH * 0.1, moonX, Math.max(0, moonY), this.game.gameW * 1.2);
+        this._nightGradient.addColorStop(0, `rgba(${nightR + 10}, ${nightG + 10}, ${nightB + 15}, ${this.game.nightAlpha * 0.25})`);
+        this._nightGradient.addColorStop(gY / this.game.gameH, `rgba(${nightR}, ${nightG}, ${nightB}, ${this.game.nightAlpha * 0.45})`);
+        this._nightGradient.addColorStop(1, `rgba(0, 0, 5, ${this.game.nightAlpha * 0.7})`);
+      }
+      ctx.fillStyle = this._nightGradient;
       ctx.fillRect(0, 0, this.game.gameW, this.game.gameH);
     }
     if (this.game.dayAlpha > 0) {
-      const dayGrad = ctx.createRadialGradient(sunX, Math.max(0, sunY), this.game.gameH * 0.2, sunX, Math.max(0, sunY), this.game.gameW);
-      dayGrad.addColorStop(0, `rgba(${dayR}, ${dayG}, ${dayB}, ${this.game.dayAlpha * 0.15})`);
-      dayGrad.addColorStop(1, `rgba(${dayR}, ${dayG}, ${dayB}, 0)`);
-      ctx.fillStyle = dayGrad;
+      const dayKey = `${sunX.toFixed(0)},${sunY.toFixed(0)},${this.game.dayAlpha.toFixed(2)}`;
+      if (dayKey !== this._dayGradKey) {
+        this._dayGradKey = dayKey;
+        this._dayGradient = ctx.createRadialGradient(sunX, Math.max(0, sunY), this.game.gameH * 0.2, sunX, Math.max(0, sunY), this.game.gameW);
+        this._dayGradient.addColorStop(0, `rgba(${dayR}, ${dayG}, ${dayB}, ${this.game.dayAlpha * 0.15})`);
+        this._dayGradient.addColorStop(1, `rgba(${dayR}, ${dayG}, ${dayB}, 0)`);
+      }
+      ctx.fillStyle = this._dayGradient;
       ctx.fillRect(0, 0, this.game.gameW, this.game.gameH);
     }
   }
@@ -496,7 +528,7 @@ export default class Renderer {
     if (!this.game.player || this.game.player.autoAttackTarget !== e) return;
     ctx.save();
     ctx.shadowColor = '#e74c3c';
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 6;
     ctx.strokeStyle = '#e74c3c';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -510,7 +542,7 @@ export default class Renderer {
     if (player && player.targetedItemId === item.id) {
       ctx.save();
       ctx.shadowColor = '#2ecc71';
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 6;
       ctx.strokeStyle = '#2ecc71';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
@@ -545,7 +577,7 @@ export default class Renderer {
 
       ctx.globalAlpha = Math.min(1, item.life / 1000);
       ctx.shadowColor = item.color || '#ecf0f1';
-      ctx.shadowBlur = 10 + pulse * 10;
+      ctx.shadowBlur = 4 + pulse * 2;
 
       let resolvedIcon = item.icon || '💎';
       if (resolvedIcon === '📦') {
@@ -570,7 +602,7 @@ export default class Renderer {
         ctx.fillText(resolvedIcon || '💎', 0, 0);
       }
 
-      ctx.shadowBlur = 4;
+      ctx.shadowBlur = 2;
       ctx.font = 'bold 10px sans-serif';
       ctx.fillStyle = item.color || '#ecf0f1';
       ctx.fillText(item.name || 'Gear', 0, -28 - pulse * 2);
@@ -587,7 +619,7 @@ export default class Renderer {
 
       ctx.fillStyle = item.type === 'red' ? '#e74c3c' : '#3498db';
       ctx.shadowColor = item.type === 'red' ? '#ff7979' : '#7ed6df';
-      ctx.shadowBlur = 10 + pulse * 15;
+      ctx.shadowBlur = 3 + pulse * 3;
       ctx.beginPath();
       ctx.arc(0, 0, 7 + pulse * 2, 0, Math.PI * 2);
       ctx.fill();
@@ -603,7 +635,7 @@ export default class Renderer {
       ctx.save();
       ctx.fillStyle = '#2ecc71';
       ctx.shadowColor = '#2ecc71';
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 3;
       const arrowY = -36 + Math.sin(this.game.globalTime / 100) * 3;
       ctx.beginPath();
       ctx.moveTo(0, arrowY);

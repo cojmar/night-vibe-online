@@ -27,7 +27,7 @@ export default class Projectile {
         this.trailTimer = 0;
         this.trailPositions.push({ x: this.x, y: this.y, life: 20, maxLife: 20 });
       }
-      this.trailPositions = this.trailPositions.filter(t => t.life > 0);
+      for (let i = this.trailPositions.length - 1; i >= 0; i--) { if (this.trailPositions[i].life <= 0) this.trailPositions.splice(i, 1); }
       for (let t of this.trailPositions) t.life -= dt;
       
       for (let e of gameInstance.enemies) {
@@ -131,8 +131,8 @@ export default class Projectile {
              gameInstance.spawnParticles(this.x, this.y, this.color, 2, 2);
           }
           if (this.trailPositions) {
-             this.trailPositions = this.trailPositions.filter(t => t.life > 0);
-             for (let t of this.trailPositions) t.life -= dt;
+              for (let i = this.trailPositions.length - 1; i >= 0; i--) { if (this.trailPositions[i].life <= 0) this.trailPositions.splice(i, 1); }
+              for (let t of this.trailPositions) t.life -= dt;
           }
       }
       
@@ -234,7 +234,7 @@ export default class Projectile {
         gameInstance.spawnParticles(this.x, this.y, this.color || '#9b4dff', 1, 1.5);
       }
       if (this.trailPositions) {
-        this.trailPositions = this.trailPositions.filter(t => t.life > 0);
+        for (let i = this.trailPositions.length - 1; i >= 0; i--) { if (this.trailPositions[i].life <= 0) this.trailPositions.splice(i, 1); }
         for (let t of this.trailPositions) t.life -= dt;
       }
 
@@ -279,7 +279,7 @@ export default class Projectile {
       ctx.globalAlpha = alpha * 0.5;
       
       ctx.shadowColor = this.color; 
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 6;
       
       // Calculate endpoints of the arc for the crescent curve
       const tipXBottom = rx * Math.cos(sweepHalf);
@@ -343,7 +343,7 @@ export default class Projectile {
       // Outer glow arc
       ctx.globalAlpha = alpha * 0.3;
       ctx.strokeStyle = this.color; ctx.lineWidth = 12;
-      ctx.shadowColor = this.color; ctx.shadowBlur = 25;
+      ctx.shadowColor = this.color; ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.arc(this.originX, this.originY, arcRadius, this.angle - sweepAngle*0.5, this.angle + sweepAngle*0.5);
       ctx.stroke();
@@ -351,21 +351,21 @@ export default class Projectile {
       // Main arc
       ctx.globalAlpha = alpha;
       ctx.strokeStyle = this.color; ctx.lineWidth = 4;
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 6;
       ctx.beginPath();
       ctx.arc(this.originX, this.originY, arcRadius, this.angle - sweepAngle*0.5, this.angle + sweepAngle*0.5);
       ctx.stroke();
       
       // Inner highlight arc
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-      ctx.globalAlpha = alpha * 0.7; ctx.shadowBlur = 5;
+      ctx.globalAlpha = alpha * 0.7; ctx.shadowBlur = 2;
       ctx.beginPath();
       ctx.arc(this.originX, this.originY, arcRadius-8, this.angle - sweepAngle*0.3, this.angle + sweepAngle*0.3);
       ctx.stroke();
       
       // Stars along the arc
       ctx.globalAlpha = alpha;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 4;
       const starCount = Math.floor(sweepAngle / 0.35);
       for (let i = 0; i < starCount; i++) {
         const a = this.angle - sweepAngle*0.5 + (i / Math.max(1, starCount-1)) * sweepAngle;
@@ -393,7 +393,7 @@ export default class Projectile {
       }
       
       // Endpoint stars
-      ctx.fillStyle = '#ffd700'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 12;
+      ctx.fillStyle = '#ffd700'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 5;
       const ep1X = this.originX+Math.cos(this.angle-sweepAngle*0.5)*arcRadius;
       const ep1Y = this.originY+Math.sin(this.angle-sweepAngle*0.5)*arcRadius;
       const ep2X = this.originX+Math.cos(this.angle+sweepAngle*0.5)*arcRadius;
@@ -402,7 +402,7 @@ export default class Projectile {
       ctx.beginPath(); ctx.arc(ep2X, ep2Y, 4, 0, Math.PI*2); ctx.fill();
       
       // Inner endpoint glow
-      ctx.fillStyle = '#fff'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
+      ctx.fillStyle = '#fff'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 3;
       ctx.beginPath(); ctx.arc(ep1X, ep1Y, 2, 0, Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.arc(ep2X, ep2Y, 2, 0, Math.PI*2); ctx.fill();
       
@@ -421,7 +421,7 @@ export default class Projectile {
       ctx.strokeStyle = this.color;
       ctx.lineWidth = 4 + currentRadius * 0.1;
       ctx.shadowColor = this.color;
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 6;
       
       ctx.beginPath();
       ctx.arc(0, 0, currentRadius, -Math.PI * 0.4, Math.PI * 0.4);
@@ -484,7 +484,7 @@ export default class Projectile {
     }
     else if (this.type === 'bolt') {
       const r = this.radius || 6;
-      ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = Math.min(r * 2, 20);
+      ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = Math.min(r * 0.5, 6);
       ctx.beginPath(); ctx.arc(this.x, this.y, r, 0, Math.PI*2); ctx.fill();
       ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, r/6);
       ctx.beginPath(); ctx.moveTo(this.x-r/2, this.y); ctx.lineTo(this.x+r/2, this.y); ctx.stroke();
@@ -504,7 +504,7 @@ export default class Projectile {
       ctx.lineTo(-10, -1.5); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-12, 1.5); ctx.lineTo(-16, 5);
       ctx.lineTo(-10, 1.5); ctx.closePath(); ctx.fill();
-      ctx.shadowColor = this.color; ctx.shadowBlur = 8;
+      ctx.shadowColor = this.color; ctx.shadowBlur = 3;
       ctx.fillStyle = this.color;
       ctx.globalAlpha = alpha * 0.5;
       ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();

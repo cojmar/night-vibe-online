@@ -609,7 +609,7 @@ export default class Player {
       ctx.fillStyle = '#d8a070'; ctx.fillRect(10, -8, 10, 10);
       ctx.translate(25, -3);
       const orbGlow = Math.sin(Date.now() / 250) * 0.3 + 0.7;
-      ctx.shadowColor = '#9b59b6'; ctx.shadowBlur = 15 * orbGlow;
+      ctx.shadowColor = '#9b59b6'; ctx.shadowBlur = 6 * orbGlow;
       ctx.fillStyle = '#9b59b6';
       ctx.beginPath(); ctx.ellipse(0, 0, 10, 10, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#c39bd3';
@@ -636,7 +636,7 @@ export default class Player {
       ctx.moveTo(0, 130); ctx.lineTo(-5, 122); ctx.lineTo(5, 122); ctx.closePath(); ctx.fill();
       const crystalGlow = Math.sin(Date.now() / 300) * 0.3 + 0.7;
       ctx.fillStyle = cd.s1Color; ctx.globalAlpha = crystalGlow;
-      ctx.shadowColor = cd.s1Color; ctx.shadowBlur = 14;
+      ctx.shadowColor = cd.s1Color; ctx.shadowBlur = 6;
       ctx.beginPath(); ctx.moveTo(0, -120); ctx.lineTo(-10, -100);
       ctx.lineTo(0, -80); ctx.lineTo(10, -100); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#fff';
@@ -742,7 +742,7 @@ export default class Player {
       ctx.fillStyle = '#e8e8e8'; ctx.fillRect(14, -2, 60, 4);
       ctx.beginPath(); ctx.moveTo(79, -5); ctx.lineTo(88, 0); ctx.lineTo(79, 5); ctx.fill();
       if (this.animTimer > 0) {
-        ctx.shadowColor = cd.accent; ctx.shadowBlur = 8;
+        ctx.shadowColor = cd.accent; ctx.shadowBlur = 3;
         ctx.fillStyle = cd.s1Color; ctx.globalAlpha = animP * 0.5;
         ctx.fillRect(14, -7, 70, 14);
         ctx.globalAlpha = 1; ctx.shadowBlur = 0;
@@ -764,7 +764,7 @@ export default class Player {
       ctx.fillStyle = '#d8d8d8'; ctx.fillRect(14, -2, 60, 4);
       ctx.beginPath(); ctx.moveTo(79, -5); ctx.lineTo(88, 0); ctx.lineTo(79, 5); ctx.fill();
       if (this.animTimer > 0) {
-        ctx.shadowColor = cd.accent; ctx.shadowBlur = 8;
+        ctx.shadowColor = cd.accent; ctx.shadowBlur = 3;
         ctx.fillStyle = cd.s1Color; ctx.globalAlpha = animP * 0.5;
         ctx.fillRect(14, -7, 70, 14);
         ctx.globalAlpha = 1; ctx.shadowBlur = 0;
@@ -819,7 +819,7 @@ export default class Player {
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.shadowColor = 'rgba(0,0,0,0.3)';
-      ctx.shadowBlur = 4;
+      ctx.shadowBlur = 2;
 
       // draw bubble
       const bx = -msgWidth / 2;
@@ -860,7 +860,7 @@ export default class Player {
       for (let i = 0; i < maxCharges; i++) {
         if (i < chargeCount) {
           ctx.fillStyle = '#ffd700';
-          ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 5;
+          ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 2;
         } else {
           ctx.fillStyle = '#555';
           ctx.shadowBlur = 0;

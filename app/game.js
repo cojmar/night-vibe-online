@@ -431,7 +431,7 @@ export default class Game {
     }
 
     for (let p of this.projectiles) { p.update(dt, this); if (p.x >= this.cullMinX && p.x <= this.cullMaxX && p.y >= this.cullMinY && p.y <= this.cullMaxY) p.draw(this.ctx); }
-    this.projectiles = this.projectiles.filter(p => p.life > 0);
+    for (let i = this.projectiles.length - 1; i >= 0; i--) { if (this.projectiles[i].life <= 0) this.projectiles.splice(i, 1); }
 
     if (this.queuedFireball && this.player) {
       const qf = this.queuedFireball;

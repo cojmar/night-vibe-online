@@ -340,7 +340,7 @@ export default class Enemy {
         ctx.globalAlpha = alpha;
         ctx.fillStyle = i % 2 === 0 ? '#ffd700' : '#fff';
         ctx.shadowColor = ctx.fillStyle;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 3;
         
         // Draw 4-point star
         ctx.beginPath();
@@ -372,7 +372,7 @@ export default class Enemy {
         ctx.strokeStyle = `rgba(255, 50, 50, ${beamAlpha + beamPulse * 0.2})`;
         ctx.lineWidth = 1 + progress * 3;
         ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = 5 + progress * 10;
+        ctx.shadowBlur = 2 + progress * 4;
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(targetX, targetY);
@@ -387,7 +387,7 @@ export default class Enemy {
         ctx.strokeStyle = `rgba(255, 0, 0, ${0.5 + progress * 0.5})`;
         ctx.lineWidth = 2;
         ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 4;
         ctx.beginPath();
         ctx.arc(0, 0, reticleSize, 0, Math.PI * 2);
         ctx.stroke();
@@ -405,13 +405,13 @@ export default class Enemy {
         const orbSize = 5 + progress * 25 + Math.random() * 5;
         ctx.fillStyle = `rgba(255, 255, 255, ${0.8})`;
         ctx.shadowColor = '#e74c3c';
-        ctx.shadowBlur = 15 + progress * 25;
+        ctx.shadowBlur = 6 + progress * 10;
         ctx.beginPath();
         ctx.arc(startX, startY, orbSize, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.fillStyle = '#ffcccc';
-        ctx.shadowBlur = 5;
+        ctx.shadowBlur = 2;
         ctx.beginPath();
         ctx.arc(startX, startY, orbSize * 0.5, 0, Math.PI * 2);
         ctx.fill();
@@ -472,11 +472,11 @@ export default class Enemy {
       if (this.bossState === 'CHANNELING_LASER') {
         const glowPhase = Math.abs(Math.sin(now / 100));
         ctx.shadowColor = '#e74c3c';
-        ctx.shadowBlur = 10 + glowPhase * 20;
+        ctx.shadowBlur = 4 + glowPhase * 8;
         crownSize = Math.floor(this.size * 0.7) + glowPhase * 8;
       } else if (this.bossState === 'FIRING_LASER') {
         ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = 25;
+        ctx.shadowBlur = 10;
         crownSize = Math.floor(this.size * 0.85);
       }
       
