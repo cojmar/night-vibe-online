@@ -7,6 +7,7 @@ export default class Enemy {
     if (isClient) {
       this.id = ''; this.serverX = 0; this.serverY = 0;
       this.alive = true; this.hitFlash = 0; this.stunTimer = 0;
+      this.stunCooldown = 0; this._stunDuration = 0;
       return;
     }
 
@@ -14,6 +15,8 @@ export default class Enemy {
     const localPrng = new PRNG((gameInstance.prng ? gameInstance.prng.seed : 1) + spawnIndex * 1337);
     this.id = 'E_' + gameInstance.wave + '_' + spawnIndex;
     this.stunTimer = 0;
+    this.stunCooldown = 0;
+    this._stunDuration = 0;
     const wave = gameInstance.wave;
 
     // Calculate average player level
@@ -155,13 +158,12 @@ export default class Enemy {
     if (this.stunTimer > 0 && this.name !== 'MISSILE' && this.name !== 'BOMB') {
       if (this.hitFlash > 0) this.hitFlash -= dt;
       this.stunTimer -= dt;
+      if (this.stunTimer <= 0) {
+        this.stunTimer = 0;
+        this.stunCooldown = this._stunDuration * 0.75;
+        this._stunDuration = 0;
+      }
       return;
-    }
-
-    // MISSILE/BOMB still move but can't attack while stunned
-    if (this.stunTimer > 0 && (this.name === 'MISSILE' || this.name === 'BOMB')) {
-      if (this.hitFlash > 0) this.hitFlash -= dt;
-      this.stunTimer -= dt;
     }
 
     if (this.name === 'BOSS') {
@@ -319,6 +321,11 @@ export default class Enemy {
     }
     if (this.hitFlash > 0) this.hitFlash -= dt;
     if (this.stunTimer > 0) this.stunTimer -= dt;
+    if (this.stunTimer <= 0 && this._stunDuration > 0) {
+      this.stunCooldown = this._stunDuration * 0.75;
+      this._stunDuration = 0;
+    }
+    if (this.stunCooldown > 0) this.stunCooldown -= dt;
   }
 
   draw(ctx, groundY) {

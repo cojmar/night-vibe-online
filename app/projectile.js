@@ -79,11 +79,14 @@ export default class Projectile {
         if (inHitbox) {
           if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage, this.critChance);
           this.hitIds.add(e);
-          // Only apply stun/knockback if enemy is not already stunned
-          if (e.stunTimer <= 0) {
+          // Only apply stun/knockback if enemy is not already stunned or in cooldown
+          if (e.stunTimer <= 0 && e.stunCooldown <= 0) {
             if (this.isKnockback) {
-              const stunFrames = Math.floor(this.damage / 300 * 60);
-              e.stunTimer = Math.max(e.stunTimer, stunFrames);
+              const stunFrames = Math.floor(this.damage / 300 * 60 * 1.15);
+              if (stunFrames > e.stunTimer) {
+                e.stunTimer = stunFrames;
+                e._stunDuration = stunFrames;
+              }
               if (e.attackTimer !== undefined) e.attackTimer = Math.max(e.attackTimer, 30);
               e.x += e.x > this.originX ? 8 : -8;
               e.x = Math.max(e.size, Math.min(gameInstance.gameW - e.size, e.x));

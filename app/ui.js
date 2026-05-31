@@ -2962,7 +2962,7 @@ export default class UI {
         const mgSpiritsBase = 1 + Math.floor(3 * mgSpdRatio);
 
         if (this.selectedClass === 'warrior') {
-            s1Desc = `Wide arc strike. ${s1Dmg} ATK + knockback.`;
+            s1Desc = `Arc strike. 50% ATK (${(cd.atk * 0.5).toFixed(1)} dmg) + stun (ATK/300 sec) + mini knockback.`;
             s2Desc = `Shockwave projectile. ${(cd.atk * 0.5).toFixed(1)} ATK base. Damage and AOE scale massively with charges and SPD.`;
         } else if (this.selectedClass === 'mage') {
             s1Desc = `Fast bolt. ${s1Dmg} ATK single-target.`;

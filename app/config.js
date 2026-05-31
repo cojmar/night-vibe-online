@@ -500,7 +500,7 @@ export const ENV_CONFIG = {
 
 export const SKILL_DESC = {
   warrior: {
-    s1: { name: 'Bash', desc: 'Wide arc strike. 100% ATK + knockback.', ctrl: 'Left-click enemy' },
+    s1: { name: 'Bash', desc: 'Wide arc strike. 50% ATK + stun (ATK/300 sec) + mini knockback.', ctrl: 'Left-click enemy' },
     s2: { name: 'Sword Slash', desc: 'Shockwave projectile. 250% ATK + knockback.', ctrl: 'Right-click / long-press' }
   },
   mage: {

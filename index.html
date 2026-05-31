@@ -1642,20 +1642,7 @@
       <div class="menu-grid">
         <!-- Left Column: Player & Lobby -->
         <div class="menu-col">
-          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <button id="btn-menu-inventory"
-              style="background: #2c3e50; color: #fff; border: 1px solid #f1c40f; border-radius: 6px; font-size: 1.1em; padding: 10px; width: 50%; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
-              onmouseover="this.style.background='#34495e'" onmouseout="this.style.background='#2c3e50'"
-              title="Open Inventory">
-              🎒 Inventory
-            </button>
-            <button id="btn-menu-settings"
-              style="background: #2c3e50; color: #fff; border: 1px solid #2ecc71; border-radius: 6px; font-size: 1.0em; padding: 10px; width: 50%; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
-              onmouseover="this.style.background='#34495e'" onmouseout="this.style.background='#2c3e50'"
-              title="Open Settings & Gameplay Balance Editor">
-              ⚙️ Config Editor
-            </button>
-          </div>
+
           <button id="btn-install-app" class="install-app-btn" hidden
             style="background: #141428; color: #ffd700; border: 1px solid #ffd700; border-radius: 6px; font-size: 1.0em; padding: 10px; width: 100%; cursor: pointer; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
             title="Install Night Vibe Online">
@@ -1725,6 +1712,20 @@
           <button class="btn-start" id="btn-start"
             style="font-size:1.5em; padding:12px 30px; width:100%; margin-bottom:15px;">🎮 START GAME</button>
 
+          <div style="display: flex; gap: 10px; margin-bottom: 15px; width: 100%;">
+            <button id="btn-menu-inventory"
+              style="background: #2c3e50; color: #fff; border: 1px solid #f1c40f; border-radius: 6px; font-size: 1.1em; padding: 10px; flex: 1; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
+              onmouseover="this.style.background='#34495e'" onmouseout="this.style.background='#2c3e50'"
+              title="Open Inventory">
+              🎒 Inventory
+            </button>
+            <button id="btn-menu-settings"
+              style="background: #2c3e50; color: #fff; border: 1px solid #2ecc71; border-radius: 6px; font-size: 1.0em; padding: 10px; flex: 1; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
+              onmouseover="this.style.background='#34495e'" onmouseout="this.style.background='#2c3e50'"
+              title="Open Settings & Gameplay Balance Editor">
+              ⚙️ Config Editor
+            </button>
+          </div>
 
           <div class="class-card selected" id="class-card"
             style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; overflow:hidden;">
