@@ -151,11 +151,17 @@ export default class Enemy {
     const dx = targetPlayer.x - this.x;
     const dy = targetPlayer.y - this.y;
 
-    // Full stun freeze — no movement, attacks, or spells for any enemy type
-    if (this.stunTimer > 0) {
+    // Full stun freeze — no movement, attacks, or spells
+    if (this.stunTimer > 0 && this.name !== 'MISSILE' && this.name !== 'BOMB') {
       if (this.hitFlash > 0) this.hitFlash -= dt;
       this.stunTimer -= dt;
       return;
+    }
+
+    // MISSILE/BOMB still move but can't attack while stunned
+    if (this.stunTimer > 0 && (this.name === 'MISSILE' || this.name === 'BOMB')) {
+      if (this.hitFlash > 0) this.hitFlash -= dt;
+      this.stunTimer -= dt;
     }
 
     if (this.name === 'BOSS') {
