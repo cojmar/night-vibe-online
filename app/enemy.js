@@ -151,6 +151,13 @@ export default class Enemy {
     const dx = targetPlayer.x - this.x;
     const dy = targetPlayer.y - this.y;
 
+    // Full stun freeze — no movement, attacks, or spells for any enemy type
+    if (this.stunTimer > 0) {
+      if (this.hitFlash > 0) this.hitFlash -= dt;
+      this.stunTimer -= dt;
+      return;
+    }
+
     if (this.name === 'BOSS') {
       if (this.bossState === 'CHANNELING_LASER') {
         this.bossChannelTimer -= dt;
@@ -337,23 +344,25 @@ export default class Enemy {
       drawY += bounce;
     }
 
-    // Stun stars
+    // Stun stars — above monster head, or above boss crown
     if (this.stunTimer > 0 && this.alive && this.name !== 'MISSILE' && this.name !== 'BOMB') {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       const starCount = 5;
+      const crownY = drawY - this.size * 0.75;
+      const centerY = this.name === 'BOSS' ? crownY - 25 : drawY - this.size * 0.5 - 10;
       for (let i = 0; i < starCount; i++) {
         const angle = (now / 200 + i * Math.PI * 2 / starCount) % (Math.PI * 2);
-        const dist = 14 + Math.sin(now / 100 + i * 1.5) * 4;
+        const dist = 20 + Math.sin(now / 100 + i * 1.5) * 6;
         const sx = this.x + Math.cos(angle) * dist;
-        const sy = drawY - this.size * 0.6 + Math.sin(angle) * dist * 0.4 - 8;
-        const size = 2.5 + Math.sin(now / 80 + i * 2) * 1;
-        const alpha = Math.min(1, this.stunTimer / 15) * (0.5 + Math.sin(now / 60 + i) * 0.5);
+        const sy = centerY + Math.sin(angle) * dist * 0.5;
+        const size = 5 + Math.sin(now / 80 + i * 2) * 2;
+        const alpha = Math.min(1, this.stunTimer / 15) * (0.6 + Math.sin(now / 60 + i) * 0.4);
         
         ctx.globalAlpha = alpha;
         ctx.fillStyle = i % 2 === 0 ? '#ffd700' : '#fff';
         ctx.shadowColor = ctx.fillStyle;
-        ctx.shadowBlur = 3;
+        ctx.shadowBlur = 8;
         
         // Draw 4-point star
         ctx.beginPath();

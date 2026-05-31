@@ -118,12 +118,7 @@ export default class CombatManager {
     const skillType = cd.s1Name;
     if (skillType === 'Bash' || this.game.player.classType === 'warrior') {
       const wScale = 1 + (this.game.player.atk - cd.atk) * 0.005;
-      this.game.spawnProjectile({ type: 'slash', originX: this.game.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.game.player.atk * 1.0, ...projProps });
-      this.game.spawnParticles(this.game.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 8, 4);
-      for (let i = 0; i < 6; i++) {
-        const a = Math.random() * Math.PI * 2;
-        this.game.spawnParticles(this.game.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, Math.random() > 0.5 ? '#ffd700' : '#fff', 1, 2 + Math.random() * 3, 2);
-      }
+      this.game.spawnProjectile({ type: 'slash', originX: this.game.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.game.player.atk * 0.5, ...projProps });
     } else if (skillType === 'Magic Bolt' || this.game.player.classType === 'mage') {
       const mageBaseAtk = cd.atk;
       const mageRangeMult = Math.pow(this.game.player.atk / mageBaseAtk, ConfigModule.E1_RANGE_ATK_EXPONENT);
@@ -162,14 +157,8 @@ export default class CombatManager {
       this.game.spawnProjectile({ type: 'psionic_slash', x: this.game.player.x, y: weaponY, vx: Math.cos(aimAngle) * 8, vy: Math.sin(aimAngle) * 8, angle: aimAngle, speed: 8, life: 8, maxLife: 8, color: cd.s1Color || '#e74c3c', radius: 45 * mgScale * lvlScale, damage: this.game.player.atk * 1.1, critChance: 0.12, ...projProps });
       this.game.spawnParticles(this.game.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#e74c3c', 7, 4);
     } else {
-      // Default fallback is Warrior Bash style
       const wScale = 1 + (this.game.player.atk - cd.atk) * 0.005;
-      this.game.spawnProjectile({ type: 'slash', originX: this.game.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.game.player.atk * 1.0, ...projProps });
-      this.game.spawnParticles(this.game.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, cd.s1Color || '#d4af37', 8, 4);
-      for (let i = 0; i < 6; i++) {
-        const a = Math.random() * Math.PI * 2;
-        this.game.spawnParticles(this.game.player.x + Math.cos(aimAngle) * 40, weaponY + Math.sin(aimAngle) * 40, Math.random() > 0.5 ? '#ffd700' : '#fff', 1, 2 + Math.random() * 3, 2);
-      }
+      this.game.spawnProjectile({ type: 'slash', originX: this.game.player.x, originY: weaponY, life: 15, maxLife: 15, color: cd.s1Color || '#d4af37', radius: 60 * wScale * lvlScale, hitInner: 0, hitOuter: 90 * wScale * lvlScale, knockback: 65, knockbackDir: aimAngle, isKnockback: true, damage: this.game.player.atk * 0.5, ...projProps });
     }
     this.game.networkSync.broadcastState();
   }
@@ -443,5 +432,10 @@ export default class CombatManager {
     delete cleanProps.image;
     delete cleanProps.flippedImage;
     this.game.networkSync.emitEvent('projectile_spawn', { projectile: cleanProps });
+    // Create locally so stun/hit work even before server echoes back
+    const existing = this.game.projectiles.find(p => p.id === id);
+    if (!existing) {
+      this.game.projectiles.push(new Projectile(cleanProps));
+    }
   }
 }

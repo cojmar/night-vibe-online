@@ -350,6 +350,9 @@ export default class Player {
             gameInstance.doSkill1(e.x, e.y);
           }
           this.isMoving = false;
+          this.x = Math.max(20, Math.min(gameInstance.gameW - 20, this.x));
+          const gY = getGroundY(gameInstance.selectedEnv);
+          this.y = Math.max(gY - 50, Math.min(gameInstance.gameH - 45, this.y));
           return;
         } else {
           this.moveTargetX = Math.max(20, Math.min(gameInstance.gameW - 20, e.x));

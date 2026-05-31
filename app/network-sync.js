@@ -300,7 +300,10 @@ export default class NetworkSync {
 
   applyProjectileSpawn(event) {
     if (!event.projectile) return;
-    this.game.projectiles.push(new Projectile(event.projectile));
+    const existing = this.game.projectiles.find(p => p.id === event.projectile.id);
+    if (!existing) {
+      this.game.projectiles.push(new Projectile(event.projectile));
+    }
     if (this.game.otherPlayers[event.source]) {
       this.game.otherPlayers[event.source].animTimer = 15;
       this.game.otherPlayers[event.source].action = 'attack';

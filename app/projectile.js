@@ -70,7 +70,7 @@ export default class Projectile {
         if (!e.alive || this.hitIds.has(e)) continue;
         const dx = e.x - this.originX, dy = e.y - this.originY;
         const dist = Math.hypot(dx, dy);
-        const hitInner = this.hitInner || 5;
+        const hitInner = this.hitInner !== undefined ? this.hitInner : 5;
         const hitOuter = this.hitOuter || (this.radius || 140);
         const inHitbox = this.isKnockback ?
           (dist > hitInner && dist < hitOuter) :
@@ -79,8 +79,13 @@ export default class Projectile {
         if (inHitbox) {
           if (!this.ownerId || (gameInstance.net && gameInstance.net.me && this.ownerId === gameInstance.net.me.info.user)) gameInstance.dealDamage(e, this.damage, this.critChance);
           this.hitIds.add(e);
-          if (this.isKnockback) gameInstance.applyKnockback(e, this.knockbackDir, this.knockback);
-          e.stunTimer = Math.max(e.stunTimer, 12);
+          if (this.isKnockback) {
+            const stunFrames = Math.floor(this.damage / 300 * 60);
+            e.stunTimer = Math.max(e.stunTimer, stunFrames);
+            if (e.attackTimer !== undefined) e.attackTimer = Math.max(e.attackTimer, 30);
+          } else {
+            e.stunTimer = Math.max(e.stunTimer, 12);
+          }
           gameInstance.spawnParticles(e.x, e.y, this.color, 6, 3);
           // Star burst particles on hit
           for (let i = 0; i < 5; i++) {
