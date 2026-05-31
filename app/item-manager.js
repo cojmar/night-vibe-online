@@ -7,8 +7,10 @@ export default class ItemManager {
   }
 
   handleItemPickup(event) {
-    this.pendingPickupIds.delete(event.itemId);
-    const idx = this.game.items.findIndex(i => i.id === event.itemId);
+    const itemId = typeof event === 'string' ? event : (event.data || event.itemId);
+    if (!itemId) return;
+    this.pendingPickupIds.delete(itemId);
+    const idx = this.game.items.findIndex(i => i.id === itemId);
     if (idx >= 0) this.game.items.splice(idx, 1);
   }
 
