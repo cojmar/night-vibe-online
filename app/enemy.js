@@ -156,6 +156,9 @@ export default class Enemy {
 
     // Full stun freeze — no movement, attacks, or spells
     if (this.stunTimer > 0 && this.name !== 'MISSILE' && this.name !== 'BOMB') {
+      if (this.name === 'BOSS' && (this.bossState === 'CHANNELING_LASER' || this.bossState === 'FIRING_LASER')) {
+        this.bossState = 'IDLE';
+      }
       if (this.hitFlash > 0) this.hitFlash -= dt;
       this.stunTimer -= dt;
       if (this.stunTimer <= 0) {
@@ -392,87 +395,29 @@ export default class Enemy {
       ctx.restore();
     }
 
-    if (this.name === 'BOSS') {
-      if (this.bossState === 'CHANNELING_LASER') {
-        const progress = 1 - (this.bossChannelTimer / BOSS_LASER_CHANNEL_TIME);
-        const startX = this.x;
-        const startY = drawY - this.size * 0.75; // Start at the crown 👑
-        const targetX = this.targetLaserPos.x;
-        const targetY = this.targetLaserPos.y;
-
-        // 1. Targeting Beam
-        ctx.save();
-        const beamAlpha = 0.1 + progress * 0.5;
-        const beamPulse = Math.abs(Math.sin(now / 50));
-        ctx.strokeStyle = `rgba(255, 50, 50, ${beamAlpha + beamPulse * 0.2})`;
-        ctx.lineWidth = 1 + progress * 3;
-        ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = 2 + progress * 4;
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(targetX, targetY);
-        ctx.stroke();
-        ctx.restore();
-
-        // 2. Targeting Reticle
-        ctx.save();
-        ctx.translate(targetX, targetY);
-        ctx.rotate(now / 200 + progress * Math.PI * 4);
-        const reticleSize = 30 - progress * 15;
-        ctx.strokeStyle = `rgba(255, 0, 0, ${0.5 + progress * 0.5})`;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = 4;
-        ctx.beginPath();
-        ctx.arc(0, 0, reticleSize, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(-reticleSize - 5, 0);
-        ctx.lineTo(reticleSize + 5, 0);
-        ctx.moveTo(0, -reticleSize - 5);
-        ctx.lineTo(0, reticleSize + 5);
-        ctx.stroke();
-        ctx.restore();
-
-        // 3. Energy Orb (Crown)
-        ctx.save();
-        const orbSize = 5 + progress * 25 + Math.random() * 5;
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.8})`;
-        ctx.shadowColor = '#e74c3c';
-        ctx.shadowBlur = 6 + progress * 10;
-        ctx.beginPath();
-        ctx.arc(startX, startY, orbSize, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.fillStyle = '#ffcccc';
-        ctx.shadowBlur = 2;
-        ctx.beginPath();
-        ctx.arc(startX, startY, orbSize * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      } else if (this.bossState === 'FIRING_LASER') {
-        const lx = this.x;
-        const ly = drawY - this.size * 0.75; // Start at the crown 👑
-        const tx = this.targetLaserPos.x - lx;
-        const ty = this.targetLaserPos.y - ly;
-        const len = Math.hypot(tx, ty) || 1;
-
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = this.size * 0.25; // Adjusted thickness (25% of body size)
-        ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
-        ctx.stroke();
-
-        // Add a bright core to the laser 
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = this.size * 0.08; // Core thickness (approx. 1/3 of laser width)
-        ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
-        ctx.stroke();
-      }
+    // Ground-level boss effects (reticle) — depth-sorted
+    if (this.name === 'BOSS' && this.bossState === 'CHANNELING_LASER') {
+      const progress = 1 - (this.bossChannelTimer / BOSS_LASER_CHANNEL_TIME);
+      const targetX = this.targetLaserPos.x;
+      const targetY = this.targetLaserPos.y;
+      ctx.save();
+      ctx.translate(targetX, targetY);
+      ctx.rotate(now / 200 + progress * Math.PI * 4);
+      const reticleSize = 30 - progress * 15;
+      ctx.strokeStyle = `rgba(255, 0, 0, ${0.5 + progress * 0.5})`;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#ff0000';
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, reticleSize, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-reticleSize - 5, 0);
+      ctx.lineTo(reticleSize + 5, 0);
+      ctx.moveTo(0, -reticleSize - 5);
+      ctx.lineTo(0, reticleSize + 5);
+      ctx.stroke();
+      ctx.restore();
     }
 
     const flip = (this.moveDirX || 1) < 0;
@@ -546,5 +491,67 @@ export default class Enemy {
     ctx.fillText(`${this.name}${this.name === 'BOSS' ? ' 👑' : ''} Lv.${Math.ceil(this.game.wave)}`, this.x, barY - 4);
 
     ctx.globalAlpha = 1;
+  }
+
+  drawLaserOverlay(ctx) {
+    if (!this.alive || this.name !== 'BOSS') return;
+    const now = Date.now();
+    if (this.bossState === 'CHANNELING_LASER') {
+      const progress = 1 - (this.bossChannelTimer / BOSS_LASER_CHANNEL_TIME);
+      const startX = this.x;
+      const startY = this.y - this.size * 0.75;
+      const targetX = this.targetLaserPos.x;
+      const targetY = this.targetLaserPos.y;
+
+      // Targeting Beam
+      ctx.save();
+      const beamAlpha = 0.1 + progress * 0.5;
+      const beamPulse = Math.abs(Math.sin(now / 50));
+      ctx.strokeStyle = `rgba(255, 50, 50, ${beamAlpha + beamPulse * 0.2})`;
+      ctx.lineWidth = 1 + progress * 3;
+      ctx.shadowColor = '#ff0000';
+      ctx.shadowBlur = 2 + progress * 4;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(targetX, targetY);
+      ctx.stroke();
+      ctx.restore();
+
+      // Energy Orb (Crown)
+      ctx.save();
+      const orbSize = 5 + progress * 25 + Math.random() * 5;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.shadowColor = '#e74c3c';
+      ctx.shadowBlur = 6 + progress * 10;
+      ctx.beginPath();
+      ctx.arc(startX, startY, orbSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffcccc';
+      ctx.shadowBlur = 2;
+      ctx.beginPath();
+      ctx.arc(startX, startY, orbSize * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else if (this.bossState === 'FIRING_LASER') {
+      const lx = this.x;
+      const ly = this.y - this.size * 0.75;
+      const tx = this.targetLaserPos.x - lx;
+      const ty = this.targetLaserPos.y - ly;
+      const len = Math.hypot(tx, ty) || 1;
+
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = this.size * 0.25;
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = this.size * 0.08;
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(lx + (tx / len) * 3000, ly + (ty / len) * 3000);
+      ctx.stroke();
+    }
   }
 }

@@ -26,3 +26,20 @@
 - No `package.json`, `node_modules`, or any build step.
 - Multiplayer runs over BSON WebSockets via `app/network.js`; the client connects to a separate backend server.
 - Mobile-first layout with touch controls (`touch-action: none`, viewport constraints in `<head>`).
+
+## Anchored Summary
+### Goal
+- Full game sync between host and clients, clock sync, gameW broadcast, movement refactor (custom events), Bash stun + knockback + cooldown, boss laser overlay.
+
+### Key Changes & Decisions
+- **Boss state on stun**: both CHANNELING_LASER and FIRING_LASER reset to IDLE when stunned (`enemy.js:158-160`).
+- **Laser rendering split**: beam + orb + laser beam moved to `drawLaserOverlay()` called from `game.js` after all entities (projectiles, items, etc.), ensuring laser renders above everything (crown, player, etc.).
+- **Reticle (crosshair)**: stays in normal depth-sorted `draw()` — under entities with higher Y.
+- **drawLaserOverlay**: separate method in `Enemy` class, uses `Date.now()` for animations, draws targeting beam + crown orb (CHANNELING) and laser beam (FIRING).
+- **Stun**: 50% ATK damage, duration `Math.floor(ATK/300 * 60 * 1.15)`s, post-stun cooldown 75% of duration, knockback pure horizontal 8px, full freeze (no ground Y mod), all enemies except MISSILE/BOMB.
+
+### Relevant Files
+- `app/enemy.js`: stun freeze block (boss state reset), drawLaserOverlay method, reticle-only draw
+- `app/game.js`: drawLaserOverlay call after projectile loop
+- `app/combat-manager.js`: spawnProjectile with local projectile + dedup
+- `app/projectile.js`: stun/knockback logic
